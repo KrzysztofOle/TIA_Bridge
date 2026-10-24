@@ -1,5 +1,7 @@
 # Synchronization model
 
+> Materiał koncepcyjny zachowany z initial scaffold. Aktualna specyfikacja: [04_SYNCHRONIZATION.md](04_SYNCHRONIZATION.md) — S/W/P/B, baseline i formalne SYNCED. W zakresie autoryzacji stosuj [ADR 0002](decisions/0002-async-host-and-versioned-worker.md): zatwierdzony, ograniczony grant sesji może obejmować wiele kroków; nie ma import-on-save ani nieautoryzowanych zapisów. Opis poniżej nie deklaruje implementacji.
+
 ## Sources of state
 
 For each tracked object, the system may observe:

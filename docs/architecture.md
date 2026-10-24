@@ -1,5 +1,7 @@
 # Architecture
 
+> Materiał koncepcyjny zachowany z initial scaffold. Aktualna specyfikacja: [03_ARCHITECTURE.md](03_ARCHITECTURE.md) — procesy, scheduler i runtime. W zakresie autoryzacji stosuj [ADR 0002](decisions/0002-async-host-and-versioned-worker.md): zatwierdzony, ograniczony grant sesji może obejmować wiele kroków; nie ma import-on-save ani nieautoryzowanych zapisów. Opis poniżej nie deklaruje implementacji.
+
 ## Purpose
 
 TIA Bridge mediates between a TIA Portal project and a Git-friendly workspace. Editors and coding agents change workspace files. TIA Bridge is responsible for reading and changing a project through a version-specific Siemens integration.

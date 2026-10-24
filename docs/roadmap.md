@@ -1,5 +1,7 @@
 # Roadmap
 
+> Materiał koncepcyjny zachowany z initial scaffold. Aktualna specyfikacja: [08_IMPLEMENTATION_PLAN.md](08_IMPLEMENTATION_PLAN.md) — backlog etapów 0–11 i bramki. W zakresie autoryzacji stosuj [ADR 0002](decisions/0002-async-host-and-versioned-worker.md): zatwierdzony, ograniczony grant sesji może obejmować wiele kroków; nie ma import-on-save ani nieautoryzowanych zapisów. Opis poniżej nie deklaruje implementacji.
+
 This roadmap is a proposal. A milestone is complete only when its acceptance evidence is recorded.
 
 ## Stage 0: evidence and design

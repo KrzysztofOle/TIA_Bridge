@@ -1,57 +1,45 @@
-# TIA Bridge
+# TIA_Bridge 2
 
-TIA Bridge is a planned Windows application for synchronizing selected Siemens TIA Portal project objects with a Git-friendly file workspace.
+Projekt nowej aplikacji Windows do integracji CODEX z Siemens TIA Portal. Stan opracowania 2026-10-24–25: **analiza i projekt, bez implementacji aplikacji**. Istniejące katalogi `src/` są miejscami na przyszły kod. Schematy w `contracts/` i przykłady opisują projekt kontraktu, nie działający serwer.
 
-VS Code and Codex work on workspace files. TIA Bridge owns communication with TIA Portal, export, comparison, validation, import, conflict handling, and safety checks. A human reviews and starts operations that affect a live project.
+Docelowy przepływ: **TIA → eksport do workspace → edycja CODEX → plan → zatwierdzone Apply → niezależna weryfikacja → kompilacja/symulacja → testy**. Pliki CODEX określają zamierzony stan. Rozbieżności z nieznanymi zmianami TIA wymagają rozstrzygnięcia; import nigdy nie stanowi samodzielnego dowodu zgodności.
 
-## Goals
+Rekomendacja: host C#/.NET 10, trwałe operacje i SQLite na lokalnym NTFS, wykonawca Openness V19 w oddzielnym procesie .NET Framework 4.8 x64. CODEX otrzymuje `operation_id` po utrwaleniu zlecenia i kontynuuje niezależną pracę. CLI i lokalne HTTP API korzystają z jednego silnika; MCP jest opcjonalną fasadą. Zawieszenie Siemens nie blokuje API, ale może uniemożliwić dalsze operacje na danym projekcie do czasu uzgodnienia stanu.
 
-- Represent selected project objects as files in a hierarchy understandable beside the TIA Portal project tree.
-- Export supported objects into a workspace and compare project state with workspace state.
-- Validate proposed changes and import approved changes with explicit conflict and recovery handling.
-- Keep work reviewable and versioned in Git.
-- Start with a version-specific Siemens Openness V19 adapter and add later releases only with compatibility evidence.
+## Wyniki analizy
 
-## Status
+- Stary Bridge: `C:\RMA\t05_plc\tools\T05_TIA_Bridge.py` i `tools/t05_tia_bridge/`. Zbadano kod bieżących plików, historię Git, testy, logi oraz lokalną dokumentację Siemens. [Audyt](docs/01_AUDIT_OLD_BRIDGE.md) rozdziela usterki historyczne, naprawione i nadal obecne.
+- Potwierdzono lokalne API V19, read-only attach i inventory oraz obecność PLCSIM V19, PLCSIM Advanced V6.0 i Unified PC V19. Nie wykonywano importu, Compile, Save, Archive, downloadu ani sterowania symulatorem w tym zadaniu.
+- OPC UA `localhost:4890`: read-only status PASS dla **WinCC Unified**. To nie jest dowód dostępu do CPU ani testu logiki PLC. HTTPS `localhost`: błąd TLS; HMI E2E NOT_RUN.
+- Wykonano 94 ukierunkowane testy offline starego Bridge; wszystkie przeszły. Weryfikują istniejące zabezpieczenia i komparatory, nie nową aplikację ani Runtime. Szczegóły: [dowody i jakość](docs/10_EVIDENCE_AND_QUALITY.md).
 
-This repository contains architecture and planning documentation only. It has no working application and no verified list of object types that Openness V19 can export or import.
+## Dokumentacja projektu
 
-## Repository layout
+| Dokument | Zawartość |
+|---|---|
+| [01 — Audyt](docs/01_AUDIT_OLD_BRIDGE.md) | kod, historia, rejestr problemów i środki zaradcze |
+| [02 — Wymagania](docs/02_REQUIREMENTS.md) | sześć etapów workflow i mierzalne cele |
+| [03 — Architektura](docs/03_ARCHITECTURE.md) | procesy, kolejka, watchdog, struktura repo |
+| [04 — Synchronizacja](docs/04_SYNCHRONIZATION.md) | stan, hashe, konflikty, SYNCED, recovery |
+| [05 — Interfejs CODEX](docs/05_CODEX_INTERFACE.md) | operacje, wejścia, wyniki, błędy, uprawnienia |
+| [06 — Siemens](docs/06_TIA_INTEGRATION.md) | V19, formaty, kompilacja, symulatory, licencje |
+| [07 — Testy](docs/07_TEST_STRATEGY.md) | OPC UA, Playwright i 16 awarii obowiązkowych |
+| [08 — Plan](docs/08_IMPLEMENTATION_PLAN.md) | etapy 0–11, małe zadania i bramki akceptacji |
+| [09 — Ryzyka i decyzje](docs/09_RISKS_AND_DECISIONS.md) | ADR, ryzyka i eksperymenty do wykonania |
+| [10 — Dowody i jakość](docs/10_EVIDENCE_AND_QUALITY.md) | środowisko, źródła producentów i zakres kontroli |
+| [11 — Snap7](docs/11_SNAP7_PLC_TESTING.md) | dodatkowy transport testów PLC, ograniczenia i kwalifikacja |
+| [Zmiany](Zmiany.md) | zapis prac projektowych |
 
-The initial scaffold includes `docs/` (architecture, synchronization model, formats, safety, roadmap, and decisions), `src/TiaBridge.Core/`, `src/TiaBridge.Adapters/`, `src/TiaBridge.Cli/`, `tests/`, `examples/`, and `scripts/`.
+Pierwsze zadanie implementacyjne: **etap 1 + pierwszy przekrój etapu 2**, kontrakty i asynchroniczny silnik na fałszywym wykonawcy. Następnie read-only V19 i jeden kwalifikowany round-trip SCL FC na czystej kopii syntetycznego projektu. [Plan](docs/08_IMPLEMENTATION_PLAN.md) wskazuje kolejność i dowody wymagane przed Apply.
 
-## MVP proposal
+## Granice i praca z repozytorium
 
-1. Inspect the installed TIA Portal and Openness environment without modifying a project.
-2. Connect to a user-selected project through a documented, supported V19 workflow.
-3. Export a bounded set of evidenced object types, preserving identity and source metadata where available.
-4. Compare project and workspace state and produce a deterministic report.
-5. Validate an import plan and show its exact scope.
-6. Apply only supported changes after explicit confirmation and with a documented recovery path.
-7. Record operation results without storing credentials or unnecessary project data in logs.
+Nie ma automatycznego importu po zapisie pliku. Domyślny profil jest read-only; zatwierdzone, ograniczone uprawnienie sesji testowej może obejmować wiele kroków. Usuwanie, fizyczny download i rzeczywista maszyna wymagają osobnej autoryzacji. Kopia Git nie zastępuje archiwum Siemens.
 
-The first release should focus on read-only discovery, export, and comparison. Import remains unavailable for an object kind until round-trip behavior, validation, and recovery are demonstrated for that kind and TIA Portal version.
+Repozytorium znajduje się obecnie na M: (exFAT). Trwała baza operacji, sekrety i spool wykonawcy mają docelowo znajdować się na lokalnym NTFS poza repo; na exFAT nie opieramy gwarancji ACL ani odporności na utratę zasilania. Nazwy `SYNCED`, `Compile PASS` i `Runtime PASS` opisują niezależne fakty.
 
-## Boundaries and limitations
+Kontrola dokumentacji: `py -3 scripts/audit_quality.py`. Wymaga Python 3.12 i `jsonschema`; nie łączy się z Siemens. [Instrukcja](scripts/README.md), [zasady agentów](AGENTS.md).
 
-- TIA Bridge is the only component that communicates with TIA Portal. Editors and coding agents work on workspace files only.
-- The workspace is a selected representation, not a complete or necessarily lossless copy of a TIA Portal project.
-- Export and import support is object-kind and version specific. Establish it from Siemens documentation and representative tests.
-- An editable export does not prove that import preserves semantics, references, security settings, or project behavior.
-- Report unsupported objects and ambiguous changes without changing them.
-- Never import automatically because Git reports a change. Require a reviewed plan, validation, and explicit user action.
-- Git history helps review and provenance; it does not replace project backup or a tested recovery procedure.
+## Materiały wejściowe
 
-## Documentation
-
-- [Architecture](docs/architecture.md)
-- [Synchronization model](docs/sync-model.md)
-- [Formats and object mapping](docs/formats.md)
-- [Safety](docs/safety.md)
-- [Roadmap](docs/roadmap.md)
-- [Decision 0001: file workspace and adapter boundary](docs/decisions/0001-file-workspace-and-adapter-boundary.md)
-- [Contributor and agent guidance](AGENTS.md)
-
-## Development status
-
-There is no implementation, build, or test suite yet. Planned source areas are documentation placeholders. Keep version-specific Siemens integration behind adapters and keep core comparison and planning logic testable without a TIA Portal installation.
+Pierwotne opracowania [architecture](docs/architecture.md), [sync-model](docs/sync-model.md), [formats](docs/formats.md), [safety](docs/safety.md), [roadmap](docs/roadmap.md) i ADR 0001 zachowano i powiązano z aktualnymi specyfikacjami. [ADR 0002](docs/decisions/0002-async-host-and-versioned-worker.md) doprecyzowuje autonomię w zatwierdzonej sesji.

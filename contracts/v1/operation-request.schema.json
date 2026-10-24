@@ -1,0 +1,1226 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tia-bridge2:operation-request:1",
+  "title": "TIA_Bridge 2 proposed transport-neutral request v1",
+  "description": "Design artifact only; policy and live identity checks are not expressed fully in JSON Schema.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "method",
+        "idempotency_key",
+        "params",
+        "project_key"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "method": {
+          "const": "project.inspect"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "inventory_scope"
+          ],
+          "properties": {
+            "inventory_scope": {
+              "enum": [
+                "all_supported",
+                "plc",
+                "hmi"
+              ]
+            },
+            "fresh": {
+              "type": "boolean"
+            },
+            "timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 120
+            },
+            "queue_timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "method",
+        "idempotency_key",
+        "params",
+        "project_key"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "method": {
+          "const": "project.export"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scope"
+          ],
+          "properties": {
+            "scope": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+              },
+              "minItems": 1,
+              "uniqueItems": true,
+              "maxItems": 10000
+            },
+            "include_native": {
+              "type": "boolean"
+            },
+            "observation_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 600
+            },
+            "queue_timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "method",
+        "idempotency_key",
+        "params",
+        "project_key"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "method": {
+          "const": "project.status"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {
+            "scope": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+              },
+              "minItems": 1,
+              "uniqueItems": true,
+              "maxItems": 10000
+            },
+            "fresh": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "method",
+        "idempotency_key",
+        "params",
+        "project_key"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "method": {
+          "const": "files.changes"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "workspace_id"
+          ],
+          "properties": {
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "scope": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+              },
+              "minItems": 1,
+              "uniqueItems": true,
+              "maxItems": 10000
+            },
+            "rescan": {
+              "type": "boolean"
+            },
+            "timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 120
+            },
+            "queue_timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "method",
+        "idempotency_key",
+        "params",
+        "project_key"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "method": {
+          "const": "sync.plan"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "workspace_id",
+            "scope"
+          ],
+          "properties": {
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "scope": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+              },
+              "minItems": 1,
+              "uniqueItems": true,
+              "maxItems": 10000
+            },
+            "baseline_revision": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "observation_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "delete_objects": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+              },
+              "uniqueItems": true
+            },
+            "resolution_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 300
+            },
+            "queue_timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "method",
+        "idempotency_key",
+        "params",
+        "project_key"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "method": {
+          "const": "sync.apply"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "plan_id",
+            "expected_plan_sha256",
+            "authorization_ref",
+            "expected_session_epoch"
+          ],
+          "properties": {
+            "plan_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "expected_plan_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "authorization_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "expected_session_epoch": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1800
+            },
+            "queue_timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "method",
+        "idempotency_key",
+        "params",
+        "project_key"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "method": {
+          "const": "sync.verify"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scope"
+          ],
+          "properties": {
+            "scope": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+              },
+              "minItems": 1,
+              "uniqueItems": true,
+              "maxItems": 10000
+            },
+            "plan_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "snapshot_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "promote_baseline": {
+              "type": "boolean"
+            },
+            "expected_baseline_revision": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 600
+            },
+            "queue_timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "promote_baseline": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "promote_baseline"
+                ]
+              },
+              "then": {
+                "required": [
+                  "expected_baseline_revision"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "method",
+        "idempotency_key",
+        "params",
+        "project_key"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "method": {
+          "const": "compile.plc"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scope",
+            "authorization_ref"
+          ],
+          "properties": {
+            "scope": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+              },
+              "minItems": 1,
+              "uniqueItems": true,
+              "maxItems": 10000
+            },
+            "authorization_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "warnings_policy_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1200
+            },
+            "queue_timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "method",
+        "idempotency_key",
+        "params",
+        "project_key"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "method": {
+          "const": "compile.hmi"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scope",
+            "authorization_ref"
+          ],
+          "properties": {
+            "scope": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+              },
+              "minItems": 1,
+              "uniqueItems": true,
+              "maxItems": 10000
+            },
+            "authorization_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "warnings_policy_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1200
+            },
+            "queue_timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "method",
+        "idempotency_key",
+        "params",
+        "project_key"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "method": {
+          "const": "simulation.prepare"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "test_profile_id",
+            "compiled_artifact_id",
+            "authorization_ref"
+          ],
+          "properties": {
+            "test_profile_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "compiled_artifact_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "authorization_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 900
+            },
+            "queue_timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "method",
+        "idempotency_key",
+        "params",
+        "project_key"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "method": {
+          "const": "simulation.start"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "test_profile_id",
+            "authorization_ref"
+          ],
+          "properties": {
+            "test_profile_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "authorization_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "instance_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 600
+            },
+            "queue_timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "method",
+        "idempotency_key",
+        "params",
+        "project_key"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "method": {
+          "const": "simulation.stop"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "instance_id",
+            "authorization_ref"
+          ],
+          "properties": {
+            "instance_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "authorization_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "release_owned_resources": {
+              "type": "boolean"
+            },
+            "timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 180
+            },
+            "queue_timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "method",
+        "idempotency_key",
+        "params",
+        "project_key"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "method": {
+          "const": "test.plc"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "test_profile_id",
+            "scenario_id",
+            "transport"
+          ],
+          "properties": {
+            "test_profile_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "scenario_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "transport": {
+              "enum": [
+                "opcua",
+                "snap7"
+              ]
+            },
+            "authorization_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "allow_writes": {
+              "type": "boolean"
+            },
+            "timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1800
+            },
+            "queue_timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "allow_writes": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "allow_writes"
+                ]
+              },
+              "then": {
+                "required": [
+                  "authorization_ref"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "method",
+        "idempotency_key",
+        "params",
+        "project_key"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "method": {
+          "const": "test.hmi"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "test_profile_id",
+            "scenario_id",
+            "authorization_ref"
+          ],
+          "properties": {
+            "test_profile_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "scenario_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "authorization_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+            },
+            "timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1800
+            },
+            "queue_timeout_s": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "method",
+        "idempotency_key",
+        "params"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "method": {
+          "const": "operation.status"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation_id"
+          ],
+          "properties": {
+            "operation_id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "method",
+        "idempotency_key",
+        "params"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "method": {
+          "const": "operation.result"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation_id"
+          ],
+          "properties": {
+            "operation_id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "method",
+        "idempotency_key",
+        "params"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "method": {
+          "const": "operation.events"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation_id"
+          ],
+          "properties": {
+            "operation_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "after_sequence": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "method",
+        "idempotency_key",
+        "params"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "method": {
+          "const": "operation.cancel"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation_id"
+          ],
+          "properties": {
+            "operation_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "reason": {
+              "type": "string",
+              "maxLength": 512
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "method",
+        "idempotency_key",
+        "params"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "method": {
+          "const": "diagnostics.health"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {
+            "project_key": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "include_cached_components": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

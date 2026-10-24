@@ -1,0 +1,197 @@
+{
+  "schema": "tia-bridge2-audit-evidence/1",
+  "collected_utc": "2026-10-24T21:47:33.261039+00:00",
+  "client_date": "2026-10-24",
+  "old_root": "C:\\RMA\\t05_plc",
+  "old_head": "76dea4c1f5102de391b44b0b80aa037a03a0adcf",
+  "new_base": "a7c734de57798ccb879fa9ab2764c21505a2cabd",
+  "warning": "Point-in-time source index; dirty worktree and ignored logs are not reconstructed by old_head. No customer source or raw logs copied.",
+  "sources": [
+    {
+      "path": "tools/T05_TIA_Bridge.py",
+      "sha256": "81388a6c6f28e39684d67d50cd2920f282ac6f9ffcd9fcf1ad50e2bf334a015b",
+      "lines": 400,
+      "git_status": "clean"
+    },
+    {
+      "path": "tools/t05_tia_bridge/core.py",
+      "sha256": "7536b8bfc1f2fcbcfb9afa261d31fe1b2439d84b4cb6b4d3a546535efc97c8eb",
+      "lines": 515,
+      "git_status": "clean"
+    },
+    {
+      "path": "tools/t05_tia_bridge/adapter.ps1",
+      "sha256": "93ae3ff600a0608514879235672340bebcf2bd601628d65635150e033422cebf",
+      "lines": 599,
+      "git_status": "clean"
+    },
+    {
+      "path": "tools/t05_tia_bridge/workflow.py",
+      "sha256": "320fc24687696819f3ec1ae510dcf2337ecae84c5f989329778131f7eef0971c",
+      "lines": 572,
+      "git_status": "clean"
+    },
+    {
+      "path": "tools/t05_tia_bridge/model.py",
+      "sha256": "8cf9f58cede22b76e41e95979a3038427d1a65bc30c62a4c1a6a96d4f4e7d7c4",
+      "lines": 334,
+      "git_status": "clean"
+    },
+    {
+      "path": "tools/t05_tia_bridge/modification_session.py",
+      "sha256": "d3c8fc8cc1b57657e604539ce8ef2e02f455ded7d520f6c1a74e38fc99b89c9e",
+      "lines": 1041,
+      "git_status": "worktree_modified"
+    },
+    {
+      "path": "tools/t05_tia_bridge/session_workflow.py",
+      "sha256": "35915a179bc06f7de99388e2f5889e93a6c9451d26703509423cd7da54ab0652",
+      "lines": 534,
+      "git_status": "worktree_modified"
+    },
+    {
+      "path": "tools/t05_tia_bridge/reliability.ps1",
+      "sha256": "7663dac073910d0104ae0e4d074d7ed2ae35708e9e6027c66feba32f21e85a64",
+      "lines": 273,
+      "git_status": "clean"
+    },
+    {
+      "path": "tools/t05_tia_bridge/encoding.ps1",
+      "sha256": "756486dcda557fdbbbfb50b8e875af16ea554f1ba88cdff6ffdd8db994ebea1e",
+      "lines": 28,
+      "git_status": "clean"
+    },
+    {
+      "path": "tools/t05_tia_bridge/backups.py",
+      "sha256": "bf31e4dab39eb16b308e6c022f1027cf910ead3acaa40422135e85a4c8c12fd6",
+      "lines": 313,
+      "git_status": "clean"
+    },
+    {
+      "path": "tools/t05_tia_bridge/backup_storage.ps1",
+      "sha256": "472f219154d8d3540e003df26ffd84265caafc55cc609918b463a8b46dde89f5",
+      "lines": 45,
+      "git_status": "clean"
+    },
+    {
+      "path": "tools/t05_tia_bridge/navigation.ps1",
+      "sha256": "5fbd40e1065b9bb9220054fb70ab9309ad54c3f28caa82d67ba5d2c4969a5a3e",
+      "lines": 186,
+      "git_status": "clean"
+    },
+    {
+      "path": "tools/t05_tia_bridge/hmi.py",
+      "sha256": "eb41890f1b4a99ff0cbf3dea0b91f433f15c7884234555bbf4ac2847f5078ca0",
+      "lines": 505,
+      "git_status": "worktree_modified"
+    },
+    {
+      "path": "tools/t05_tia_bridge/hmi.ps1",
+      "sha256": "f79a7d9949c339eb024ae15ffe828b808fd4409ae58d6c677a975af96af5be4f",
+      "lines": 203,
+      "git_status": "clean"
+    },
+    {
+      "path": "tools/t05_tia_bridge/hmi_module_1to1.py",
+      "sha256": "0d9a9b8a9042a2bb605311b26b526ec3c233fb43beb9e8bb087b81526bee08bb",
+      "lines": 205,
+      "git_status": "untracked"
+    },
+    {
+      "path": "tools/t05_tia_bridge/recipes_sync_update.py",
+      "sha256": "ac6bcc7569c7e44e7127c0721b5115d9d1fb3b215966544f55dd8c198aaa73e2",
+      "lines": 772,
+      "git_status": "worktree_modified"
+    },
+    {
+      "path": "tools/t05_tia_bridge/recipes_sync_update.ps1",
+      "sha256": "170f8cb8c26aa760b17099b8f189027b11adf449dda19de9d4008a31a2250699",
+      "lines": 289,
+      "git_status": "clean"
+    },
+    {
+      "path": "tools/t05_tia_bridge/opc_transport.py",
+      "sha256": "7918afc4c7c94e79cb0878f6103ff37f8c69a000312beeaa1aaf9c016e414fd9",
+      "lines": 226,
+      "git_status": "clean"
+    },
+    {
+      "path": "tools/t05_tia_bridge/opc_engine.py",
+      "sha256": "a2b6a3d1f3ebbd0b7a6b8318004c82aedbfc7f321620b1374b8884adebb8fd15",
+      "lines": 188,
+      "git_status": "clean"
+    },
+    {
+      "path": "tools/t05_tia_bridge/opc_config.py",
+      "sha256": "dc830a774df65487920dfa25f4d152f3fe4f7464f2ba1d55655c3cf5ddc2796a",
+      "lines": 233,
+      "git_status": "clean"
+    },
+    {
+      "path": "tools/t05_tia_bridge/WinCC_Unified_Openness_V19_Capabilities.md",
+      "sha256": "842c605e848f662a1c6b6230ba61b1d296d334c37c7fda532dce497b877078e7",
+      "lines": 234,
+      "git_status": "clean"
+    },
+    {
+      "path": "tools/t05_tia_bridge/File_Based_Architecture.md",
+      "sha256": "06f4220c4d5db2ab48be1e41c81704168c8da7b13cbcdf587b13eac071382095",
+      "lines": 981,
+      "git_status": "clean"
+    },
+    {
+      "path": "docs/T05_HMI_Object_Mapping_Architecture.md",
+      "sha256": "d739f9d17cb583304ff0671b9013fa8ea7e3e204431e2612f4ddce9a465469be",
+      "lines": 62,
+      "git_status": "worktree_modified"
+    },
+    {
+      "path": "tools/t05_tia_bridge/tests/fixtures/native_js_lab/provenance.json",
+      "sha256": "4282c5c8241ba65fa5081d260009eaeb6befc69adb2d179ff60a805b948c5754",
+      "lines": 26,
+      "git_status": "clean"
+    },
+    {
+      "path": "UserFiles/T05_TIA_Bridge/adapter-failure-0fc2ce31399d4b3592f00e8f2d8237a5.json",
+      "sha256": "3bccd203e3fab30e87bc94a94161aa28f5c1fbdd92167c5eeb08504462ea2401",
+      "local_only": true
+    },
+    {
+      "path": "UserFiles/T05_TIA_Bridge/adapter-failure-6da35fdbac254547a957ac3a190536f4.json",
+      "sha256": "45067e393ac4ee8c05f2510fe595bf35369b195ed3d40e8507a36f8b5190e85a",
+      "local_only": true
+    },
+    {
+      "path": "UserFiles/T05_TIA_Bridge/adapter-failure-4b331b0a6c184d938e0d8a70ebaafdbb.json",
+      "sha256": "d2d5703391af764a04ab76772d9adbf0c2f6cef28c381dc6eb07cf1aad8cf51d",
+      "local_only": true
+    },
+    {
+      "path": "UserFiles/T05_TIA_Bridge/adapter-failure-5a13f2aad7da4be58151ede0993524f0.json",
+      "sha256": "3d4755ded4a1c6843fe340b24ed8d4a1a41a8162a81d049750a6a3a2982f02b3",
+      "local_only": true
+    },
+    {
+      "path": "UserFiles/T05_TIA_Bridge/adapter-failure-5b26dd9512db46388f59f0774c88de79.json",
+      "sha256": "42f9d7ebfab1be743d4e1eb7afcf420e70dfa46819667e2b498d78d65bf0cc5c",
+      "local_only": true
+    },
+    {
+      "path": "UserFiles/T05_TIA_Bridge/adapter-failure-2836a22bf1e3478e91b61af3cd52e1a1.json",
+      "sha256": "108e79c5f11562b8c3777800aef4ca16c73bcd20fd2a967fc8d6666e2f55119d",
+      "local_only": true
+    },
+    {
+      "path": "C:\\Program Files\\Siemens\\Automation\\Portal V19\\PublicAPI\\V19\\Siemens.Engineering.xml",
+      "sha256": "873d699ff53c080f26f9fcfc839d4da95bf632ee15b1600ce3075d40185ee8ac",
+      "local_only": true,
+      "vendor_documentation": true
+    },
+    {
+      "path": "C:\\Program Files (x86)\\Common Files\\Siemens\\PLCSIMADV\\API\\6.0\\SimulationRuntimeApi.h",
+      "sha256": "f017261c53772c953328c8a0cd3199d4284afc85ed82e23f89ec7833d55bcedc",
+      "local_only": true,
+      "vendor_documentation": true
+    }
+  ]
+}

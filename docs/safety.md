@@ -1,5 +1,7 @@
 # Safety and data handling
 
+> Materiał koncepcyjny zachowany z initial scaffold. Aktualna specyfikacja: [09_RISKS_AND_DECISIONS.md](09_RISKS_AND_DECISIONS.md) — grant sesji, ryzyka i eksperymenty. W zakresie autoryzacji stosuj [ADR 0002](decisions/0002-async-host-and-versioned-worker.md): zatwierdzony, ograniczony grant sesji może obejmować wiele kroków; nie ma import-on-save ani nieautoryzowanych zapisów. Opis poniżej nie deklaruje implementacji.
+
 ## Project protection
 
 - Begin with inspection, export, and comparison workflows.

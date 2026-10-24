@@ -1,0 +1,357 @@
+{
+  "schema_version": "1.0",
+  "status": "DESIGN_ONLY",
+  "operations": [
+    {
+      "name": "project.inspect",
+      "required_params": [
+        "inventory_scope"
+      ],
+      "default_timeout_s": 30,
+      "max_timeout_s": 120,
+      "permissions": [
+        "R"
+      ],
+      "error_codes": [
+        "IDENTITY_MISMATCH",
+        "ATTACH_DENIED",
+        "TIA_UNAVAILABLE"
+      ],
+      "requires_project": true,
+      "async_default": true
+    },
+    {
+      "name": "project.export",
+      "required_params": [
+        "scope"
+      ],
+      "default_timeout_s": 120,
+      "max_timeout_s": 600,
+      "permissions": [
+        "R"
+      ],
+      "error_codes": [
+        "EXPORT_FAILED",
+        "COVERAGE_GAP",
+        "STORAGE_FULL"
+      ],
+      "requires_project": true,
+      "async_default": true
+    },
+    {
+      "name": "project.status",
+      "required_params": [],
+      "default_timeout_s": 1,
+      "max_timeout_s": 5,
+      "permissions": [
+        "R"
+      ],
+      "error_codes": [
+        "STALE_OBSERVATION"
+      ],
+      "requires_project": true,
+      "async_default": false
+    },
+    {
+      "name": "files.changes",
+      "required_params": [
+        "workspace_id"
+      ],
+      "default_timeout_s": 10,
+      "max_timeout_s": 120,
+      "permissions": [
+        "R"
+      ],
+      "error_codes": [
+        "PATH_UNSAFE",
+        "WORKSPACE_CHANGED"
+      ],
+      "requires_project": true,
+      "async_default": true
+    },
+    {
+      "name": "sync.plan",
+      "required_params": [
+        "workspace_id",
+        "scope"
+      ],
+      "default_timeout_s": 60,
+      "max_timeout_s": 300,
+      "permissions": [
+        "R"
+      ],
+      "error_codes": [
+        "CONFLICT",
+        "UNKNOWN_INITIAL",
+        "DEPENDENCY_UNRESOLVED",
+        "UNSUPPORTED"
+      ],
+      "requires_project": true,
+      "async_default": true
+    },
+    {
+      "name": "sync.apply",
+      "required_params": [
+        "plan_id",
+        "expected_plan_sha256",
+        "authorization_ref",
+        "expected_session_epoch"
+      ],
+      "default_timeout_s": 300,
+      "max_timeout_s": 1800,
+      "permissions": [
+        "E",
+        "A_IF_DELETE"
+      ],
+      "error_codes": [
+        "STALE_PLAN",
+        "BACKUP_FAILED",
+        "IMPORT_PARTIAL",
+        "READBACK_MISMATCH"
+      ],
+      "requires_project": true,
+      "async_default": true
+    },
+    {
+      "name": "sync.verify",
+      "required_params": [
+        "scope"
+      ],
+      "default_timeout_s": 120,
+      "max_timeout_s": 600,
+      "permissions": [
+        "R",
+        "PROMOTION_POLICY"
+      ],
+      "error_codes": [
+        "COVERAGE_GAP",
+        "VERIFY_FAILED",
+        "BASELINE_RACE"
+      ],
+      "requires_project": true,
+      "async_default": true
+    },
+    {
+      "name": "compile.plc",
+      "required_params": [
+        "scope",
+        "authorization_ref"
+      ],
+      "default_timeout_s": 300,
+      "max_timeout_s": 1200,
+      "permissions": [
+        "E"
+      ],
+      "error_codes": [
+        "COMPILER_UNAVAILABLE",
+        "COMPILE_ERRORS",
+        "WARNINGS_REJECTED"
+      ],
+      "requires_project": true,
+      "async_default": true
+    },
+    {
+      "name": "compile.hmi",
+      "required_params": [
+        "scope",
+        "authorization_ref"
+      ],
+      "default_timeout_s": 300,
+      "max_timeout_s": 1200,
+      "permissions": [
+        "E"
+      ],
+      "error_codes": [
+        "COMPILER_UNAVAILABLE",
+        "COMPILE_ERRORS",
+        "WARNINGS_REJECTED"
+      ],
+      "requires_project": true,
+      "async_default": true
+    },
+    {
+      "name": "simulation.prepare",
+      "required_params": [
+        "test_profile_id",
+        "compiled_artifact_id",
+        "authorization_ref"
+      ],
+      "default_timeout_s": 300,
+      "max_timeout_s": 900,
+      "permissions": [
+        "S"
+      ],
+      "error_codes": [
+        "RECIPIENT_UNVERIFIED",
+        "LICENSE_UNVERIFIED",
+        "LOAD_FAILED"
+      ],
+      "requires_project": true,
+      "async_default": true
+    },
+    {
+      "name": "simulation.start",
+      "required_params": [
+        "test_profile_id",
+        "authorization_ref"
+      ],
+      "default_timeout_s": 120,
+      "max_timeout_s": 600,
+      "permissions": [
+        "S"
+      ],
+      "error_codes": [
+        "SIM_UNAVAILABLE",
+        "LICENSE_UNVERIFIED",
+        "NOT_READY"
+      ],
+      "requires_project": true,
+      "async_default": true
+    },
+    {
+      "name": "simulation.stop",
+      "required_params": [
+        "instance_id",
+        "authorization_ref"
+      ],
+      "default_timeout_s": 60,
+      "max_timeout_s": 180,
+      "permissions": [
+        "S"
+      ],
+      "error_codes": [
+        "NOT_OWNER",
+        "STOP_UNCONFIRMED"
+      ],
+      "requires_project": true,
+      "async_default": true
+    },
+    {
+      "name": "test.plc",
+      "required_params": [
+        "test_profile_id",
+        "scenario_id",
+        "transport"
+      ],
+      "default_timeout_s": 120,
+      "max_timeout_s": 1800,
+      "permissions": [
+        "R_APPROVED_READ",
+        "S_IF_WRITE"
+      ],
+      "error_codes": [
+        "SECURITY_PROFILE_REQUIRED",
+        "ENDPOINT_MISMATCH",
+        "BAD_QUALITY",
+        "CONNECTION_LOST",
+        "TEST_FAILED"
+      ],
+      "requires_project": true,
+      "async_default": true
+    },
+    {
+      "name": "test.hmi",
+      "required_params": [
+        "test_profile_id",
+        "scenario_id",
+        "authorization_ref"
+      ],
+      "default_timeout_s": 180,
+      "max_timeout_s": 1800,
+      "permissions": [
+        "S"
+      ],
+      "error_codes": [
+        "TLS_UNTRUSTED",
+        "LOGIN_REQUIRED",
+        "SELECTOR_UNSUPPORTED",
+        "RUNTIME_NOT_READY"
+      ],
+      "requires_project": true,
+      "async_default": true
+    },
+    {
+      "name": "operation.status",
+      "required_params": [
+        "operation_id"
+      ],
+      "default_timeout_s": 1,
+      "max_timeout_s": 5,
+      "permissions": [
+        "OWNER_OR_READER"
+      ],
+      "error_codes": [
+        "NOT_FOUND",
+        "ACCESS_DENIED"
+      ],
+      "requires_project": false,
+      "async_default": false
+    },
+    {
+      "name": "operation.result",
+      "required_params": [
+        "operation_id"
+      ],
+      "default_timeout_s": 1,
+      "max_timeout_s": 5,
+      "permissions": [
+        "OWNER_OR_READER"
+      ],
+      "error_codes": [
+        "NOT_FOUND",
+        "ACCESS_DENIED"
+      ],
+      "requires_project": false,
+      "async_default": false
+    },
+    {
+      "name": "operation.events",
+      "required_params": [
+        "operation_id"
+      ],
+      "default_timeout_s": 1,
+      "max_timeout_s": 5,
+      "permissions": [
+        "OWNER_OR_READER"
+      ],
+      "error_codes": [
+        "NOT_FOUND",
+        "ACCESS_DENIED"
+      ],
+      "requires_project": false,
+      "async_default": false
+    },
+    {
+      "name": "operation.cancel",
+      "required_params": [
+        "operation_id"
+      ],
+      "default_timeout_s": 1,
+      "max_timeout_s": 5,
+      "permissions": [
+        "OWNER_OR_OPERATOR"
+      ],
+      "error_codes": [
+        "NOT_FOUND",
+        "ACCESS_DENIED"
+      ],
+      "requires_project": false,
+      "async_default": false
+    },
+    {
+      "name": "diagnostics.health",
+      "required_params": [],
+      "default_timeout_s": 1,
+      "max_timeout_s": 5,
+      "permissions": [
+        "R"
+      ],
+      "error_codes": [
+        "STORE_UNAVAILABLE",
+        "DEGRADED"
+      ],
+      "requires_project": false,
+      "async_default": false
+    }
+  ]
+}

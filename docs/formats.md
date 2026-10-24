@@ -1,5 +1,7 @@
 # Formats and object mapping
 
+> Materiał koncepcyjny zachowany z initial scaffold. Aktualna specyfikacja: [06_TIA_INTEGRATION.md](06_TIA_INTEGRATION.md) — macierz V19 i ograniczenia native formatów. W zakresie autoryzacji stosuj [ADR 0002](decisions/0002-async-host-and-versioned-worker.md): zatwierdzony, ograniczony grant sesji może obejmować wiele kroków; nie ma import-on-save ani nieautoryzowanych zapisów. Opis poniżej nie deklaruje implementacji.
+
 ## Principle
 
 The workspace format is defined per object kind and adapter version. File extensions and an exportable file do not establish that a representation is lossless, editable, or importable.

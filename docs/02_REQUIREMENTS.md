@@ -1,0 +1,67 @@
+# 02 — Wymagania TIA_Bridge 2
+
+Data projektu: 2026-10-24. Wszystkie wymagania w tym dokumencie są **docelowe**. Dowody obecnych możliwości są w [06](06_TIA_INTEGRATION.md) i [10](10_EVIDENCE_AND_QUALITY.md). `MVP` oznacza pierwszy użyteczny przepływ PLC, `REQUIRED` — wymagane do kompletnej wersji opisanej przez użytkownika, `OPTIONAL` — rozszerzenie. REQUIRED nie oznacza dostępnego dziś API Siemens.
+
+## Wymagania funkcjonalne i sześć etapów workflow
+
+| ID | Etap / klasa | Wymagane zachowanie | Weryfikowalne kryterium |
+|---|---|---|---|
+| FR-01 | 1 / MVP | Inspect środowiska, dokładnego produktu, DLL, projektu i urządzenia | brak attach do niejednoznacznego PID; raport oddziela metadane offline od izolacji fizycznej |
+| FR-02 | 1 / MVP | Eksport PLC z hierarchią i registry capability | każdy odkryty obiekt ma pliki albo powód UNSUPPORTED/ERROR; brak cichego pominięcia |
+| FR-03 | 1 / REQUIRED | DB, UDT, FC, FB, OB, tag tables, inne rodziny wyłącznie po kwalifikacji | macierz per kind/language/CPU/version/operation; test round-trip przed włączeniem importu |
+| FR-04 | 1 / REQUIRED | Strukturalne HMI: ekrany, elementy, zdarzenia, funkcje, tagi, powiązania | read-only projekcja 1:1 identyfikowalnych obiektów; write tylko dla potwierdzonych pól i metod |
+| FR-05 | 1 / MVP | Stabilna tożsamość oddzielona od ścieżki | deterministyczne escaping, kolizje Windows/Unicode, rename bez automatycznego delete/create |
+| FR-06 | 2 / MVP | CODEX edytuje i tworzy pliki podczas operacji | zmiana W podczas importu S pozostaje; brak blokady pliku roboczego przez wywołanie TIA |
+| FR-07 | 2 / MVP | Lokalna walidacja bez TIA | składnia kontraktów, nazwy, hashe, containment, limity XML/JSON; nie udaje kompilatora Siemens |
+| FR-08 | 2 / REQUIRED | Usunięcia i refaktoryzacja | tombstone i analiza referencji; zmiana ścieżki nie usuwa obiektu; oddzielna zgoda na delete |
+| FR-09 | 3 / MVP | Przyrostowy plan CODEX→TIA na SHA-256 i trzech stanach | znany baseline B, workspace W, świeże P; zmienione tylko kwalifikowane jednostki i zależności |
+| FR-10 | 3 / MVP | Snapshot wejść i trwała kolejka | zatwierdzony hash planu wiąże pliki, wersję adaptera, projekt, uprawnienie i bazę; wykonawca czyta S, nie W |
+| FR-11 | 3 / MVP | Konflikty bez utraty wersji | obie wersje i B zachowane; brak overwrite nieznanej zmiany TIA; nowy plan po resolution |
+| FR-12 | 3 / MVP | Zależności i grupy importu | graf typów/bloków, cykle i nierozwiązane referencje blokują niekwalifikowaną jednostkę; import/compile/save/readback jako saga |
+| FR-13 | 3 / MVP | Bezpieczne ponowienie żądania | ten sam idempotency key + canonical request zwraca tę samą operację; UNKNOWN nigdy nie uruchamia ponownie mutacji |
+| FR-14 | 4 / MVP | Niezależna weryfikacja po Apply | świeże proxy/eksport, treść + konfiguracja + struktura + inventory; odmowa SYNCED przy niepokrytym wymaganym wymiarze |
+| FR-15 | 4 / MVP | Statusy SYNCED, MODIFIED, CONFLICT, UNSUPPORTED, ERROR, UNKNOWN | formalna klasyfikacja z [04](04_SYNCHRONIZATION.md); nie myli się z lifecycle operacji |
+| FR-16 | 4 / REQUIRED | Raport transformacji TIA | raw hash i porównanie adapterowe osobno; jawna lista dopuszczonych różnic kosmetycznych |
+| FR-17 | 5 / MVP | Compile PLC ze zagnieżdżonymi diagnostykami | ErrorCount, WarningCount, scope, build fingerprint, komunikaty i wersja CPU; błąd nie daje Engineering PASS |
+| FR-18 | 5 / REQUIRED | Compile HMI | dobór usługi ICompilable dla rodziny urządzenia, komunikaty z ścieżkami; Compile nie potwierdza natywnego API ani Runtime |
+| FR-19 | 5 / REQUIRED | Symulatory i Runtime jako osobne adaptery | INSTALLED, STARTING, RUNNING, PROGRAM_LOADED i READY osobno; kontrola własności i zamknięcia wyłącznie własnej sesji |
+| FR-20 | 5 / REQUIRED | Przygotowanie i load wyłącznie symulacji | oddzielne uprawnienie `simulation.prepare`, tożsamość instancji i izolacja od sieci maszyny; brak automatycznego fizycznego downloadu |
+| FR-21 | 6 / REQUIRED | Testy HMI Playwright | udokumentowany URL/certyfikat/rola, wykryte selektory, nawigacja, wejścia, alarmy, screenshot/trace i raport; brak API/DOM → jawny adapter alternatywny |
+| FR-22 | 6 / REQUIRED | Testy PLC OPC UA | jawny TEST/SECURE, mapowanie namespace URI, odczyt/subskrypcje/warunki/timeout; zapisy tylko allowlist testowa z lease symulacji |
+| FR-23 | przekrojowe / MVP | Asynchroniczne API + CLI | zlecenie, status, wynik, zdarzenia, anulowanie; brak blokującego domyślnego wait |
+| FR-24 | przekrojowe / MVP | Diagnostyka i recovery | osobny heartbeat hosta/workera/postępu; watchdog, kwarantanna, bounded retry odczytów, circuit breaker |
+| FR-25 | przekrojowe / MVP | Backup i historia | jeden zweryfikowany backup przed pierwszą mutacją sesji, kontrola storage/temp, trwały intent i Save receipt, zachowanie FAILED/UNKNOWN |
+| FR-26 | przekrojowe / OPTIONAL | MCP | fasada tego samego API, negocjacja capabilities; brak uzależnienia trwałych operacji od połączenia MCP |
+| FR-27 | przekrojowe / REQUIRED | Migracja i wersje | schematy major/minor, eksport starych dowodów read-only, świeży baseline; brak automatycznej migracji starej nieznanej sesji |
+
+## Model odbiorców i uprawnień
+
+Domyślny profil R pozwala na inspect/export/compare. E pozwala na ograniczone zmiany Engineering zatwierdzone planem lub uprawnieniem sesji; S pozwala na własne, niezależnie zweryfikowane symulatory i testowe zmienne. Uprawnienie wiąże SID operatora, `project_key`, session epoch, zakres, operacje, plan/politykę, termin ważności i nonce. Token transportowy API nie jest uprawnieniem TIA. Obiekt nazwy `SIM` nie jest dowodem izolacji.
+
+Automatyzacja ma być autonomiczna w raz zatwierdzonym zakresie, bez potwierdzania każdego helpera i kroku. Zmiana projektu, nieznany konflikt, destructive action lub rozszerzenie zakresu wymagają osobnego rozstrzygnięcia. Fizyczny download i machine actuation są poza MVP, domyślnie zabronione. Ten projekt dokumentacyjny nie uruchamia sesji E/S.
+
+## Mierzalne wymagania niefunkcjonalne
+
+Wartości są **proponowanymi celami**, nie wynikami pomiarów TIA_Bridge 2. Pomiar na docelowym komputerze przy 1 i 8 klientach, 1 000 obiektach/100 MiB, a test skali 10 000/1 GiB; testy live na małym zatwierdzonym projekcie. Raport podaje CPU/RAM/dyski/AV/wersje, p50/p95/p99 i liczbę próbek. Czas vendor call raportować oddzielnie.
+
+| ID | Metryka i cel początkowy | Metoda i zachowanie po przekroczeniu |
+|---|---|---|
+| NF-01 | health/status p95 ≤100 ms, p99 ≤250 ms; 1 000 odczytów | odczyt z hosta/DB bez wywołania TIA; opóźnienie hosta jest błędem SLO |
+| NF-02 | przyjęcie operacji p95 ≤250 ms, p99 ≤500 ms | commit intent przed 202; capture dużego workspace jest osobną fazą, nie częścią handlera HTTP |
+| NF-03 | edycja pojedynczego 1 MiB pliku ≤100 ms p95 podczas wiszącego workera | brak uchwytów do W przez czas vendor call; editor save/replace pozostaje możliwe |
+| NF-04 | informacja o braku heartbeat ≤10 s (interwał 2 s, próg 3 + budżet 4 s) | LOST/SUSPECT, nie twierdzenie o utracie TIA; TIA responsiveness weryfikowane osobnym, szeregowanym probe |
+| NF-05 | start hosta i dostęp do historii ≤5 s p95; dispatch read-only po recovery ≤30 s, gdy TIA zdrowe | nie ma SLO automatycznego odblokowania niepewnego zapisu; kwarantanna utrzymana do reconciliation |
+| NF-06 | kolejka czeka na własność ≤300 s domyślnie; zero oczekiwania nieskończonego | WAIT_TIMEOUT bez mutacji; użytkownik może jawnie wybrać mniejszy limit |
+| NF-07 | soft budget ExclusiveAccess: import grupy ≤120 s, compile ≤300 s, Archive ≤600 s | admission estimate i małe grupy; przekroczenie = DEGRADED/timeout. Nie obiecujemy twardego zwolnienia blokady w wiszącym Siemens; brak następnej mutacji |
+| NF-08 | host idle CPU <1% średnio/5 min i RAM ≤200 MiB; worker idle ≤250 MiB; peak host ≤512 MiB przy 1 000 obiektów | wartości bez TIA/Runtime/Playwright; streaming plików; limit workera 1 GiB soft alert, bez zabijania mutacji przez memory cap |
+| NF-09 | JSON log rotation 20 MiB ×10 na komponent; logi 14 dni, trace 7 dni lub 2 GiB | kasowanie tylko terminalnych, niechronionych artefaktów; FAILED/UNKNOWN i aktywne backupy przypięte do resolution |
+| NF-10 | audit i receipty ≥180 dni, limity workspace configurable | quota alarm i blokada nowych mutacji przed wyczerpaniem; nie kasować dowodów automatycznie |
+| NF-11 | sesja 8 h / 1 000 operacji syntetycznych, 100 operacji read-only live | zero zaginionych operation_id, zero niezarządzanych dzieci; wzrost RAM po warmup ≤50 MiB, uchwytów ≤5% |
+| NF-12 | 100% zaakceptowanych intentów po kontrolowanym crash/restart; zero fałszywych SYNCED | fault injection na każdym journal boundary; rzeczywista utrata zasilania wymaga osobnego testu sprzętowego/storage |
+| NF-13 | identyczne wejścia → identyczny plan/hash; 100 powtórzeń offline | zegar/UUID poza częścią canonical plan; stabilne sortowanie; retry nie powiela efektów |
+| NF-14 | 100% prób fizycznego downloadu i write poza allowlist zablokowane przed adapterem | negatywne testy policy i recipients; brak credentiali w bundle testowym |
+| NF-15 | manifest/plan ≤10 MiB, żądanie API ≤1 MiB, event ≤64 KiB, maks. kolejka 1 000 | 413/429 przed przyjęciem; źródła przez artifact IDs, nie body HTTP; przerwanie parserów nad limitami |
+
+## Kryterium zakończenia MVP
+
+Na syntetycznym, czystym projekcie V19: zlecenie eksportu, edycja jednej FC SCL, trzystronny plan, jeden backup sesji, Apply z kwalifikowanym importem, kompilacja PLC, Save i niezależny odczyt dają SYNCED dla dokładnej rewizji. Powtórzenie żądania nie importuje ponownie. W czasie zablokowanego fake adaptera CODEX edytuje drugi plik i otrzymuje status w NF-01. Awaria po pierwszym imporcie pozostawia RECONCILIATION_REQUIRED, a nie sukces lub samoczynny retry. Runtime może nadal być NOT_RUN.

@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tia-bridge2:operation:1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "operation_id",
+    "method",
+    "state",
+    "phase",
+    "outcome",
+    "cancel_requested",
+    "poll_after_ms",
+    "artifact_refs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "operation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "method": {
+      "enum": [
+        "project.inspect",
+        "project.export",
+        "project.status",
+        "files.changes",
+        "sync.plan",
+        "sync.apply",
+        "sync.verify",
+        "compile.plc",
+        "compile.hmi",
+        "simulation.prepare",
+        "simulation.start",
+        "simulation.stop",
+        "test.plc",
+        "test.hmi",
+        "operation.status",
+        "operation.result",
+        "operation.events",
+        "operation.cancel",
+        "diagnostics.health"
+      ]
+    },
+    "state": {
+      "enum": [
+        "ACCEPTED",
+        "QUEUED",
+        "RUNNING",
+        "SUCCEEDED",
+        "FAILED",
+        "CANCELLED",
+        "RECONCILIATION_REQUIRED"
+      ]
+    },
+    "phase": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+    },
+    "outcome": {
+      "enum": [
+        "NOT_STARTED",
+        "CONFIRMED",
+        "UNKNOWN"
+      ]
+    },
+    "cancel_requested": {
+      "type": "boolean"
+    },
+    "poll_after_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "artifact_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "artifact_id",
+          "sha256"
+        ],
+        "properties": {
+          "artifact_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "workspace_advanced": {
+      "type": "boolean"
+    },
+    "error": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "category",
+        "message",
+        "retryable",
+        "outcome"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "outcome": {
+          "enum": [
+            "NOT_STARTED",
+            "CONFIRMED",
+            "UNKNOWN"
+          ]
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "SUCCEEDED"
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outcome": {
+            "const": "CONFIRMED"
+          },
+          "error": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "RECONCILIATION_REQUIRED"
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outcome": {
+            "const": "UNKNOWN"
+          }
+        }
+      }
+    }
+  ]
+}
