@@ -1,0 +1,33 @@
+# .NET build output
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+*.cache
+
+# Local application state and credentials
+.tia-bridge/
+*.secrets.json
+*.credential
+*.pfx
+*.p12
+
+# Local TIA Portal project data and backups
+*.ap*
+*.zap*
+*.als*
+*.bak
+Backups/
+Archive/
+
+# Test and coverage output
+TestResults/
+coverage/
+.coverage/
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
