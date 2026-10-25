@@ -6,6 +6,9 @@ using TiaBridge.Host.Storage;
 // Test-only process. It never starts a server or dispatches to a worker.
 if (args.Length != 4) return 2;
 string root = args[0], repository = args[1], mode = args[2], checkpoint = args[3];
+if (mode == "http-resilience") { try { await HttpResilienceProbe.Run(root, checkpoint); return 0; } catch (IOException) { return 87; } }
+if (mode == "ipc-adversary") return await IpcAdversary.Run(checkpoint);
+if (mode == "lock-child") return await HttpResilienceProbe.HoldLock(root, repository);
 var faults = new ExitFault(checkpoint);
 var location = StorageLocation.Open(root, repository);
 var store = new SqliteOperationStore(location, faults);

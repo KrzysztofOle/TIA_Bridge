@@ -115,3 +115,18 @@ Braki B-02B pozostawiono właściwym pakietom: publiczne API/CLI/auth/SLO realiz
 Dotychczasowe regresje nadal są wykonywane. Procesowe kolekcje HTTP są izolowane od innych startów procesów, a ośmiu równoczesnych klientów działa wewnątrz tego samego profilu Host. Nie zwiększono timeout workera ani progów SLO. Percentyle obejmują wszystkie próbki; metryki/środowisko w ignorowanym .tia-bridge/b02c/performance.json. Wstępny profil burst edit bez odstępów na wymiennym exFAT przekraczał NF-03; nie deklarujemy jego kwalifikacji ani conditional replace na exFAT.
 
 Odrębne pozostają B-02D i długotrwały soak B-10, rzeczywisty drugi SID, sprzętowy power-loss, native adapter/session grants i wszystkie testy Siemens/Engineering/Runtime. Dokument 15 opisuje dostępny podzbiór CLI i zakres API bez obietnicy wykonawców 19 metod.
+
+## B-02D — pełny syntetyczny przepływ i jawne luki kwalifikacji
+
+48 nowych .NET: ResilienceCrashTests 16, ResilienceSafetyTests 11, ResilienceSecurityTests 10, ResilienceArtifactTests 6, ResiliencePerformanceTests 5. Łącznie 748 .NET i 24 Python (4 nowe testy fail-closed reportera). Dodatkowy dowód queue-capacity pochodzi z istniejącego ApiPerformanceTests; nie zwiększa liczby testów. [Macierz przypadków](resilience/matrix.json), [RT/NF i ograniczenia](../docs/16_RESILIENCE_RECOVERY.md), [aktualny snapshot](resilience/QUALIFICATION.md).
+
+| Źródło | Luka B-02A–C i nowe sprawdzenie |
+|---|---|
+| ResilienceCrashTests | prawdziwe Host HTTP+CLI i commit barriers, 5 granic admission i 6 granic dispatch/receipt/result; trzy storage faults i 100 requests/8 klientów; hash/sequence/epoch, po restarcie bez replay UNKNOWN |
+| ResilienceSafetyTests | pełne fake RT-05 ze zmianą syntetycznego P/B i STALE_PLAN/0 effects; late receipt już w transporcie; stale epoch; obie kontrolowane kolejności cancel race; loss/exit/HB/no progress; expired lease; own leaked child/lock anomaly i quarantine |
+| ResilienceSecurityTests | osobny proces wysyła HMAC/epoch/sequence/version/length/JSON/truncated ramki i błędny peer PID; ACL CurrentUserOnly pozostaje; unrelated sentinel przeżywa, failed-start cleanup zwalnia własne Process i UUID |
+| ResilienceArtifactTests | orphan po publish przed reference pozostaje; corrupt/truncated/missing proof blokuje wynik; historyczny sukces nie zastępuje ponownej integrity kontroli; zniszczona końcówka ostatniego result WAL nie promuje utraconego sukcesu |
+| ResiliencePerformanceTests | health/result/events 1000/8 klientów, 20 startów/history i safe read po recovery; rzeczywiste 300 s CPU/RAM/handles; 1001 efektów z recyclingiem wyłącznie idle worker; NTFS save/replace 1 MiB/100 i niezależna kontrola repo volume bez/ze zwieszonym workerem |
+| test_resilience_report.py | nieaktualny/brakujący/failed/duplikowany dowód lub krótki idle odrzucone; krótki run nie udaje 8 h; zielone testy NTFS nie ukrywają failure replace repo |
+
+Wykryty błąd limitu 1000 i początkowe przekroczenie health SLO mają rzeczywiste FAIL przed poprawką. Zależności Core i DTO pozostały niezmienione. NF-11 minimum 8 h NOT_RUN zgodnie z decyzją użytkownika/B-10B; formalna bramka nie jest automatycznie zwalniana. Obcy SID, power-loss i wszystkie pełne RT Engineering/sync/simulation są osobno NOT_RUN. Użycie syntetycznego P/B nie dowodzi readbacku ani planera TIA. Test kontroli repo filesystemu raportuje failure NF-03 jako failure kwalifikacji, nawet gdy test izolacji poprawnie potwierdza taką samą odmowę bez Host i podczas fake Hang.

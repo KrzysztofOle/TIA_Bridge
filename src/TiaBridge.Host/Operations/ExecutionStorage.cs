@@ -110,14 +110,18 @@ public sealed partial class SqliteOperationStore
         return new(id, attempt, workerEpoch, owner.Fence, previous.BodySha256, plan, mutation, deadline);
     }, checkpoints: true);
 
-    internal void RecordReceipt(OwnerToken owner, AttemptBinding binding, WireMessage message, string disposition) => database.Write((c, t) =>
+    internal void RecordReceipt(OwnerToken owner, AttemptBinding binding, WireMessage message, string disposition)
     {
-        CheckOwner(c, t, owner); byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(message, Protocol.Json);
-        Exec(c, t, "INSERT INTO worker_receipts(operation_id,worker_epoch,fence,attempt,received_at,message_json,sha256,disposition) VALUES($id,$e,$f,$a,$at,$b,$sha,$d)", ("$id", binding.OperationId.ToString()), ("$e", message.WorkerEpoch.ToString()), ("$f", message.Fence), ("$a", binding.Attempt), ("$at", At(clock.GetUtcNow())), ("$b", bytes), ("$sha", Hash(bytes)), ("$d", disposition));
-        if (disposition == "REJECTED_NO_EFFECT" || disposition == "QUIESCENT")
-            Exec(c, t, "UPDATE dispatch_attempts SET disposition=$d WHERE operation_id=$id AND attempt=$a", ("$d", disposition), ("$id", binding.OperationId.ToString()), ("$a", binding.Attempt));
-        return 0;
-    });
+        database.Write((c, t) =>
+        {
+            CheckOwner(c, t, owner); byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(message, Protocol.Json);
+            Exec(c, t, "INSERT INTO worker_receipts(operation_id,worker_epoch,fence,attempt,received_at,message_json,sha256,disposition) VALUES($id,$e,$f,$a,$at,$b,$sha,$d)", ("$id", binding.OperationId.ToString()), ("$e", message.WorkerEpoch.ToString()), ("$f", message.Fence), ("$a", binding.Attempt), ("$at", At(clock.GetUtcNow())), ("$b", bytes), ("$sha", Hash(bytes)), ("$d", disposition));
+            if (disposition == "REJECTED_NO_EFFECT" || disposition == "QUIESCENT")
+                Exec(c, t, "UPDATE dispatch_attempts SET disposition=$d WHERE operation_id=$id AND attempt=$a", ("$d", disposition), ("$id", binding.OperationId.ToString()), ("$a", binding.Attempt));
+            return 0;
+        });
+        database.Faults.Checkpoint(StorageFaultPoint.WorkerReceiptCommitted);
+    }
     internal void Complete(OwnerToken owner, AttemptBinding binding, OperationReport report)
     {
         byte[] bytes = ContractJson.WriteReport(report); using var proof = VerifyArtifacts(bytes);

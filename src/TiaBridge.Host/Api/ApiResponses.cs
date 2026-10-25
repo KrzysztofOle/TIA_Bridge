@@ -11,6 +11,15 @@ namespace TiaBridge.Host.Api;
 
 internal static class ApiResponses
 {
+    // Constant metadata envelope is schema-validated once. Only trusted typed health values are projected per read.
+    private static readonly byte[] HealthEnvelope = ContractJson.WriteReport(QueryReport(OperationMethod.DiagnosticsHealth, new DiagnosticsHealthResult([], DateTimeOffset.UnixEpoch)));
+    private static readonly JsonSerializerOptions HealthJson = new()
+    { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower, Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter(allowIntegerValues: false) } };
+    internal static byte[] HealthReport(DiagnosticsHealthResult health)
+    {
+        var root = JsonNode.Parse(HealthEnvelope)!.AsObject(); root["operation_id"] = Guid.NewGuid().ToString("D");
+        root["result"] = JsonSerializer.SerializeToNode(health, HealthJson); return JsonSerializer.SerializeToUtf8Bytes(root);
+    }
     internal static IResult Bytes(byte[] bytes, int status = 200) => new JsonBytes(bytes, status);
     private sealed record JsonBytes(byte[] Bytes, int Status) : IResult
     {

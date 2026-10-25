@@ -23,15 +23,17 @@ namespace TiaBridge.Host.Api;
 [SupportedOSPlatform("windows")]
 public static class HostApi
 {
-    public static async Task RunAsync(HostConfiguration config, bool stdioLifetime = false)
+    public static Task RunAsync(HostConfiguration config, bool stdioLifetime = false) => RunCore(config, stdioLifetime, null);
+    internal static Task RunAsync(HostConfiguration config, HostRuntimeHooks hooks) => RunCore(config, true, hooks);
+    private static async Task RunCore(HostConfiguration config, bool stdioLifetime, HostRuntimeHooks? hooks)
     {
-        var location = StorageLocation.Open(config.StatePath, config.RepositoryRoot); var store = new SqliteOperationStore(location);
+        var location = StorageLocation.Open(config.StatePath, config.RepositoryRoot); var store = new SqliteOperationStore(location, hooks?.Faults);
         using var databaseLifetime = store.KeepDatabaseOpen();
         using var metadataReaders = store.OpenMetadataReaders();
         foreach (string project in config.RegisteredProjects) store.RegisterProject(new(UuidIdentity.ParseValue(project)));
         var profile = new ConfiguredFakeProfile(config, store);
         IWorkerSupervisor supervisor = config.FakeWorkerDll is null ? new DisabledSupervisor() : new FakeWorkerSupervisor(config.FakeWorkerDll, location.RootPath);
-        await using var scheduler = new OperationScheduler(store, supervisor, profile);
+        await using var scheduler = new OperationScheduler(store, hooks?.Supervisor?.Invoke(supervisor) ?? supervisor, hooks?.Profile?.Invoke(profile) ?? profile);
         byte[] secret = RandomNumberGenerator.GetBytes(32); string token = Convert.ToBase64String(secret); byte[] tokenHash = SHA256.HashData(Encoding.ASCII.GetBytes(token));
         string principal = DiscoveryFile.CurrentSid; Guid instance = Guid.NewGuid(); string discoveryPath = Path.Combine(location.RootPath, "api", "host.json");
         var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions { Args = [], ContentRootPath = AppContext.BaseDirectory, EnvironmentName = Environments.Production });
@@ -123,7 +125,7 @@ public static class HostApi
             Query(ctx, "project_key", "include_cached_components");
             ProjectKey? project = ctx.Request.Query.TryGetValue("project_key", out var key) ? new(UuidIdentity.ParseValue(key.ToString())) : null;
             if (ctx.Request.Query.TryGetValue("include_cached_components", out var cached) && cached.ToString() is not ("true" or "false")) throw new ArgumentException("Invalid query flag.");
-            return Bytes(ContractJson.WriteReport(QueryReport(OperationMethod.DiagnosticsHealth, Health(store, scheduler, project))));
+            return Bytes(HealthReport(Health(store, scheduler, project)));
         });
         app.MapFallback(() => Error(ErrorCode.NOT_FOUND, 404));
         try
@@ -132,7 +134,7 @@ public static class HostApi
             string address = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
             using var host = Process.GetCurrentProcess();
             DiscoveryFile.Publish(discoveryPath, new("1.0", address.EndsWith('/') ? address : address + "/", token, principal, host.Id, host.StartTime.ToUniversalTime().Ticks, instance));
-            scheduler.Start(); Console.WriteLine("{\"status\":\"READY\"}");
+            hooks?.Ready?.Invoke(); scheduler.Start(); Console.WriteLine("{\"status\":\"READY\"}");
             if (stdioLifetime) _ = StopFromStdin(app.Lifetime);
             await app.WaitForShutdownAsync();
         }

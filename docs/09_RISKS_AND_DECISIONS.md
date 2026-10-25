@@ -69,3 +69,7 @@ To backlog osobnych prac, nie polecenie wykonania teraz. Zapis/compile/start/sto
 8. Czy Snap7 jest potrzebne przy dostępnej ścieżce OPC UA i czy osobny non-optimized test DB jest dopuszczalny? Implementacja nie jest warunkiem MVP; analiza i test plan są gotowe.
 
 Informacje te nie blokowały obecnego projektu dokumentacyjnego. Przyszłe implementacje, które od nich zależą, muszą rozstrzygnąć je eksperymentem lub jawnie ograniczyć capability.
+
+## Dowód B-02D bez zmiany decyzji
+
+[Raport B-02D](16_RESILIENCE_RECOVERY.md) dokumentuje granice UNKNOWN/recovery i procesów Fake. R-14 pozostaje otwarte: pełny 8 h soak NF-11 jest NOT_RUN, jawnie odłożony do B-10B przez użytkownika. Raport wskazuje rozbieżność zakresu bramki z dokumentem 07 i propozycję do osobnej decyzji, nie zmienia D-01–D-10 ani kryteriów X-01. R-08 wymaga osobnej kwalifikacji safe replace na repo exFAT; wyniki testu kontrolnego nie są ukrywane przez pozytywne testy lokalnego NTFS.

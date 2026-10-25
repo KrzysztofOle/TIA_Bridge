@@ -22,9 +22,11 @@ internal sealed class ApiFixture : IAsyncDisposable
     internal string ConfigPath => Path.Combine(Files.Root, "host-config.json");
     internal HostDiscovery Discovery { get; private set; } = null!;
     private Process? host;
+    internal Process HostProcess => host ?? throw new InvalidOperationException("No owned Host.");
+    internal string ProbeBinary => Path.Combine(Files.Repository, "tests", "integration", "TiaBridge.StorageProbe", "bin", new DirectoryInfo(AppContext.BaseDirectory).Parent!.Name, "net10.0", "TiaBridge.StorageProbe.dll");
     private Task<string>? stdout, stderr;
     internal string Binary(string project) => Path.Combine(Files.Repository, "src", project, "bin", new DirectoryInfo(AppContext.BaseDirectory).Parent!.Name, "net10.0", project + ".dll");
-    internal async Task Start(FakeScenario scenario = FakeScenario.Success, bool mutation = false, int delay = 0, bool fakeEnabled = true, int rate = 2048, string? workerDllOverride = null)
+    internal async Task Start(FakeScenario scenario = FakeScenario.Success, bool mutation = false, int delay = 0, bool fakeEnabled = true, int rate = 2048, string? workerDllOverride = null, string? resilienceMode = null)
     {
         _ = Files.Location;
         string method = mutation ? "sync.apply" : "project.inspect";
@@ -33,7 +35,7 @@ internal sealed class ApiFixture : IAsyncDisposable
             fakeEnabled ? [new FakeApiProfile(method, scenario, delay, !mutation, report.RootElement.Clone())] : [], mutation, RequestsPerSecond: rate);
         File.WriteAllText(ConfigPath, JsonSerializer.Serialize(config, HostConfiguration.Json), new System.Text.UTF8Encoding(false));
         var info = new ProcessStartInfo("dotnet") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
-        foreach (string argument in new[] { Binary("TiaBridge.Host"), "--config", ConfigPath, "--stdio" }) info.ArgumentList.Add(argument);
+        foreach (string argument in resilienceMode is null ? new[] { Binary("TiaBridge.Host"), "--config", ConfigPath, "--stdio" } : new[] { ProbeBinary, Files.Root, Files.Repository, "http-resilience", resilienceMode }) info.ArgumentList.Add(argument);
         info.Environment["ASPNETCORE_URLS"] = "http://0.0.0.0:6553"; // explicit loopback binding must ignore environment URLs.
         info.Environment["ASPNETCORE_ENVIRONMENT"] = "Development"; // operator environment must not enable developer error pages.
         host = Process.Start(info)!;
@@ -94,8 +96,16 @@ internal sealed class ApiFixture : IAsyncDisposable
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         try { await host.WaitForExitAsync(timeout.Token); }
         catch (OperationCanceledException) { throw new TimeoutException("Owned Host shutdown was not confirmed."); }
-        Assert.Equal(0, host.ExitCode); if (stdout is not null) _ = await stdout; if (stderr is not null) Assert.True(string.IsNullOrWhiteSpace(await stderr));
-        host.Dispose(); host = null;
+        try { Assert.Equal(0, host.ExitCode); if (stdout is not null) _ = await stdout; if (stderr is not null) Assert.True(string.IsNullOrWhiteSpace(await stderr)); }
+        finally { host.Dispose(); host = null; }
+    }
+    internal async Task Crash(bool externally = false)
+    {
+        if (host is null) throw new InvalidOperationException("No owned process.");
+        if (externally && !host.HasExited) host.Kill(entireProcessTree: false); // Exact Process returned by this fixture, no PID/name search.
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15)); await host.WaitForExitAsync(timeout.Token);
+        try { if (!externally) Assert.Equal(86, host.ExitCode); if (stdout is not null) _ = await stdout; if (stderr is not null) Assert.True(string.IsNullOrWhiteSpace(await stderr)); }
+        finally { host.Dispose(); host = null; }
     }
     public async ValueTask DisposeAsync()
     {

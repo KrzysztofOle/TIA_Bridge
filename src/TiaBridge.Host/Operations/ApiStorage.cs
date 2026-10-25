@@ -17,6 +17,16 @@ public sealed partial class SqliteOperationStore
     /// <summary>Host lifetime handle prevents a last-connection WAL checkpoint after every short request. No shared command/transaction.</summary>
     public IDisposable KeepDatabaseOpen() => database.KeepOpen();
     public IDisposable OpenMetadataReaders() => database.OpenMetadataReaders();
+    /// <summary>Internal observation of an already bound attempt. Full request/report validation remains mandatory at admission, dispatch and state changes.</summary>
+    internal OperationStatusResult ReadExecutionStatus(OperationId id) => database.ReadMetadata(c =>
+    {
+        using var command = Command(c, null, "SELECT r.report_json,r.report_sha256,r.state,r.outcome,r.method FROM operations r JOIN events e ON e.operation_id=r.operation_id AND e.event_sequence=r.last_sequence AND e.report_sha256=r.report_sha256 WHERE r.operation_id=$id", ("$id", id.ToString()));
+        using var reader = command.ExecuteReader(); if (!reader.Read()) throw new StorageException(ErrorCode.NOT_FOUND);
+        byte[] bytes = (byte[])reader[0]; if (Hash(bytes) != reader.GetString(1)) throw new StorageException(ErrorCode.VERIFY_FAILED);
+        using var json = JsonDocument.Parse(bytes); var root = json.RootElement;
+        if (root.GetProperty("operation_id").GetString() != id.ToString() || root.GetProperty("schema_version").GetString() != "1.0" || root.GetProperty("state").GetString() != reader.GetString(2) || root.GetProperty("outcome").GetString() != reader.GetString(3) || root.GetProperty("method").GetString() != reader.GetString(4)) throw new StorageException(ErrorCode.VERIFY_FAILED);
+        return new OperationStatusResult(id, Enum.Parse<OperationStatusResult_State>(reader.GetString(2)), root.GetProperty("phase").GetString()!, Enum.Parse<OperationStatusResult_Outcome>(reader.GetString(3)), root.GetProperty("cancel_requested").GetBoolean());
+    });
     private static void Authorize(SqliteConnection c, SqliteTransaction? t, OperationId id, string principal)
     {
         string? owner = Scalar(c, t, "SELECT principal FROM operations WHERE operation_id=$id", ("$id", id.ToString())) as string;

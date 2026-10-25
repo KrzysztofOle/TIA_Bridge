@@ -2,6 +2,8 @@
 
 Projekt nowej aplikacji Windows do integracji CODEX z Siemens TIA Portal. Stan 2026-10-25: **zaimplementowane offline B-01A–B-01C oraz B-02A–C — Core, trwały silnik Fake, lokalne HTTP API i CLI**. Działają modele, walidacja, serializacja, codec ścieżek, hashe, registry domyślnie deny i magazyn operacji na lokalnym NTFS. Działają lokalny Host HTTP i CLI; worker Siemens, adaptery i rzeczywiste wykonanie operacji TIA jeszcze nie istnieją; przyjęcie operacji do SQLite nie oznacza jej wykonania ani autoryzacji TIA.
 
+B-02D dodaje [harness odporności i raport bramki](docs/16_RESILIENCE_RECOVERY.md), z pełnym przepływem na Fake, kontrolowanymi crash/restart i pomiarami. Kwalifikacja NF i formalna gotowość X-01 są osobne od zielonych testów; NF-11 pozostaje NOT_RUN według decyzji użytkownika (B-10B). Aktualne ograniczenia i propozycja doprecyzowania bramki są w raporcie, bez uruchamiania Siemens.
+
 Docelowy przepływ: **TIA → eksport do workspace → edycja CODEX → plan → zatwierdzone Apply → niezależna weryfikacja → kompilacja/symulacja → testy**. Pliki CODEX określają zamierzony stan. Rozbieżności z nieznanymi zmianami TIA wymagają rozstrzygnięcia; import nigdy nie stanowi samodzielnego dowodu zgodności.
 
 Rekomendacja: host C#/.NET 10, trwałe operacje i SQLite na lokalnym NTFS, wykonawca Openness V19 w oddzielnym procesie .NET Framework 4.8 x64. CODEX otrzymuje `operation_id` po utrwaleniu zlecenia i kontynuuje niezależną pracę. CLI i lokalne HTTP API korzystają z jednego silnika; MCP jest opcjonalną fasadą. Zawieszenie Siemens nie blokuje API, ale może uniemożliwić dalsze operacje na danym projekcie do czasu uzgodnienia stanu.
@@ -32,6 +34,7 @@ Rekomendacja: host C#/.NET 10, trwałe operacje i SQLite na lokalnym NTFS, wykon
 | [13 — Trwały magazyn](docs/13_DURABLE_STORAGE.md) | B-02A: SQLite, migracje, idempotencja, journal, outbox i artefakty |
 | [14 — Scheduler i IPC](docs/14_SCHEDULER_IPC.md) | B-02B: scheduler, supervisor, Fake Worker, watchdog i quarantine |
 | [15 — HTTP API i CLI](docs/15_HTTP_API_CLI.md) | B-02C: loopback, discovery/ACL, async submit/status/events/result/cancel i pomiary |
+| [16 — Odporność i recovery](docs/16_RESILIENCE_RECOVERY.md) | B-02D: procesy, crash/WAL/artifacts, macierz RT/NF i odrębna formalna bramka |
 | [Instrukcja ChatGPT](Instrukcja_ChatGPT.md) | podział ról ChatGPT/CODEX, workflow zadań i reguły oceny wyników zgodne z AGENTS.md |
 | [Zmiany](Zmiany.md) | zapis prac projektowych |
 

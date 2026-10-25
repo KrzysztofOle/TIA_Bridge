@@ -1,5 +1,81 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-25 — B-02D: resilience, crash recovery i izolacja procesów
+
+Stan wejściowy: czysty main/origin main 11eda18ae43d90c09affeb3bb2cebdd1624ee423. Przeczytano aktualne instrukcje, dokumentację 02–09/13–15, kontrakty, Core/Host i testy B-01A–B-02C. Implementacja wykorzystuje ten sam SQLite/outbox/journal, lifecycle, scheduler i IPC v1. Brak Siemens, X-01, PLC/HMI, symulatorów, OPC/Snap7, Playwright lub migracji rzeczywistych projektów.
+
+- Dodano harness w istniejącym Host.Tests/Resilience i rozszerzono StorageProbe o ten sam HostApi w osobnym procesie z wewnętrznym composition seam. Fault flags/barriers nie są dostępne w produkcyjnym HTTP, config lub argv. 48 nowych .NET i 4 Python reportera; plan pełnego przebiegu: 748 .NET/24 Python. Końcowy pełny run e46332b7aee247c28cc9ca3910e69c48: 748/748 .NET +24/24 Python PASS, FAIL 0/SKIP 0; wszystkie kroki Release/generatorów/audytu/formatu/diffu exit 0. Kwalifikacja NF-03 repo FAIL daje OFFLINE FAIL/exit 1 i GATE FAIL mimo test_execution_status PASS. X-01 formalnie NOT_READY; wariant techniczny read-only/NTFS oddzielony od zgody. [Snapshot](tests/resilience/QUALIFICATION.md).
+- Bariery i kontrolowane Environment.Exit obejmują admission przed/po commit, dispatch intent/sent, receipt odebrany/utrwalony oraz result przed/po commit. IStorageFaults obejmuje journal/outbox i symulowane SQLITE_FULL bez zapełniania dysku. WorkerReceiptCommitted jest obserwacją po zapisaniu receipt, bez zmiany dotychczasowej atomowości.
+- RT-03/05/06/15/16 używają rzeczywistych Host/CLI/Fake/Named Pipes i plikowej bazy NTFS. Syntetyczny P/B guard działa na jawnym stanie testowego adaptera po potwierdzonym pierwszym efekcie; nie jest planerem, readerem TIA ani kwalifikacją rzeczywistego Apply. Fake audit effect counter jest flushowany przed odpowiedzią; nie jest drugim ledgerem i nie steruje recovery.
+- Testy obejmują dwa porządki cancel/dispatch, 100 identycznych submitów/8 klientów i 409, no heartbeat/HB bez postępu, stale epoch, lease expiry, UNKNOWN/quarantine po restarcie, own child/lock anomaly, unrelated same-name sentinel, osiem procesowych ataków IPC, corrupt/missing/truncated proof oraz publish orphan i uszkodzoną końcówkę result WAL. Hardware power loss i foreign SID pozostają NOT_RUN bez zatwierdzonego środowiska.
+- Regresja 1001 operacji najpierw zakończyła się FAIL: limit per-worker history 1000 zatrzymywał kolejny dispatch. Naprawiono idle recycling wyłącznie potwierdzonego, własnego, bezczynnego workera. Nowy epoch i SQLite history pozostają; UNKNOWN/blocked nie jest recyklingowane ani ponawiane. Ponowny 1001 run PASS, każdy ID z jednym efektem i trwałym wynikiem.
+- Health/8 klientów początkowo p95 116,6084 ms FAIL. GET health używa teraz raz zwalidowanego stałego envelope i typowanych wewnętrznych wartości zamiast ponownego pełnego ReadReport na każdym odczycie. Nie zmieniono wejściowej walidacji, formatu DTO ani autoryzacji; klient i durable reports nadal używają Core. Ponowny profil health PASS.
+- Pierwszy profil startup/history N=6 miał p95/max 5660,20 ms FAIL (pozostałe odczyty health/result/events były responsywne). Profil NF-05 rozszerzono do stałych 20 startów, aby p95 miał rzeczywistą próbkę ogona; każdy pomiar, w tym cold-process outliers, jest zapisywany. Próg 5000 ms pozostaje bez zmian; starego FAIL nie usunięto. Nie kwalifikuje to zimnego restartu całego systemu operacyjnego.
+- Pierwszy rzeczywisty 306 s idle: CPU 3,6966% FAIL przy RAM 89,82 MiB host/37,38 MiB worker. Przyczyną jest polling pustej kolejki co 20 ms; tylko IDLE zmieniono na 200 ms, aktywne wywołania pozostają 20 ms. Obserwacja aktywnego wywołania korzysta z wewnętrznej projekcji report/hash/event z tego samego metadata readera, bez ponownej walidacji zamrożonego requestu w każdej iteracji. Admission, dispatch i zapis stanu nadal wykonują pełną walidację Core; hash, operation ID, schema/state/outcome/method i powiązanie journal są sprawdzane także w projekcji. Nie zmieniono deadline ani progu NF-08; pełny pomiar jest powtarzany.
+- Stop testowej ApiFixture zwalnia Process przez finally także po oczekiwanym nieudanym startup/assertion. Regresja potwierdza usunięcie własnego UUID bez opuszczenia procesu. Historyczny a71bad688cf24e0eb6e04f85d6474ab9 potwierdzono przez marker/config/syntetyczny UUID/own invalid Fake DLL; 0 aktywnych procesów/reparse i 7 poprawnych exclusive read opens. Poprzednia odmowa była polityką narzędzia, nie aktualnym lockiem NTFS. Katalog pozostawiono, bez obejścia kontroli.
+- NF-03: NTFS save/replace i repo volume mają odrębne próby. W finalnym 100-próbkowym repo control p95 bez workera 205,5911 ms FAIL, podczas Hang 28,5801 ms PASS; zmienność występuje niezależnie od obecności Host, nie kwalifikuje repo globalnie. Nie było odmów w tym finalnym profilu, ale wcześniejsze AccessDenied pozostają w historii. Bezpieczny test kontrolny repo zachowuje oryginał przy odmowie; brak delete+copy/retry lub rozluźnienia ochrony. Failure repo exFAT nie staje się PASS dzięki zielonemu testowi izolacji lub pozytywnemu NTFS. Formalna kwalifikacja i OFFLINE uwzględniają rzeczywisty wynik.
+
+Jawne doprecyzowanie użytkownika: nie wykonywać teraz 8 h soak; NF-11 NOT_RUN, pełna kwalifikacja długotrwałej stabilności w B-10B/R-14. Dokument 07 mówi minimum 8 h, a AGENTS odsyła do jego obowiązkowych testów przed X-01; R-14 przypisuje długi profil B-10B. Nie przyjęto samodzielnie wyjątku. [Raport](docs/16_RESILIENCE_RECOVERY.md) zawiera dokładne odwołania, skutki, warianty i minimalną propozycję do zatwierdzenia: ograniczone X-01 read-only wyłącznie na kwalifikowanym lokalnym NTFS po obowiązkowych RT/NF, bez uznawania tego za produkcyjną stabilność. Formalne readiness pozostaje NOT_READY, dopóki bramka nie zostanie rozstrzygnięta; X-01 nie jest uruchamiane.
+
+Ostateczne pomiary: idle 306.25 s, CPU 0.9075%, RAM Host 89.33/Fake 37.34 MiB; status/8 p95 14.5978 ms, health/8 25.6193, submit/8 236.3253, startup/history N20 1087.9415; NTFS save/replace 3.2648 ms. Wszystkie percentyle i RT/NF w snapshot JSON/MD. Audyt końcowy: 42 Markdown/323 lokalne odnośniki/0 błędów; format, diff i kontrola 38 ścieżek pod kątem sekretów/danych/binariów PASS. 1001 operacji, 1 efekt na ID, nowy epoch po idle recycle, zero zgubionych wyników.
+
+Lista zmienionych plików (38):
+
+```text
+README.md
+Zmiany.md
+docs/07_TEST_STRATEGY.md
+docs/08_IMPLEMENTATION_PLAN.md
+docs/09_RISKS_AND_DECISIONS.md
+docs/16_RESILIENCE_RECOVERY.md
+scripts/README.md
+scripts/report_resilience.py
+scripts/validate_offline.py
+src/TiaBridge.FakeWorker/Program.cs
+src/TiaBridge.FakeWorker/README.md
+src/TiaBridge.Host/Api/ApiResponses.cs
+src/TiaBridge.Host/Api/HostApi.cs
+src/TiaBridge.Host/Api/HostRuntimeHooks.cs
+src/TiaBridge.Host/Operations/ApiStorage.cs
+src/TiaBridge.Host/Operations/ExecutionStorage.cs
+src/TiaBridge.Host/Scheduling/OperationScheduler.cs
+src/TiaBridge.Host/Storage/StorageContracts.cs
+src/TiaBridge.Host/TiaBridge.Host.csproj
+tests/COVERAGE.md
+tests/README.md
+tests/contracts/test_offline_runner.py
+tests/contracts/test_resilience_report.py
+tests/integration/TiaBridge.Host.Tests/ApiFixture.cs
+tests/integration/TiaBridge.Host.Tests/ApiPerformanceTests.cs
+tests/integration/TiaBridge.Host.Tests/Resilience/ResilienceArtifactTests.cs
+tests/integration/TiaBridge.Host.Tests/Resilience/ResilienceCrashTests.cs
+tests/integration/TiaBridge.Host.Tests/Resilience/ResilienceEvidence.cs
+tests/integration/TiaBridge.Host.Tests/Resilience/ResiliencePerformanceTests.cs
+tests/integration/TiaBridge.Host.Tests/Resilience/ResilienceSafetyTests.cs
+tests/integration/TiaBridge.Host.Tests/Resilience/ResilienceSecurityTests.cs
+tests/integration/TiaBridge.StorageProbe/HttpResilienceProbe.cs
+tests/integration/TiaBridge.StorageProbe/IpcAdversary.cs
+tests/integration/TiaBridge.StorageProbe/Program.cs
+tests/resilience/QUALIFICATION.md
+tests/resilience/README.md
+tests/resilience/matrix.json
+tests/resilience/qualification.json
+```
+
+Ocena obu instrukcji sekcja po sekcji:
+
+| AGENTS.md / Instrukcja_ChatGPT.md | Ocena i decyzja |
+|---|---|
+| Zakres, stan / 1–2 | Nowy ograniczony B-02D jest jawnie zlecony. Historyczny scaffold nie nadpisuje rzeczywistego stanu README; brak Siemens. |
+| Hierarchia / 3 | Zachowano kontrakty/ADR. Rozbieżność NF-11/bramki opisana do decyzji, bez samowolnej zmiany normy. |
+| Niezmienne granice / 6 | Core bez zmian/dependency Host; durable intent, brak replay UNKNOWN, niezmienne terminal history i odrębne heartbeat/progress. |
+| Autoryzacja / 4–5, 8 | Tylko własne syntetyczne procesy/pliki. Nie zmieniono ACL, tokenów, grants, receiver policy ani TIA; foreign SID NOT_RUN. |
+| Testy i bramki / 7, 10 | Rzeczywiste crash/IPC/WAL/artifact tests i pomiary; NF failure/NOT_RUN nie ukryte. Technical readiness NTFS oddzielne od formalnej decyzji i produkcji. |
+| Dyscyplina, niezaufane dane / 9, 11–12 | Dowody w ignorowanym root, sanitized snapshots i hashe; stare/failed/duplicate dowody odrzucane. Brak surowych tokenów/logów/DB w Git. |
+| Git / 5, 11 | Jeden krótki angielski Conventional Commit test(host), explicit staging/staged review, normalny fast-forward push bez przepisywania historii. |
+
+AGENTS.md i Instrukcja_ChatGPT.md bez zmian. ADR 0001/0002 i normatywne kontrakty v1 pozostają bez zmian; dokumenty 07/08/09 otrzymały wyłącznie odwołania do dowodów/otwartej decyzji, nie wyjątek bramki. R-08/R-14 nie są zamykane bez właściwej kwalifikacji. Po raporcie, commicie i push zadanie kończy się; bez automatycznego X-01 lub B-10B.
+
 ## 2026-10-25 — B-02C: lokalne HTTP API, CLI i komunikacja nieblokująca
 
 **Stan wejściowy:** czysty main/origin main `9bcf216eee753ba2844eea346be1adb80cf4fcea`. Przeczytano aktualne instrukcje, README, dokumenty 02–09/13/14, Core/Host, contracts/v1, testy i historię. Wykorzystano B-01A–B-02B, bez drugiego magazynu, lifecycle, schedulera lub IPC. Zrealizowano wyłącznie Host/CLI i syntetyczne wykonanie; bez B-02D, Siemens, PLC/HMI, symulatorów, OPC, Playwright lub MCP.

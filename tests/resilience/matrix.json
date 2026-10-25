@@ -1,0 +1,78 @@
+{
+  "schema_version": "1.0",
+  "required_scenarios": [
+    "admission-OperationInserted",
+    "admission-EventInserted",
+    "admission-OutboxInserted",
+    "admission-BeforeCommit",
+    "admission-AfterCommit",
+    "running-dispatch-intent",
+    "running-dispatch-sent",
+    "running-receipt-received",
+    "running-WorkerReceiptCommitted",
+    "running-result-before",
+    "running-result-after",
+    "storage-fault-EventInserted",
+    "storage-fault-OutboxInserted",
+    "storage-fault-BeforeCommit",
+    "idempotency-100",
+    "two-writes-stale-P-B",
+    "deadline-late-receipt",
+    "old-epoch-receipt",
+    "cancel-race-False",
+    "cancel-race-True",
+    "worker-loss-Disconnect",
+    "worker-loss-Exit",
+    "worker-loss-NoHeartbeat",
+    "worker-loss-HeartbeatWithoutProgress",
+    "lease-expiry-live-call",
+    "owned-child-lock",
+    "ipc-hmac",
+    "ipc-epoch",
+    "ipc-sequence",
+    "ipc-oversize",
+    "ipc-json",
+    "ipc-truncated",
+    "ipc-version",
+    "ipc-peer",
+    "unrelated-process-survives",
+    "startup-failure-cleanup",
+    "artifact-False-truncated",
+    "artifact-False-missing",
+    "artifact-True-modified",
+    "wal-result-tail-False",
+    "wal-result-tail-True",
+    "orphan-published",
+    "http-readers-recovery",
+    "idle-300s",
+    "operations-1001",
+    "workspace-replace",
+    "queue-capacity",
+    "repository-replace-control",
+    "queued-restart"
+  ],
+  "required_rt": [
+    "RT-03",
+    "RT-05",
+    "RT-06",
+    "RT-15",
+    "RT-16"
+  ],
+  "eight_hour_requirement": {
+    "source": "docs/07_TEST_STRATEGY.md: Wydajnosc, stabilnosc i dostarczanie dowodow; docs/02_REQUIREMENTS.md NF-11",
+    "required_seconds": 28800,
+    "minimum_operations": 1000,
+    "missing_blocks_x01": true,
+    "decision": "User explicitly deferred execution to B-10B; formal X-01 gate clarification awaits separate approval."
+  },
+  "not_run_environment_cases": [
+    {
+      "id": "FOREIGN_SID",
+      "reason": "No approved second-account environment; no ACL weakening."
+    },
+    {
+      "id": "HARDWARE_POWER_LOSS",
+      "reason": "No approved hardware laboratory; exceptions/crash/WAL-tail tests do not prove power-loss durability."
+    }
+  ]
+}

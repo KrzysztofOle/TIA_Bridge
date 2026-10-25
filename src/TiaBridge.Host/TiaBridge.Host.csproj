@@ -14,5 +14,6 @@
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.13" />
     <EmbeddedResource Include="Storage/Migrations/*.sql" />
     <InternalsVisibleTo Include="TiaBridge.Host.Tests" />
+    <InternalsVisibleTo Include="TiaBridge.StorageProbe" />
   </ItemGroup>
 </Project>

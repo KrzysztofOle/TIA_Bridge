@@ -1,0 +1,79 @@
+using System.Diagnostics;
+using System.Text.Json;
+using TiaBridge.Core.Identity;
+using TiaBridge.Ipc;
+using Xunit;
+
+namespace TiaBridge.Host.Tests;
+
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
+internal sealed class ResilienceEvidence(string scenario, params string[] requirements) : IDisposable
+{
+    private static readonly string RunId = Guid.TryParseExact(Environment.GetEnvironmentVariable("TIA_BRIDGE_RESILIENCE_RUN_ID"), "N", out var id) ? id.ToString("N") : Guid.NewGuid().ToString("N");
+    private readonly Stopwatch timer = Stopwatch.StartNew();
+    private readonly DateTimeOffset started = DateTimeOffset.UtcNow;
+    private bool passed;
+    internal Dictionary<string, object?> Data { get; } = new();
+    internal void Pass() => passed = true;
+    public void Dispose()
+    {
+        string root = AppContext.BaseDirectory;
+        while (!File.Exists(Path.Combine(root, "TiaBridge.slnx"))) root = Directory.GetParent(root)!.FullName;
+        string output = Path.Combine(root, ".tia-bridge", "resilience", RunId); Directory.CreateDirectory(output);
+        if (scenario.Any(c => !char.IsAsciiLetterOrDigit(c) && c is not ('-' or '_' or '.'))) throw new ArgumentException("Unsafe evidence ID.");
+        File.WriteAllText(Path.Combine(output, scenario + ".json"), JsonSerializer.Serialize(new
+        { schema_version = "1.0", run_id = RunId, scenario, requirements, status = passed ? "PASS" : "FAIL", started_at = started, elapsed_ms = timer.Elapsed.TotalMilliseconds, data = Data }, new JsonSerializerOptions { WriteIndented = true }));
+    }
+    internal static async Task<JsonElement> Marker(ApiFixture f, string name)
+    {
+        string path = Path.Combine(f.Files.Root, name); var timer = Stopwatch.StartNew();
+        while (timer.Elapsed < TimeSpan.FromSeconds(20))
+        {
+            try { using var json = JsonDocument.Parse(await File.ReadAllBytesAsync(path)); return json.RootElement.Clone(); }
+            catch (Exception e) when (e is IOException or JsonException) { await Task.Delay(10); }
+        }
+        throw new TimeoutException("Owned test marker was not reached: " + name);
+    }
+    internal static void Release(ApiFixture f, string point) => File.WriteAllText(Path.Combine(f.Files.Root, point + ".release"), "release");
+    internal static async Task WorkerAbsent(JsonElement identity)
+    {
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        try
+        {
+            using var process = Process.GetProcessById(identity.GetProperty("pid").GetInt32());
+            if (process.StartTime.ToUniversalTime().Ticks == identity.GetProperty("start_ticks").GetInt64()) await process.WaitForExitAsync(deadline.Token);
+        }
+        catch (Exception e) when (e is ArgumentException or InvalidOperationException) { }
+    }
+    internal static object Journal(ApiFixture f, OperationId id)
+    {
+        var store = f.Files.Open(); var events = store.Events(id, limit: 1000);
+        Assert.Equal(Enumerable.Range(1, events.Count).Select(n => (long)n), events.Select(e => e.Sequence));
+        return new
+        {
+            operation_id = id.ToString(),
+            request_sha256 = store.Read(id).BodySha256,
+            attempts = store.AttemptCount(id),
+            events = events.Select(e => new { sequence = e.Sequence, state = e.Report.State.ToString(), outcome = e.Report.Outcome.ToString(), e.Report.Phase, at = e.OccurredAt }),
+            receipt_count = store.ReceiptCount(id),
+            quarantine = store.OwnerBlocked
+        };
+    }
+    internal static int Effects(ApiFixture f, OperationId id)
+    {
+        using var c = f.Files.Connection(); using var command = c.CreateCommand(); command.CommandText = "SELECT message_json FROM worker_receipts WHERE operation_id=$id"; command.Parameters.AddWithValue("$id", id.ToString());
+        using var reader = command.ExecuteReader(); int maximum = 0;
+        while (reader.Read())
+        { var message = JsonSerializer.Deserialize<WireMessage>((byte[])reader[0], Protocol.Json)!; maximum = Math.Max(maximum, Protocol.Read<WorkerReply>(message.Body).Receipt.EffectCount); }
+        return maximum;
+    }
+    internal static int DurableEffects(ApiFixture f, OperationId id) => Directory.EnumerateFiles(f.Files.Root, "fake-effects-*.jsonl")
+        .SelectMany(File.ReadAllLines).Where(line => !string.IsNullOrWhiteSpace(line)).Select(line => JsonDocument.Parse(line))
+        .Sum(doc => { using (doc) return doc.RootElement.GetProperty("operation_id").GetGuid() == id.Value ? 1 : 0; });
+    internal static async Task IndependentWork(ApiFixture f)
+    {
+        // Own bounded synthetic W, independent of the immutable request artifacts and worker's locks.
+        string path = Path.Combine(f.Files.Root, "independent.scl"); byte[] data = Enumerable.Repeat((byte)0x41, 1024 * 1024).ToArray();
+        await File.WriteAllBytesAsync(path, data); Assert.Equal(data, await File.ReadAllBytesAsync(path)); File.Delete(path);
+    }
+}

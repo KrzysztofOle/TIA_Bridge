@@ -39,6 +39,15 @@ class OfflineRunnerTests(unittest.TestCase):
                 runner.check_trx(path, scheduler_required=True)
             with self.assertRaises(ValueError):
                 runner.check_trx(path, api_required=True)
+            with self.assertRaises(ValueError):
+                runner.check_trx(path, resilience_required=True)
+            failing = results.replace('outcome="Passed"', 'outcome="Failed"', 1)
+            path.write_text(prefix + failing + suffix, encoding="utf-8")
+            with self.assertRaises(ValueError):
+                runner.check_trx(path)
+            collected = runner.check_trx(path, allow_failures=True)
+            self.assertEqual(1, collected["failed"])
+            self.assertEqual(1, len(collected["failed_tests"]))
 
     def test_failed_command_is_never_reported_as_pass(self):
         with tempfile.TemporaryDirectory(prefix="tia-bridge2-runner-") as directory:

@@ -16,7 +16,7 @@ public sealed class StorageException : Exception
 public enum StorageFaultPoint
 {
     MigrationBeforeCommit, OperationInserted, EventInserted, OutboxInserted, BeforeCommit, AfterCommit,
-    ArtifactBeforeFlush, ArtifactFlushed, ArtifactPublished, ArtifactBeforeReference
+    ArtifactBeforeFlush, ArtifactFlushed, ArtifactPublished, ArtifactBeforeReference, WorkerReceiptCommitted
 }
 /// <summary>Test seam; production uses NoStorageFaults. A checkpoint never schedules or retries work.</summary>
 public interface IStorageFaults { void Checkpoint(StorageFaultPoint point); }

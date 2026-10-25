@@ -95,6 +95,12 @@ static async Task<int> Run()
                                 while (!lateRelease.ContainsKey(id)) await Task.Delay(10, stop.Token);
                             await Task.Delay(command.DelayMs, stop.Token);
                             int effectCount = effects.AddOrUpdate(id, 1, (_, count) => count + 1);
+                            // Synthetic side effect audit, not a second operation ledger or proof about Siemens.
+                            // Flush before replying lets crash tests independently count effects after this process exits.
+                            using (var audit = new FileStream(Path.Combine(bootstrap.ArtifactRoot, "fake-effects-" + bootstrap.WorkerEpoch.ToString("N") + ".jsonl"), FileMode.Append, FileAccess.Write, FileShare.Read))
+                            {
+                                audit.Write(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { operation_id = id, worker_epoch = bootstrap.WorkerEpoch, attempt = command.Attempt, effect_count = effectCount }) + "\n")); audit.Flush(true);
+                            }
                             receipt = command.Scenario == FakeScenario.FailAfter ? new("Failed", null, command.FailureCode, effectCount, true) : new("Succeeded", report, null, effectCount, true);
                         }
                     }

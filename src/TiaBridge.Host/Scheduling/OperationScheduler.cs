@@ -46,7 +46,13 @@ public sealed class OperationScheduler : IAsyncDisposable
         {
             try
             {
-                while (!stop.IsCancellationRequested) { await PumpOnceAsync(stop.Token); await Task.Delay(20, stop.Token); }
+                while (!stop.IsCancellationRequested)
+                {
+                    await PumpOnceAsync(stop.Token);
+                    // Idle polling must not open/validate SQLite connections fifty times per second.
+                    // Active calls retain the short observation interval; status/health never wait here.
+                    await Task.Delay(Observation.State == "IDLE" ? 200 : 20, stop.Token);
+                }
             }
             catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
             catch (Exception e) when (e is IOException or StorageException or ContractValidationException or InvalidOperationException or ArgumentException or OperationCanceledException or System.ComponentModel.Win32Exception)
@@ -78,7 +84,7 @@ public sealed class OperationScheduler : IAsyncDisposable
                 while (worker.TryRead(out var message)) await Handle(message, ct);
                 if (active is { } current)
                 {
-                    var report = store.ReadStatus(current.Binding.OperationId);
+                    var report = store.ReadExecutionStatus(current.Binding.OperationId);
                     if (report.CancelRequested && current.RetryAt is not null && !current.TimedOut)
                     {
                         var previous = store.Read(current.Binding.OperationId).Report;
@@ -117,6 +123,12 @@ public sealed class OperationScheduler : IAsyncDisposable
             }
             if (active is null && !store.OwnerBlocked)
             {
+                // Bound per-epoch replay correlation without exhausting a long-lived Host.
+                // Only a quiescent owned worker can be recycled; UNKNOWN keeps active/blocked and never enters here.
+                if (worker is not null && history.Count >= 1000)
+                {
+                    await worker.DisposeAsync(); worker = null; history.Clear();
+                }
                 foreach (var pending in store.Pending())
                 {
                     var operation = store.Read(pending.OperationId);
@@ -212,7 +224,7 @@ public sealed class OperationScheduler : IAsyncDisposable
             current.TimedOut = true;
             store.Complete(Owner, binding, store.Failure(store.Read(binding.OperationId).Report, binding.Mutation, ErrorCode.TIMEOUT, "EXECUTION_TIMEOUT"));
         }
-        if (!valid || current is null || current.Binding != binding || current.TimedOut || current.RetryAt is not null || OperationLifecycle.IsTerminal(store.Read(current.Binding.OperationId).Report.State))
+        if (!valid || current is null || current.Binding != binding || current.TimedOut || current.RetryAt is not null || OperationLifecycle.IsTerminal(Enum.Parse<OperationState>(store.ReadExecutionStatus(current.Binding.OperationId).State.ToString())))
         {
             store.RecordReceipt(Owner, binding, message, valid ? "LATE_OR_DUPLICATE" : "FENCED_REJECTED");
             if (valid && current?.TimedOut == true && !binding.Mutation && reply.Receipt.Quiescent) { store.RecordReceipt(Owner, binding, message, "QUIESCENT"); active = null; }

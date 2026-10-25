@@ -36,7 +36,7 @@ Stan 2026-10-25: B-01A/B-01B zaimplementowane offline w [Core](../src/TiaBridge.
 
 ## Etap 2 — Silnik operacji, procesy i recovery [MVP]
 
-Stan 2026-10-25: zrealizowano [B-02A — warstwę trwałości](13_DURABLE_STORAGE.md) oraz [B-02B — scheduler, supervisor i Fake Worker/IPC](14_SCHEDULER_IPC.md). Działa wyłącznie wykonanie syntetyczne. [B-02C — HTTP API i CLI](15_HTTP_API_CLI.md) udostępnia ten sam silnik. B-02D i pełna bramka przed Siemens nie są jeszcze zrealizowane.
+Stan 2026-10-25: zrealizowano [B-02A — warstwę trwałości](13_DURABLE_STORAGE.md) oraz [B-02B — scheduler, supervisor i Fake Worker/IPC](14_SCHEDULER_IPC.md). Działa wyłącznie wykonanie syntetyczne. [B-02C — HTTP API i CLI](15_HTTP_API_CLI.md) udostępnia ten sam silnik. [B-02D](16_RESILIENCE_RECOVERY.md) dodaje harness i raport RT/NF; status formalnej bramki jest jawny w snapshot, bez automatycznej zgody na Siemens. NF-11 minimum 8 h pozostaje NOT_RUN/B-10B zgodnie z decyzją użytkownika; propozycja doprecyzowania bramki wymaga zatwierdzenia.
 
 **Cel:** nieblokujący, trwały interfejs jeszcze przed TIA. **Zależności:**1A, częściowo 1B. **Pakiety:**
 

@@ -97,6 +97,7 @@ public class ApiPerformanceTests
     [Fact]
     public async Task Queue_is_bounded_at_one_thousand_and_duplicate_health_and_status_still_work()
     {
+        using var evidence = new ResilienceEvidence("queue-capacity", "NF-15", "NF-08");
         await using var f = new ApiFixture(); await f.Start(FakeScenario.Hang); using var client = f.Client(); byte[] first = ApiFixture.Request(timeout: 120); var id = await f.Submit(client, first);
         await f.Until(client, id, r => r.Phase == "EXECUTING");
         for (int i = 1; i < 999; i++) { _ = await f.Submit(client, ApiFixture.Request(timeout: 120)); if (i % 128 == 0) await Task.Delay(1000); }
@@ -110,5 +111,7 @@ public class ApiPerformanceTests
         var health = await client.SendAsync(HttpMethod.Get, "/v1/diagnostics/health"); Assert.Equal(200, health.StatusCode);
         Assert.Contains(Assert.IsType<DiagnosticsHealthResult>(ContractJson.ReadReport(health.Json).Result).Components, c => c.Component == "scheduler" && c.Status == ComponentHealth_Status.HEALTHY);
         Assert.Equal(200, (await client.SendAsync(HttpMethod.Get, "/v1/operations/" + id)).StatusCode);
+        f.HostProcess.Refresh(); evidence.Data["active_operations"] = f.Files.Open().ActiveCount; evidence.Data["host_ram_mib"] = f.HostProcess.WorkingSet64 / 1048576d;
+        evidence.Data["host_handles"] = f.HostProcess.HandleCount; evidence.Data["host_threads"] = f.HostProcess.Threads.Count; evidence.Data["owned_processes"] = 2; evidence.Pass();
     }
 }

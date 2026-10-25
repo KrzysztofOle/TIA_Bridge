@@ -1,4 +1,4 @@
-"""Run B-01A-C/B-02A-C offline gates. QA Python, cached .NET SDK/packages and local NTFS.
+"""Run B-01A-C/B-02A-D offline tests. Qualification/readiness is reported separately. No eight-hour soak.
 
 No network restore/feed, package installation or Siemens. Starts own loopback Host/CLI/Fake processes and edits synthetic files.
 Run with the isolated QA Python from repo root; exit 0 only when every gate passes.
@@ -15,6 +15,7 @@ import sys
 import time
 import uuid
 import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / ".tia-bridge/offline"
@@ -42,11 +43,11 @@ def check_core_boundary(root=ROOT):
     return {"status": "PASS", "scope": "Core project, locked transitive package names and source imports; assembly closure is tested by .NET"}
 
 
-def check_trx(path, host_required=False, scheduler_required=False, api_required=False):
+def check_trx(path, host_required=False, scheduler_required=False, api_required=False, resilience_required=False, allow_failures=False):
     ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
     paths = sorted(path.glob("*.trx")) if path.is_dir() else [path]
     results = [result for item in paths for result in ET.parse(item).getroot().findall(".//t:UnitTestResult", ns)]
-    if not results or any(r.attrib.get("outcome") != "Passed" for r in results):
+    if not results or any(r.attrib.get("outcome") not in ({"Passed", "Failed"} if allow_failures else {"Passed"}) for r in results):
         raise ValueError("Missing, failed or skipped .NET results.")
     deterministic = [r for r in results if "Golden_models_paths_manifests_and_capabilities" in r.attrib.get("testName", "")]
     if len(deterministic) != 100 or len({r.attrib["testName"] for r in deterministic}) != 100:
@@ -97,10 +98,20 @@ def check_trx(path, host_required=False, scheduler_required=False, api_required=
                 raise ValueError("Missing required HTTP/CLI/process/auth/performance cases.")
         if sum("Required_nullable_diagnostic_age_is_preserved" in r.attrib.get("testName", "") for r in results) != 1:
             raise ValueError("Missing required nullable wire regression.")
-    return {"passed": len(results), "failed": 0, "skipped": 0, "deterministic_cases": 100, "host_storage_cases": len(host) - len(scheduler) - len(api), "scheduler_ipc_cases": len(scheduler), "http_cli_cases": len(api)}
+    resilience = [r for r in host if ".Resilience" in r.attrib.get("testName", "")]
+    if resilience_required:
+        for name, count in {"RT03_admission_crash": 5, "RT03_running_crash": 6, "RT03_explicit_QUEUED_state": 1, "RT05_two_synthetic_writes": 1,
+                            "RT06_receipt_already": 1, "RT15_owned_child_lock": 1, "RT16_one_hundred": 1,
+                            "Cancel_dispatch_race": 2, "Real_process_pipe_attack": 8,
+                            "Damaged_final_result_WAL_frame": 2, "Corrupt_artifact_never": 3,
+                            "Five_minute_idle_resource_profile": 1, "One_thousand_and_one_operations": 1,
+                            "Independent_workspace_save_and_replace": 1, "Health_result_events_and_recovery": 1}.items():
+            if sum(name in r.attrib.get("testName", "") for r in resilience) != count:
+                raise ValueError("Missing required resilience/crash/resource/process cases.")
+    return {"passed": sum(r.attrib["outcome"] == "Passed" for r in results), "failed": sum(r.attrib["outcome"] == "Failed" for r in results), "failed_tests": [r.attrib["testName"] for r in results if r.attrib["outcome"] == "Failed"], "skipped": 0, "deterministic_cases": 100, "host_storage_cases": len(host) - len(scheduler) - len(api) - len(resilience), "scheduler_ipc_cases": len(scheduler), "http_cli_cases": len(api), "resilience_cases": len(resilience)}
 
 
-def run_step(name, command, steps):
+def run_step(name, command, steps, collect_test_failure=False):
     started = time.monotonic()
     environment = os.environ.copy()
     environment.update(DOTNET_CLI_UI_LANGUAGE="en", DOTNET_CLI_TELEMETRY_OPTOUT="1", PYTHONIOENCODING="utf-8")
@@ -108,13 +119,14 @@ def run_step(name, command, steps):
     (OUTPUT / (name + ".log")).write_text(result.stdout, encoding="utf-8")
     steps.append({"name": name, "exit_code": result.returncode, "elapsed_s": round(time.monotonic() - started, 3)})
     print(result.stdout, end="", flush=True)
-    if result.returncode != 0:
+    if result.returncode != 0 and not collect_test_failure:
         raise ValueError("Offline gate failed: " + name)
+    return result
 
 
 def main():
     OUTPUT.mkdir(parents=True, exist_ok=True)
-    report = {"schema_version": "1.0", "scope": "B-01A-C/B-02A-C OFFLINE", "status": "FAIL", "steps": [], "engineering": "NOT_RUN", "runtime": "NOT_RUN"}
+    report = {"schema_version": "1.0", "scope": "B-01A-C/B-02A-D OFFLINE", "status": "FAIL", "started_at": datetime.now(timezone.utc).isoformat(), "steps": [], "engineering": "NOT_RUN", "runtime": "NOT_RUN"}
     try:
         for dependency in ["jsonschema", "openapi_spec_validator"]:
             if importlib.util.find_spec(dependency) is None:
@@ -124,6 +136,10 @@ def main():
         feed = OUTPUT / "empty-feed"
         feed.mkdir(exist_ok=True)
         test_results = OUTPUT / "test-results" / uuid.uuid4().hex
+        os.environ["TIA_BRIDGE_RESILIENCE_RUN_ID"] = test_results.name
+        spec = importlib.util.spec_from_file_location("report_resilience", ROOT / "scripts/report_resilience.py")
+        resilience_report = importlib.util.module_from_spec(spec); spec.loader.exec_module(resilience_report)
+        resilience_report.capture_environment(ROOT, test_results.name)
         steps = [
             ("01-restore", ["dotnet", "restore", "TiaBridge.slnx", "--locked-mode", "--source", str(feed), "-p:NuGetAudit=false"]),
             ("02-build", ["dotnet", "build", "TiaBridge.slnx", "-c", "Release", "--no-restore"]),
@@ -136,12 +152,31 @@ def main():
             ("09-diff", ["git", "diff", "--check"]),
         ]
         for name, command in steps:
-            run_step(name, command, report["steps"])
+            result = run_step(name, command, report["steps"], collect_test_failure=name in {"03-dotnet", "04-json-schema-openapi"})
             if name == "03-dotnet":
-                report["dotnet"] = check_trx(test_results, host_required=True, scheduler_required=True, api_required=True)
+                report["dotnet"] = check_trx(test_results, host_required=True, scheduler_required=True, api_required=True, resilience_required=True, allow_failures=True)
                 report["test_results"] = str(test_results.relative_to(ROOT))
-        report["status"] = "PASS"
-    except (OSError, ValueError, ET.ParseError) as error:
+            if name == "04-json-schema-openapi":
+                found = re.search(r"Ran (\d+) tests", result.stdout)
+                if not found:
+                    raise ValueError("Missing Python test execution summary.")
+                total = int(found.group(1)); failed = sum(int(n) for n in re.findall(r"(?:failures|errors)=(\d+)", result.stdout)); skipped = sum(int(n) for n in re.findall(r"skipped=(\d+)", result.stdout))
+                report["python"] = {"total": total, "passed": total - failed - skipped, "failed": failed, "skipped": skipped}
+        qualification = resilience_report.qualification(ROOT, test_results.name, report["started_at"])
+        test_execution_ok = all(step["exit_code"] == 0 for step in report["steps"]) and report["dotnet"]["failed"] == 0 and report["python"]["skipped"] == 0
+        if not test_execution_ok:
+            qualification["gate"] = "FAIL"; qualification["x01_readiness"] = "NOT_READY"
+            if report["python"]["failed"] or any("ApiPerformanceTests.One_and_eight_clients_keep_status_and_workspace_responsive_during_real_worker_hang" not in name for name in report["dotnet"]["failed_tests"]):
+                qualification["limited_x01_technical_readiness"] = "NOT_READY_UNTIL_FAILED_TESTS_RESOLVED"
+            qualification["gate_blockers"].append("A .NET or Python test failed/skipped; passing RT subsets cannot hide this execution failure.")
+        qualification["test_results"] = {"dotnet": report["dotnet"], "python": report["python"]}
+        (ROOT / ".tia-bridge/resilience/run.json").write_text(json.dumps(qualification, indent=2) + "\n", encoding="utf-8")
+        report["resilience_gate"] = qualification["gate"]; report["x01_readiness"] = qualification["x01_readiness"]
+        report["test_execution_status"] = "PASS" if test_execution_ok else "FAIL"
+        report["status"] = "FAIL" if qualification["gate"] == "FAIL" else "PASS"
+        if report["status"] == "FAIL":
+            report["failure"] = "Resilience qualification failed; see .tia-bridge/resilience/run.json. Passing test execution does not hide NF failures."
+    except (OSError, ValueError, ET.ParseError, subprocess.SubprocessError, KeyError, TypeError) as error:
         report["failure"] = str(error)
         print("OFFLINE: FAIL - " + str(error), flush=True)
     finally:
