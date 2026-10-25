@@ -36,6 +36,8 @@ Stan 2026-10-25: B-01A/B-01B zaimplementowane offline w [Core](../src/TiaBridge.
 
 ## Etap 2 — Silnik operacji, procesy i recovery [MVP]
 
+Stan 2026-10-25: zrealizowano wyłącznie [B-02A — warstwę trwałości](13_DURABLE_STORAGE.md), bez wykonywania zadań. B-02B–D, fake worker i ich bramka przed Siemens nie są jeszcze zrealizowane.
+
 **Cel:** nieblokujący, trwały interfejs jeszcze przed TIA. **Zależności:**1A, częściowo 1B. **Pakiety:**
 
 | ID | Zadanie / moduły | Kryterium commita |

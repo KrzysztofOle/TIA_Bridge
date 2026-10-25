@@ -65,7 +65,22 @@ Wykryte i poprawione błędy: B-01A nie odrzucał uszkodzonego UTF-16 przy konst
 
 ## Świadomie późniejsze etapy
 
-- B-02A–D: trwały ledger, SQLite, outbox, kolejka/dispatch/cancel races, restart/crash/late result, quarantine i testy fake workera. Testy modeli nie dowodzą tych zachowań.
+- B-02B–D: pełna kolejka/dispatch/cancel races, restart/crash/late result, owner/epoch/fence, recovery quarantine i fake worker. Poniższe B-02A bada wyłącznie warstwę trwałości, nie cały ten przepływ.
 - B-03 / B-05B: rzeczywiste IO, symlinki/reparse points, TOCTOU, native format parsers/normalizers i golden vendor fixtures. Obecne testy ścieżek używają danych obserwacji, bez filesystemu Workspace.
 - B-04A: co najmniej 100 rzeczywistych deterministycznych planów, W/P/B, DAG i konflikty. Obecny task jawnie przenosi tę część pierwotnego skrótu backlogu do implementacji planera; nie usuwa jej kryterium.
 - X-01 i dalsza integracja Siemens: dopiero po wymaganej bramce B-02A–D, na osobno zatwierdzonym zakresie. ENGINEERING/RUNTIME NOT_RUN.
+
+## Rozszerzenie B-02A — Storage, 48 testów NTFS
+
+Regresyjne 537 .NET i 17 Python pozostają bez zmiany liczby; Core i wire v1 nie zmieniono. Nowe testy wykorzystują rzeczywisty plikowy SQLite na lokalnym NTFS, bez TIA/Siemens i bez :memory: jako dowodu trwałości. [Szczegóły implementacji i ograniczeń](../docs/13_DURABLE_STORAGE.md), [polecenia](README.md).
+
+| Klasa / liczba | Rzeczywiście wykonywany zakres |
+|---|---|
+| OperationStorageTests / 9 | atomowe przyjęcie i reopen; 100 równoczesnych nowych zgłoszeń (1 nowe, 99 duplikatów); principal/key/body/global scope; odrzucenie niezarejestrowanego projektu; wynik i eventy po nowym procesie; invalid lifecycle/CAS; terminal UNKNOWN i quarantine; pojedynczy claim; blokada dispatch po quarantine |
+| FailureAndRestartTests / 14 | cztery granice rollbacku intentu; awaria po commit z CommitMayHaveSucceeded; realne błędy SQL events/outbox; kontrolowane SQLITE_FULL i disk-full IO; dwa deterministyczne process exits przed/po COMMIT; wyścig procesów o admission i claim; rollback state/result/quarantine po błędzie eventu; odczyt podczas otwartej transakcji writera |
+| MigrationAndPolicyTests / 13 | pięć niedozwolonych lokalizacji; foreign directory/repository/junction; v1→v2 i WAL/FULL/FK; rollback upgrade; future version/hash drift; obca baza/ochrona historii SQL; korupcja pliku i brak wcześniej zainicjalizowanej bazy bez resetu ledgeru |
+| ArtifactStorageTests / 12 | known SHA-256, size, readonly i reopen; brak/truncation/tamper; odrzucenie złego hasha/wyniku po korupcji także dla duplicate submit; nested refs; crash po flush/publish i zachowanie orphanów; trzy unsafe IDs; niekompletny input stream |
+
+Źródła: [operacje](integration/TiaBridge.Host.Tests/OperationStorageTests.cs), [awarie](integration/TiaBridge.Host.Tests/FailureAndRestartTests.cs), [migracje](integration/TiaBridge.Host.Tests/MigrationAndPolicyTests.cs), [artefakty](integration/TiaBridge.Host.Tests/ArtifactStorageTests.cs). Interfejs IStorageFaults wstrzykuje błąd w określony checkpoint; proces StorageProbe kończy się przez Environment.Exit(73), a nie losowy kill. Test pełnego dysku nie zapełnia fizycznego dysku. RetainedOrphans niczego nie usuwa i nie adoptuje.
+
+Runner agreguje dwa TRX z katalogu danego przebiegu i wymaga wskazanych testów Host; same stare PASS Core nie zamkną B-02A. Nie jest to kwalifikacja power-loss/ACL deployment, schedulera B-02B, pełnego harnessu B-02D, jakiegokolwiek efektu Siemens lub Runtime.

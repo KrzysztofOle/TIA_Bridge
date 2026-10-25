@@ -8,6 +8,13 @@
 
 # Local application state and credentials
 .tia-bridge/
+*.sqlite
+*.sqlite3
+*.sqlite*-wal
+*.sqlite*-shm
+*.db
+*.db-wal
+*.db-shm
 *.secrets.json
 *.credential
 *.pfx

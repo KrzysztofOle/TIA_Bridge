@@ -1,4 +1,4 @@
-"""Run B-01C offline gates. Python 3.12 + requirements-qa.txt + cached .NET SDK/packages.
+"""Run B-01A-C/B-02A offline gates. QA Python, cached .NET SDK/packages and local NTFS.
 
 No network restore/feed, package installation, Siemens, server, worker or project IO.
 Run with the isolated QA Python from repo root; exit 0 only when every gate passes.
@@ -13,6 +13,7 @@ import re
 import subprocess
 import sys
 import time
+import uuid
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,10 +42,10 @@ def check_core_boundary(root=ROOT):
     return {"status": "PASS", "scope": "Core project, locked transitive package names and source imports; assembly closure is tested by .NET"}
 
 
-def check_trx(path):
-    root = ET.parse(path).getroot()
+def check_trx(path, host_required=False):
     ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
-    results = root.findall(".//t:UnitTestResult", ns)
+    paths = sorted(path.glob("*.trx")) if path.is_dir() else [path]
+    results = [result for item in paths for result in ET.parse(item).getroot().findall(".//t:UnitTestResult", ns)]
     if not results or any(r.attrib.get("outcome") != "Passed" for r in results):
         raise ValueError("Missing, failed or skipped .NET results.")
     deterministic = [r for r in results if "Golden_models_paths_manifests_and_capabilities" in r.attrib.get("testName", "")]
@@ -58,7 +59,18 @@ def check_trx(path):
                         "Core_transitive_assembly_dependencies": 1}.items():
         if sum(name in r.attrib.get("testName", "") for r in results) != count:
             raise ValueError("Missing required API, lifecycle, regression or dependency cases.")
-    return {"passed": len(results), "failed": 0, "skipped": 0, "deterministic_cases": 100}
+    host = [r for r in results if "TiaBridge.Host.Tests." in r.attrib.get("testName", "")]
+    if host_required:
+        for name, count in {"One_hundred_concurrent_identical_submits": 1,
+                            "Deterministic_process_exit_at_admission_boundary": 2,
+                            "Outbox_claim_is_compare_and_swap_across_independent_processes": 1,
+                            "Failed_upgrade_rolls_back": 1,
+                            "Missing_or_corrupt_content": 3,
+                            "Artifact_crash_boundaries": 2,
+                            "Sqlite_full_and_artifact_io_full": 1}.items():
+            if sum(name in r.attrib.get("testName", "") for r in host) != count:
+                raise ValueError("Missing required NTFS SQLite/restart/failure tests.")
+    return {"passed": len(results), "failed": 0, "skipped": 0, "deterministic_cases": 100, "host_storage_cases": len(host)}
 
 
 def run_step(name, command, steps):
@@ -75,7 +87,7 @@ def run_step(name, command, steps):
 
 def main():
     OUTPUT.mkdir(parents=True, exist_ok=True)
-    report = {"schema_version": "1.0", "scope": "B-01C OFFLINE", "status": "FAIL", "steps": [], "engineering": "NOT_RUN", "runtime": "NOT_RUN"}
+    report = {"schema_version": "1.0", "scope": "B-01A-C/B-02A OFFLINE", "status": "FAIL", "steps": [], "engineering": "NOT_RUN", "runtime": "NOT_RUN"}
     try:
         for dependency in ["jsonschema", "openapi_spec_validator"]:
             if importlib.util.find_spec(dependency) is None:
@@ -84,10 +96,11 @@ def main():
         # An empty local feed and existing global cache keep restore offline. No package install or audit HTTP.
         feed = OUTPUT / "empty-feed"
         feed.mkdir(exist_ok=True)
+        test_results = OUTPUT / "test-results" / uuid.uuid4().hex
         steps = [
             ("01-restore", ["dotnet", "restore", "TiaBridge.slnx", "--locked-mode", "--source", str(feed), "-p:NuGetAudit=false"]),
             ("02-build", ["dotnet", "build", "TiaBridge.slnx", "-c", "Release", "--no-restore"]),
-            ("03-dotnet", ["dotnet", "test", "TiaBridge.slnx", "-c", "Release", "--no-build", "--no-restore", "--logger", "trx;LogFileName=offline.trx", "--results-directory", str(OUTPUT / "test-results")]),
+            ("03-dotnet", ["dotnet", "test", "TiaBridge.slnx", "-c", "Release", "--no-build", "--no-restore", "--logger", "trx", "--results-directory", str(test_results)]),
             ("04-json-schema-openapi", [sys.executable, "-B", "-m", "unittest", "discover", "-s", "tests/contracts", "-p", "test_*.py", "-v"]),
             ("05-contract-generator", [sys.executable, "-B", "scripts/generate_contracts.py"]),
             ("06-test-vectors", [sys.executable, "-B", "scripts/generate_test_vectors.py"]),
@@ -98,7 +111,8 @@ def main():
         for name, command in steps:
             run_step(name, command, report["steps"])
             if name == "03-dotnet":
-                report["dotnet"] = check_trx(OUTPUT / "test-results/offline.trx")
+                report["dotnet"] = check_trx(test_results, host_required=True)
+                report["test_results"] = str(test_results.relative_to(ROOT))
         report["status"] = "PASS"
     except (OSError, ValueError, ET.ParseError) as error:
         report["failure"] = str(error)
