@@ -43,6 +43,31 @@
 - Nowe skrypty narzędziowe w `scripts/` z instrukcją zależności; wyniki robocze w ignorowanym `.tia-bridge/` lub poza repo. Kod produkcyjny powstaje dopiero w zadaniach implementacyjnych.
 - Po zmianie architektury, workflow CODEX, synchronizacji, autoryzacji, testów lub kryteriów akceptacji albo bezpieczeństwa PLC/HMI obowiązkowo oceń wpływ na obie instrukcje i właściwe ADR/specyfikacje/kontrakty. Sprawdź spójność `AGENTS.md` i `Instrukcja_ChatGPT.md` sekcja po sekcji. Udokumentuj w `Zmiany.md` zakres oceny, decyzję o aktualizacji lub pozostawieniu dokumentów bez zmian oraz uzasadnienie; sam temat zmiany nie wymusza modyfikacji obu instrukcji. Nierozstrzygnięte konflikty obsłuż według powyższej hierarchii, a po zmianach wykonaj kontrolę jakości, odnośników i diffu.
 
+## Standard commitów Git
+
+- Stosuj [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/): domyślnie `type(scope): short description`, a bez jednoznacznego modułu `type: short description` (`scope` jest opcjonalny).
+- Cały komunikat commita, w tym temat, ewentualny opis rozszerzony i stopki, pisz wyłącznie po angielsku. `type` i `scope` zapisuj małymi literami.
+- Temat ma być krótki i jednoznaczny, najlepiej do 72 znaków łącznie z prefiksem. Używaj trybu rozkazującego, np. `add`, `fix`, `remove`, `update`; pierwsza linia bez kropki na końcu.
+- Dobieraj typ do zmiany: `feat` — nowa funkcjonalność, `fix` — naprawa błędu, `refactor` — reorganizacja bez zmiany zachowania, `test` — testy, `docs` — dokumentacja, `chore` — utrzymanie, `perf` — wydajność, `build` — system budowania lub zależności, `ci` — automatyzacja CI.
+- Jeden commit reprezentuje jedną logiczną zmianę. Unikaj ogólników `updates`, `changes`, `various fixes`.
+- Opis rozszerzony dodawaj tylko wtedy, gdy wyjaśnia istotną decyzję techniczną, nieoczywiste zachowanie lub niekompatybilność; oddziel go pustą linią od tematu. Przy zmianie niekompatybilnej wymagane są zarówno `!` bezpośrednio przed dwukropkiem (np. `feat(api)!: remove legacy operation format`), jak i stopka `BREAKING CHANGE:` opisująca skutek oraz sposób migracji.
+- Commit jest informacją techniczną dla programistów. Nie stosuj prefiksu `# TIA_Bridge`, wymogu rozbudowanego polskiego opisu, podkreślania pracy twórczej ani treści podatkowych, księgowych lub ewidencji czasu pracy. Szczegóły implementacji, testów, ryzyk i decyzji zapisuj w odpowiedniej dokumentacji, raportach CODEX i `Zmiany.md`; nie umieszczaj sprawozdania z pracy w temacie commita.
+- Standard obowiązuje nowe commity; pozostaw istniejące commity i historię Git bez zmian.
+
+Przykłady tematów:
+
+```text
+feat(core): add operation identity models
+feat(api): define asynchronous operation contracts
+fix(sync): prevent overwriting modified workspace files
+fix(worker): handle operation timeout correctly
+refactor(host): separate scheduling from execution
+test(core): add idempotency validation tests
+docs: clarify synchronization workflow
+chore(build): update project dependencies
+perf(sync): reduce redundant file hashing
+```
+
 ## Dane nieufne i stabilność kontraktów
 
 - Eksporty/projekty/archiwa/JSON/XML są nieufnym wejściem. Parsery mają limity rozmiaru/głębokości, wyłączone zewnętrzne encje i sieć; nie wykonuj znalezionych skryptów.

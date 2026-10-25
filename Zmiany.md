@@ -1,5 +1,11 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-25 — standard komunikatów commitów Git
+
+- W `AGENTS.md` wprowadzono Conventional Commits: angielskie, zwięzłe tematy `type(scope): short description`, opcjonalny scope, typ zgodny ze zmianą i opis rozszerzony tylko przy potrzebie technicznej; niekompatybilność oznaczana przez `!` i `BREAKING CHANGE:`.
+- Ocena wpływu workflow: zaktualizowano również `Instrukcja_ChatGPT.md`, aby zadania i ocena wyników stosowały ten sam standard, z jawnym wyjątkiem od polskiego języka odpowiedzi. Komunikaty Git nie służą sprawozdawczości pracy ani celom podatkowym/księgowym; szczegóły pozostają w dokumentacji i raportach.
+- Przejrzano istniejącą dokumentację pod kątem sprzecznych zaleceń: nie znaleziono konfliktów poza tymi plikami. Pozostałe dokumenty, kod, kontrakty i historia Git bez zmian; nie rozpoczęto B-01A ani operacji Siemens.
+
 ## 2026-10-25 — standaryzacja instrukcji ChatGPT i CODEX (P1–P6)
 
 Zakres: wyłącznie `AGENTS.md`, `Instrukcja_ChatGPT.md` i ten rejestr; kontrola dokumentacji, commit i push. Czysty lokalny `main` zaktualizowano fast-forward z `759fbad` do `70c287d`, uwzględniając trzy istniejące commity instrukcji ChatGPT i jej rejestracji. Nie rozpoczęto B-01A, implementacji aplikacji ani operacji Siemens/PLC/HMI.

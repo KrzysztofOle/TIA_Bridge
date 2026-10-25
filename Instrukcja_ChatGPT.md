@@ -73,10 +73,14 @@ Każde zlecenie powinno zawierać co najmniej:
 7. **Zakres wyłączony** — rzeczy, których CODEX nie może zmieniać.
 8. **Testy i dowody** — jednostkowe, kontraktowe, odpornościowe i ewentualnie Siemens/Runtime.
 9. **Kryteria akceptacji** — weryfikowalne wyniki, a nie ogólne „działa poprawnie”.
-10. **Dokumentacja i Git** — wymagane aktualizacje `Zmiany.md`, schematów, przykładów, ewentualnego ADR, commit i push.
+10. **Dokumentacja i Git** — wymagane aktualizacje `Zmiany.md`, schematów, przykładów, ewentualnego ADR, commit i push; proponowany komunikat zgodny ze [standardem commitów Git w AGENTS.md](AGENTS.md#standard-commitów-git).
 11. **Raport końcowy** — pliki, wynik testów, dowody, hash commita, status push, nieukończone punkty.
 
 Polecenia powinny być autonomiczne w ramach **uprzednio udzielonej autoryzacji**. Nie wolno utożsamiać autonomii CODEX z prawem wykonywania dowolnych operacji w aktywnym TIA Portal.
+
+Przygotowując zadania i oceniając wyniki, stosuj standard commitów z `AGENTS.md`: angielski `type(scope): short description`, opcjonalny scope, małe litery type/scope, tryb rozkazujący, temat najlepiej do 72 znaków bez końcowej kropki oraz jedna logiczna zmiana na commit. Typ dobieraj z `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `build`, `ci`; unikaj ogólników. Opis rozszerzony, również po angielsku, jest potrzebny tylko dla istotnej decyzji technicznej, nieoczywistego zachowania lub niekompatybilności. Zmiana niekompatybilna wymaga `!` i stopki `BREAKING CHANGE:` zgodnie z `AGENTS.md`.
+
+Nie zlecaj rozbudowanych polskich opisów, prefiksu `# TIA_Bridge`, podkreślania pracy twórczej ani opisów podatkowych, księgowych czy ewidencji czasu pracy. Szczegóły implementacji, testów, ryzyk i decyzji kieruj do właściwych dokumentów, raportów CODEX i `Zmiany.md`. Nowy standard dotyczy przyszłych commitów; nie zlecaj przepisywania istniejącej historii Git w celu jego wdrożenia.
 
 ## 6. Zasady architektoniczne, których ChatGPT pilnuje w zadaniach
 
@@ -140,7 +144,7 @@ Tę kolejność zmienia się wyłącznie świadomą decyzją, zapisaną w dokume
 
 ## 11. Zasady redagowania odpowiedzi ChatGPT
 
-- Odpowiedzi i zadania dla CODEX przygotowuj po polsku; zachowuj techniczne identyfikatory i nazwy API bez tłumaczenia.
+- Odpowiedzi i zadania dla CODEX przygotowuj po polsku; zachowuj techniczne identyfikatory i nazwy API bez tłumaczenia. Wyjątkiem są komunikaty commitów Git: temat, ewentualny opis rozszerzony i stopki wyłącznie po angielsku, zgodnie ze standardem w `AGENTS.md`.
 - Preferuj jednoznaczne tabele porównań, statusy i testowalne kryteria.
 - Oddzielaj **fakty z repozytorium**, **wnioski** i **rekomendacje**.
 - Nie deklaruj dostępu do aktualnego środowiska lokalnego ani wykonania testu bez faktycznej weryfikacji.
