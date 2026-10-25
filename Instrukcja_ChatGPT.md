@@ -4,7 +4,7 @@
 >
 > **Repozytorium:** `M:\_Moje_Programy\TIA_Bridge`.
 >
-> **Zasada nadrzędna:** `AGENTS.md` określa reguły wykonawcze pracy CODEX. Ten dokument określa rolę ChatGPT, sposób podejmowania decyzji i przygotowywania zadań. Nie zastępuje `AGENTS.md` ani dokumentacji technicznej.
+> **Relacja instrukcji:** [AGENTS.md](AGENTS.md) określa zasady wykonawcze obowiązujące CODEX. Ten dokument określa zasady analizy, planowania, przygotowywania zadań i oceniania wyników. Dokumenty są komplementarne, nie konkurencyjne; nie zastępują dokumentacji technicznej.
 
 ## 1. Cel projektu i stan odniesienia
 
@@ -41,7 +41,9 @@ Przed przygotowaniem zadania należy uwzględnić aktualny stan repozytorium i p
 - `docs/09_RISKS_AND_DECISIONS.md` — decyzje D-xx, ryzyka R-xx i eksperymenty X-xx.
 - `docs/10_EVIDENCE_AND_QUALITY.md`, `docs/11_SNAP7_PLC_TESTING.md`, `Zmiany.md` — dowody, ograniczenia i historia.
 
-**Kolejność rozstrzygania:** bieżące jawne decyzje użytkownika i bezpieczeństwo → `AGENTS.md` (dla wykonania przez CODEX) → zatwierdzone ADR/kontrakty → szczegółowe specyfikacje → plan i notatki. W przypadku sprzeczności ChatGPT ma ją wskazać i zaproponować decyzję; nie może samowolnie „naprawiać” zgodności przez zmianę semantyki lub osłabienie zabezpieczeń.
+**Kolejność stosowania w repo:** bieżące jawne decyzje użytkownika z zachowaniem bezpieczeństwa → `AGENTS.md` dla wykonania → zatwierdzone ADR i kontrakty → szczegółowe specyfikacje → backlog i notatki. Instrukcje nie zmieniają samym pierwszeństwem zatwierdzonej architektury ani semantyki kontraktu; README jest indeksem i opisem stanu.
+
+Jeśli sprzeczność dotyczy architektury, bezpieczeństwa lub semantyki kontraktu, ChatGPT ani CODEX nie rozstrzygają jej samodzielnie ani przez wybór dokumentu wyżej w hierarchii. Należy wstrzymać zależną część pracy i przygotować raport rozbieżności z dokładnymi odwołaniami, skutkami, wariantami i rekomendacją do decyzji użytkownika. Kontynuować można tylko niezależne prace w zatwierdzonym zakresie; nie wolno osłabiać zabezpieczeń dla pozornej zgodności.
 
 Nie należy traktować raportu tekstowego CODEX jako dowodu integracyjnego bez artefaktów, testów i wskazania badanego środowiska.
 
@@ -78,13 +80,13 @@ Polecenia powinny być autonomiczne w ramach **uprzednio udzielonej autoryzacji*
 
 ## 6. Zasady architektoniczne, których ChatGPT pilnuje w zadaniach
 
-- **Brak blokowania CODEX:** operacja długotrwała zostaje zapisana, otrzymuje `operation_id`, a klient może pobierać status i wynik. Nie projektować synchronicznego oczekiwania API/CLI na wywołanie Siemens jako trybu domyślnego.
+- **Brak blokowania CODEX:** obowiązkowe nieblokujące przyjęcie operacji z utrwaleniem intentu i `operation_id` przed potwierdzeniem przyjęcia, dostępność health/status przy zawieszonym workerze i zachowanie zaakceptowanych zleceń oraz historii po restarcie hosta. Health/status nie wywołują TIA inline; API/CLI/MCP domyślnie nie oczekują na zakończenie Siemens. Identyczny klucz i kanoniczne żądanie zwracają tę samą operację; idempotencja nie pozwala ponawiać mutacji o nieznanym wyniku. Mierzalne progi i szczegółowe scenariusze pozostają w [wymaganiach](docs/02_REQUIREMENTS.md), [testach](docs/07_TEST_STRATEGY.md) i [backlogu](docs/08_IMPLEMENTATION_PLAN.md).
 - **Izolacja procesu Siemens:** Host/Core bez vendor DLL; worker `TiaBridge.Worker.V19` (.NET Framework 4.8, x64), host .NET 10. Nie przenosić proxy TIA przez granicę procesów.
 - **Trwałość:** journal, outbox, idempotencja i stany operacji; SQLite, sekrety i spool na lokalnym NTFS, nie na dysku `M:`/exFAT.
 - **Współbieżność:** serializacja wywołań vendor w obrębie właściciela sesji; brak równoległych konfliktujących zapisów do projektu.
 - **Timeout nie jest anulowaniem:** po niepewnym zapisie `RECONCILIATION_REQUIRED`, kwarantanna i niezależne uzgodnienie stanu; bez automatycznego ponowienia importu.
 - **Priorytet CODEX:** workspace `W` wyraża zamierzony stan, ale nie daje bezwarunkowego prawa nadpisywania obcych zmian projektu `P`.
-- **Bezpieczny import:** plan, snapshot `S`, autoryzacja, backup, walidacja warunków, Compile/Save i niezależny readback.
+- **Bezpieczny import:** przed mutacją plan zatwierdzony indywidualnie albo objęty polityką istniejącego, ograniczonego grantu sesji testowej oraz właściwe uprawnienie, świeża tożsamość, kwalifikowana capability, aktualne warunki synchronizacji sprawdzone pod ExclusiveAccess i jeden zweryfikowany backup przed pierwszą mutacją sesji. Zakończenie wymaga prawidłowego importu snapshotu `S`, Compile odpowiedniego zakresu, weryfikacji zakresu i chronionych zależności, Save z potwierdzeniem return i `IsModified=False` oraz niezależnego readbacku. Baseline promuje się przez CAS dopiero po pełnej weryfikacji grupy spójności, dokładnie według [sagi w dokumencie 04](docs/04_SYNCHRONIZATION.md). Późniejsza edycja W zachowuje bieżący status `MODIFIED` mimo sukcesu operacji dla S.
 - **Weryfikacja:** `SYNCED` tylko zgodnie z formalnymi warunkami `docs/04_SYNCHRONIZATION.md`; sam sukces importu, kompilacja i hash tekstu nie wystarczają.
 - **Oddzielne stany:** projekt w pamięci `P`, zapis `D`, workspace `W`, snapshot `S`, baseline `B`, kompilacja `C`, symulacja `E`, testy `T` nie są równoważne.
 - **Capability i wersje:** nie deklarować wsparcia operacji, typu obiektu lub HMI na podstawie samej obecności metody Siemens.
@@ -132,6 +134,8 @@ Jeżeli któryś warunek nie jest spełniony, ChatGPT przygotowuje **zadanie kor
 
 W pierwszej kolejności: `B-01A` i weryfikowane przyrostowo `B-02A`–`B-02D` — kontrakty, trwały silnik asynchroniczny i **fake worker**. Następnie eksperyment `X-01` i worker V19 **read-only**. Dopiero po spełnieniu bramek: kwalifikowany round-trip FC SCL na syntetycznej kopii, weryfikacja, kompilacja i ograniczone Apply.
 
+**Obowiązkowa bramka:** integracja z rzeczywistym Siemens Openness, także read-only w `X-01`, nie może rozpocząć się przed pozytywnym zakończeniem wymaganych testów trwałego silnika na fake workerze w `B-02A`–`B-02D`. Wymagane są restart hosta, zawieszenie workera, timeout, anulowanie oczekującego zlecenia, spóźniona odpowiedź, ponowienie identycznego żądania, utrata procesu wykonawczego oraz nieznany wynik mutacji i kwarantanna. Kryteria i dowody określają [strategia testów](docs/07_TEST_STRATEGY.md) i [backlog](docs/08_IMPLEMENTATION_PLAN.md); dopiero potem [X-01](docs/09_RISKS_AND_DECISIONS.md) kwalifikuje rzeczywisty worker przed `B-03A`. PASS fake nie potwierdza zachowania Siemens ani gotowości do live write.
+
 Tę kolejność zmienia się wyłącznie świadomą decyzją, zapisaną w dokumentacji, z oceną ryzyka i zależności.
 
 ## 11. Zasady redagowania odpowiedzi ChatGPT
@@ -143,6 +147,8 @@ Tę kolejność zmienia się wyłącznie świadomą decyzją, zapisaną w dokume
 - W przypadku konfliktu dokumentacji nie zgaduj: wskaż konflikt i oczekiwaną decyzję.
 - W poleceniach CODEX uwzględniaj zakończenie zmian testami, `Zmiany.md`, commitem i push, o ile zadanie tego wymaga.
 
----
+## 12. Kontrola spójności po zmianie zasad
 
-**Relacja dokumentów:** `Instrukcja_ChatGPT.md` to instrukcja współpracy i planowania; `AGENTS.md` pozostaje wiążącym źródłem zasad wykonawczych dla CODEX. Dokument należy aktualizować po decyzjach zmieniających ten podział albo workflow.
+Po zmianie architektury, workflow CODEX, synchronizacji, autoryzacji, testów lub kryteriów akceptacji albo bezpieczeństwa PLC/HMI należy obowiązkowo ocenić wpływ na obie instrukcje i właściwe ADR/specyfikacje/kontrakty. ChatGPT uwzględnia tę ocenę w zadaniu i sprawdza ją w raporcie; CODEX wykonuje ją zgodnie z [AGENTS.md](AGENTS.md).
+
+Porównaj obie instrukcje sekcja po sekcji, sprawdź zgodność z dokumentacją techniczną i odnośniki oraz wykonaj kontrolę jakości i diffu. W `Zmiany.md` zapisz zakres oceny, decyzję o aktualizacji lub pozostawieniu poszczególnych dokumentów bez zmian i uzasadnienie. Nie ma obowiązku automatycznie modyfikować obu instrukcji, jeżeli zmiana dotyczy tylko jednej; obowiązkowe są ocena wpływu i udokumentowanie decyzji. Sprzeczności wymagające zmiany architektury, bezpieczeństwa lub semantyki kontraktu podlegają procedurze z sekcji 3.
