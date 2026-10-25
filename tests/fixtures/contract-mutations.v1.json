@@ -1,0 +1,394 @@
+[
+  {
+    "target": "request",
+    "name": "valid",
+    "path": [],
+    "value": null,
+    "valid": true,
+    "remove": false
+  },
+  {
+    "target": "request",
+    "name": "unknown-feature",
+    "path": [
+      "required_features"
+    ],
+    "value": [
+      "future-required"
+    ],
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "report",
+    "name": "valid",
+    "path": [],
+    "value": null,
+    "valid": true,
+    "remove": false
+  },
+  {
+    "target": "report",
+    "name": "unknown-feature",
+    "path": [
+      "required_features"
+    ],
+    "value": [
+      "future-required"
+    ],
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "error",
+    "name": "valid",
+    "path": [],
+    "value": null,
+    "valid": true,
+    "remove": false
+  },
+  {
+    "target": "error",
+    "name": "unknown-feature",
+    "path": [
+      "required_features"
+    ],
+    "value": [
+      "future-required"
+    ],
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "request",
+    "name": "major-version",
+    "path": [
+      "schema_version"
+    ],
+    "value": "2.0",
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "request",
+    "name": "minor-version",
+    "path": [
+      "schema_version"
+    ],
+    "value": "1.1",
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "request",
+    "name": "unknown-method",
+    "path": [
+      "method"
+    ],
+    "value": "vendor.invoke",
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "request",
+    "name": "missing-method",
+    "path": [
+      "method"
+    ],
+    "value": null,
+    "valid": false,
+    "remove": true
+  },
+  {
+    "target": "report",
+    "name": "major-version",
+    "path": [
+      "schema_version"
+    ],
+    "value": "2.0",
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "report",
+    "name": "minor-version",
+    "path": [
+      "schema_version"
+    ],
+    "value": "1.1",
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "report",
+    "name": "unknown-method",
+    "path": [
+      "method"
+    ],
+    "value": "vendor.invoke",
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "report",
+    "name": "missing-method",
+    "path": [
+      "method"
+    ],
+    "value": null,
+    "valid": false,
+    "remove": true
+  },
+  {
+    "target": "request",
+    "name": "missing-key",
+    "path": [
+      "idempotency_key"
+    ],
+    "value": null,
+    "valid": false,
+    "remove": true
+  },
+  {
+    "target": "request",
+    "name": "key-null",
+    "path": [
+      "idempotency_key"
+    ],
+    "value": null,
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "request",
+    "name": "key-type",
+    "path": [
+      "idempotency_key"
+    ],
+    "value": 123,
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "request",
+    "name": "params-type",
+    "path": [
+      "params"
+    ],
+    "value": [],
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "request",
+    "name": "params-extra",
+    "path": [
+      "params",
+      "execute_shell"
+    ],
+    "value": "synthetic",
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "request",
+    "name": "key-unicode-limit",
+    "path": [
+      "idempotency_key"
+    ],
+    "value": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "valid": true,
+    "remove": false
+  },
+  {
+    "target": "request",
+    "name": "key-unicode-over-limit",
+    "path": [
+      "idempotency_key"
+    ],
+    "value": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "report",
+    "name": "bad-id",
+    "path": [
+      "operation_id"
+    ],
+    "value": "../project",
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "report",
+    "name": "null-id",
+    "path": [
+      "operation_id"
+    ],
+    "value": null,
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "report",
+    "name": "result-type",
+    "path": [
+      "result"
+    ],
+    "value": [],
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "report",
+    "name": "result-extra",
+    "path": [
+      "result",
+      "undeclared"
+    ],
+    "value": true,
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "report",
+    "name": "missing-result",
+    "path": [
+      "result"
+    ],
+    "value": null,
+    "valid": false,
+    "remove": true
+  },
+  {
+    "target": "report",
+    "name": "missing-phase",
+    "path": [
+      "phase"
+    ],
+    "value": null,
+    "valid": false,
+    "remove": true
+  },
+  {
+    "target": "report",
+    "name": "state-sync",
+    "path": [
+      "state"
+    ],
+    "value": "SYNCED",
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "report",
+    "name": "unknown-success",
+    "path": [
+      "outcome"
+    ],
+    "value": "UNKNOWN",
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "report",
+    "name": "negative-count",
+    "path": [
+      "poll_after_ms"
+    ],
+    "value": -1,
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "report",
+    "name": "count-type",
+    "path": [
+      "poll_after_ms"
+    ],
+    "value": "0",
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "error",
+    "name": "unknown-code",
+    "path": [
+      "code"
+    ],
+    "value": "INVOKE_VENDOR",
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "error",
+    "name": "category-sync",
+    "path": [
+      "category"
+    ],
+    "value": "SYNCED",
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "error",
+    "name": "missing-outcome",
+    "path": [
+      "outcome"
+    ],
+    "value": null,
+    "valid": false,
+    "remove": true
+  },
+  {
+    "target": "error",
+    "name": "retry-type",
+    "path": [
+      "retryable"
+    ],
+    "value": "true",
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "error",
+    "name": "message-null",
+    "path": [
+      "message"
+    ],
+    "value": null,
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "error",
+    "name": "message-limit",
+    "path": [
+      "message"
+    ],
+    "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "valid": true,
+    "remove": false
+  },
+  {
+    "target": "error",
+    "name": "message-over-limit",
+    "path": [
+      "message"
+    ],
+    "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "valid": false,
+    "remove": false
+  },
+  {
+    "target": "error",
+    "name": "phase-traversal",
+    "path": [
+      "phase"
+    ],
+    "value": "../phase",
+    "valid": false,
+    "remove": false
+  }
+]

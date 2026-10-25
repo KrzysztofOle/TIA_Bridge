@@ -22,7 +22,7 @@ Pierwszy task CODEX: zbudować kontrakty + host na fake, `submit/status/result/c
 
 ## Etap 1 — Kontrakty i rdzeń [MVP]
 
-Stan 2026-10-25: B-01A oraz B-01B zaimplementowane offline w [Core](../src/TiaBridge.Core/README.md); zakres i ograniczenia B-01B opisuje [12](12_WORKSPACE_CAPABILITIES.md). B-01C nie rozpoczęty; poniższe kryteria i bramki następnych pakietów pozostają obowiązujące.
+Stan 2026-10-25: B-01A/B-01B zaimplementowane offline w [Core](../src/TiaBridge.Core/README.md); zakres i ograniczenia B-01B opisuje [12](12_WORKSPACE_CAPABILITIES.md). B-01C dostarcza [powtarzalną walidację i macierz pokrycia](../tests/COVERAGE.md), bez planera i B-02. Poniższe bramki następnych pakietów pozostają obowiązujące.
 
 **Cel:** stabilny model i spójna semantyka klientów. **Zależności:** etap 0, D-01–D-06. **Pakiety:**
 
@@ -30,7 +30,7 @@ Stan 2026-10-25: B-01A oraz B-01B zaimplementowane offline w [Core](../src/TiaBr
 |---|---|---|
 | B-01A | `contracts/v1`, `Core/Identity`, `Core/Operations`; doprecyzować schema dla wszystkich results/errors i OpenAPI | request/result per 19 metod, schema version, unknown fields, canonicalization i idempotency rules; generator klientów bez Siemens |
 | B-01B | `Core/Workspace`, `Core/Capabilities`, config examples | UUID/locator/path codec, coverage i normalizer version; registry domyślnie deny |
-| B-01C | `tests/contracts`, unit fixtures i pipeline offline | pozytywne i negatywne kontrakty,100 deterministycznych planów, brak importów vendor w Core |
+| B-01C | `tests/contracts`, unit fixtures i pipeline offline | pozytywne i negatywne kontrakty, co najmniej 100 deterministycznych modeli/wejść w istniejącym Core, brak importów vendor; 100 rzeczywistych planów jest kryterium B-04A |
 
 **Ryzyka:** zbyt szeroki schemat niechroniący semantyki, mieszanie operation lifecycle ze sync status. **Testy:** parsery/identity/collisions, permissions nie wynikają z samego JSON, contract matrix. **Akceptacja:** wszystkie nazwy/timeouts/errors spójne; brak arbitralnej ścieżki/komendy shell i sekretów w wire. **Rezultat:** typy i kontrakty konsumowane przez host/worker. **Bramka:** request schema i lifecycle zamrożone na pierwszą integrację, breaking changes przez version bump.
 
@@ -66,7 +66,7 @@ Stan 2026-10-25: B-01A oraz B-01B zaimplementowane offline w [Core](../src/TiaBr
 
 | ID | Zadanie / moduły | Kryterium commita |
 |---|---|---|
-| B-04A | `Core/Sync/ChangeDetection,Planning,Dependencies`, files.changes, sync.plan | tabela W/P/B, snapshot S, immutable plan/DAG; syntax/unknown/conflict blokują execution |
+| B-04A | `Core/Sync/ChangeDetection,Planning,Dependencies`, files.changes, sync.plan | tabela W/P/B, snapshot S, immutable plan/DAG; syntax/unknown/conflict blokują execution; co najmniej 100 deterministycznych rzeczywistych planów po implementacji planera |
 | B-04B | `Core/Policy`, `Host/Authorizations`, backup provider adapter | E grant/scope/epoch, one verified backup/session, temp space diagnostics i no fallback; zero auto Save dirty |
 | B-04C | `Worker.V19/Plc/Import`, saga steps, wyłącznie kwalifikowana FC SCL | intent/receipt, staged strict encoding, recheck P pod ExclusiveAccess, Compile/Save/Verify hooks; import disabled bez 5A/6A |
 | B-04D / REQUIRED | dependency groups UDT/DB/FB/IDB, explicit tombstones i rename | osobna capability dla create/update/delete; deletion grant nie wynika z missing file; zero write outside scope |

@@ -29,6 +29,8 @@ public sealed record IdempotencyKey
     {
         if (string.IsNullOrEmpty(value) || value.EnumerateRunes().Count() > 128)
             throw new ArgumentException("Invalid idempotency key.");
+        try { _ = new System.Text.UTF8Encoding(false, true).GetByteCount(value); }
+        catch (System.Text.EncoderFallbackException) { throw new ArgumentException("Invalid idempotency key."); }
         Value = value;
     }
     // Deliberately exclude the potentially sensitive caller-supplied value.

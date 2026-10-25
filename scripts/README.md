@@ -27,3 +27,14 @@ py -3 scripts/generate_contracts.py --write
 ```
 
 Zależności niezależnej walidacji QA określa [requirements-qa.txt](requirements-qa.txt). Instaluj je w osobnym venv na NTFS zgodnie z [instrukcją](../tests/README.md), bez globalnej zmiany Python. Wygenerowane DTO C# kompilują się w Core .NET 10; nie wymagają Siemens. Pliki robocze pozostają w ignorowanym `.tia-bridge/` lub lokalnym środowisku QA poza repo.
+
+## Walidacja offline B-01C
+
+[validate_offline.py](validate_offline.py) korzysta z istniejących dotnet/unittest/generator/audit narzędzi. Wymagania: Python 3.12 z requirements-qa.txt w izolowanym venv, .NET SDK z global.json, Git i wypełniony lokalny cache pakietów z lockfiles. Polecenie: `& $b01Python -B scripts/validate_offline.py`. Nie instaluje pakietów i nie uruchamia API/Siemens; locked restore ma wyłącznie pusty lokalny feed oraz NuGetAudit=false, bez sieciowego fallbacku. Przechodzi wszystkie bramki z [instrukcji testów](../tests/README.md), odrzuca niepełny TRX/skip/fail i zapisuje ignorowany `.tia-bridge/offline/run.json`. Sprawdzenie zależności obejmuje Core csproj, locked transitive packages, source imports i testowane assembly refs; nie jest skanerem dowolnej przyszłej refleksji/pluginów.
+
+[generate_test_vectors.py](generate_test_vectors.py) wymaga tylko standardowej biblioteki Python. Domyślnie sprawdza dwa syntetyczne pliki w tests/fixtures; `--write` odtwarza je deterministycznie. Literalne prezentacje nazw oraz Python hashlib wyznaczają 100 różnych wektorów modeli/raw SHA-256 i wspólny korpus mutacji request/report/error dla .NET/Python. Skrypt nie odwołuje się do Core ani planera, nie materializuje Workspace i nie łączy się z siecią. Zmiana oczekiwań wymaga przeglądu kontraktu i testów, nie automatycznego przyjmowania wyjścia Core.
+
+```powershell
+py -3 scripts/generate_test_vectors.py
+py -3 scripts/generate_test_vectors.py --write
+```

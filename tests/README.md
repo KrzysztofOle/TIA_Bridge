@@ -1,6 +1,20 @@
-# Testy B-01A/B-01B — wyłącznie offline
+# Testy B-01A–B-01C — wyłącznie offline
 
 Wymagania: .NET SDK 10.0.4xx (global.json dopuszcza najnowszy patch tego pasma), Python 3.12. Zależności .NET są przypięte w csproj/packages.lock.json; QA Python w [requirements-qa.txt](../scripts/requirements-qa.txt). Pierwszy restore/install wymaga dostępu do repozytoriów pakietów; same testy nie łączą się z Siemens ani endpointami aplikacji.
+
+## Pełny przebieg B-01C jednym poleceniem
+
+Po jednorazowym przygotowaniu zależności według instrukcji niżej uruchom z root repo, używając Python z izolowanego środowiska QA:
+
+```powershell
+& $b01Python -B scripts/validate_offline.py
+```
+
+`$b01Python` wskazuje ścieżkę do Scripts/python.exe w tym środowisku; można użyć istniejącego venv z requirements-qa.txt. W bieżącej walidacji użyto `%LOCALAPPDATA%/TIA_Bridge2/dev/qa-b01a-20261025/Scripts/python.exe`. Runner nie instaluje zależności. Wymaga SDK i wszystkich pakietów .NET już w lokalnym cache; locked restore używa pustego lokalnego feedu, z wyłączonym sieciowym NuGet audit. Brak pakietu/SDK/dependency daje FAIL; nie następuje fallback do publicznego feedu. Zwykły restore opisany niżej służy jednorazowemu przygotowaniu cache i może wymagać sieci.
+
+Runner kolejno wykonuje locked restore, Build Release, cały zestaw .NET, cały unittest JSON Schema/OpenAPI i przykładów, oba generatory w trybie check, audit_quality.py, dotnet format whitespace verify i git diff --check. Przed build sprawdza statyczną granicę zależności Core; test .NET sprawdza także tranzytywną closure assembly. TRX musi zawierać niepuste wyniki, zero FAIL/SKIP i dokładnie 100 osobnych deterministycznych przypadków. Pierwszy błąd kończy przebieg kodem 1; kod 0 oznacza wszystkie bramki PASS. Raport `.tia-bridge/offline/run.json`, TRX, quality.json i logi kroków są ignorowanymi wynikami roboczymi; kolejne uruchomienie zastępuje te raporty. Nie trafiają do Git.
+
+[Macierz pokrycia](COVERAGE.md) podaje istniejące testy, wykryte luki, nazwy nowych testów per 19 metod, naprawione błędy i ograniczenia. B-01C dodaje 377 testów .NET: 57 macierzy kontraktów, 100 golden scenariuszy, 147 lifecycle edges, 38 idempotency/budget, 1 phase/status, 13 boundary i 21 adversarial/dependency. Razem 537 .NET oraz 17 unittest Python (7 nowych); wewnętrznych pętli mutacji nie liczymy jako dodatkowych testów. Modelowe testy path/reparse nie wykonują filesystem Workspace IO. Rzeczywiste deterministyczne planowanie jest odłożone do B-04A; nie ma atrapy planera.
 
 ## Build i testy .NET
 
@@ -31,7 +45,7 @@ py -3 -m pip --python $b01Python install -r scripts/requirements-qa.txt
 
 [Testy Python](contracts/test_contracts.py) używają niezależnego jsonschema i openapi-spec-validator: wszystkie schematy, 19 metod, wymagane parametry/błędy, 38 poprawnych komunikatów, 21 negatywnych przykładów, lokalne refs OpenAPI i reprodukowalność generatora. Nie pobierają refs z sieci.
 
-[Niezależne testy schematów B-01B](contracts/test_workspace_contracts.py) w tym samym poleceniu discovery sprawdzają oba manifesty, obie konfiguracje oraz negatywne pola/wersje/enumy. JSON Schema nie zastępuje walidacji semantycznej Core. Nie dodano zależności .NET ani Python w B-01B.
+[Niezależne testy schematów B-01B](contracts/test_workspace_contracts.py) w tym samym poleceniu discovery sprawdzają oba manifesty, obie konfiguracje oraz negatywne pola/wersje/enumy. [Macierz B-01C](contracts/test_core_matrix.py) sprawdza wspólne mutacje przez JSON Schema i schematy danych OpenAPI, wszystkie wymagane wyniki/błędy oraz 100 golden raw/model hashes. [Testy runnera](contracts/test_offline_runner.py) potwierdzają odmowę fałszywego PASS po fail/skip/braku testów. JSON Schema nie zastępuje walidacji semantycznej Core. B-01B/B-01C nie dodają zależności .NET ani Python.
 
 ## Kontrola dokumentacji
 

@@ -2,6 +2,8 @@
 
 Plan docelowy, nie wynik testów nowej aplikacji. Aktualnie wykonane kontrole opisuje [10](10_EVIDENCE_AND_QUALITY.md). Każdy wynik ma warstwy `OFFLINE`, `ENGINEERING`, `SIMULATION`, `RUNTIME` z `PASS|FAIL|ERROR|BLOCKED|NOT_RUN|SKIP`. SKIP/NOT_RUN nie agreguje się do pełnego PASS. SYNCED jest odrębnym statusem obiektu, a nie wynikiem testów działania.
 
+B-01C realizuje ograniczoną walidację offline istniejących kontraktów/Core: [macierz pokrycia i odroczone testy](../tests/COVERAGE.md), [jedno polecenie uruchomienia](../tests/README.md). 100 deterministycznych przypadków modeli nie stanowi testu planera B-04A, trwałości B-02 ani zachowania Siemens.
+
 ## Testy jednostkowe i kontraktowe
 
 | Obszar | Wymagane przypadki i kryterium | Dowody |

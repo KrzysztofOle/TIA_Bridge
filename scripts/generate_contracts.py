@@ -52,6 +52,16 @@ def document(name, **kwargs):
             "$id": f"urn:tia-bridge2:{name}:1", **kwargs}
 
 
+def lifecycle_rules():
+    # The same lifecycle constrains the target operation in status/result projections.
+    return [
+        {"if": {"properties": {"state": {"const": "SUCCEEDED"}}, "required": ["state"]}, "then": {"properties": {"outcome": {"const": "CONFIRMED"}}}},
+        {"if": {"properties": {"state": {"const": "RECONCILIATION_REQUIRED"}}, "required": ["state"]}, "then": {"properties": {"outcome": {"const": "UNKNOWN"}}}},
+        {"if": {"properties": {"state": {"enum": ["ACCEPTED", "QUEUED"]}}, "required": ["state"]}, "then": {"properties": {"outcome": {"const": "NOT_STARTED"}}}},
+        {"if": {"properties": {"outcome": {"const": "UNKNOWN"}}, "required": ["outcome"]}, "then": {"properties": {"state": {"enum": ["RUNNING", "RECONCILIATION_REQUIRED"]}}}},
+    ]
+
+
 def build(request, registry):
     methods = [r["name"] for r in registry["operations"]]
     codes = sorted(set(COMMON_ERRORS).union(*(r["error_codes"] for r in registry["operations"])))
@@ -89,6 +99,8 @@ def build(request, registry):
     defs["TestHmiResult"] = obj({**copy.deepcopy(test["properties"]), "browser_version": TOKEN, "runtime_version": TOKEN})
     defs["OperationStatusResult"] = obj({"operation_id": UUID, "state": enum(*STATES), "phase": TOKEN, "outcome": enum(*OUTCOMES), "cancel_requested": BOOL})
     defs["OperationResultResult"] = obj({"operation_id": UUID, "state": enum(*STATES), "outcome": enum(*OUTCOMES), "artifact_refs": artifacts})
+    for name in ["OperationStatusResult", "OperationResultResult"]:
+        defs[name]["allOf"] = lifecycle_rules()
     defs["OperationEventsResult"] = obj({"operation_id": UUID, "events": array(ref("OperationEvent"), 1000), "next_sequence": COUNT})
     defs["OperationCancelResult"] = obj({"operation_id": UUID, "disposition": enum("CANCELLED", "CANCEL_REQUESTED", "CANNOT_INTERRUPT", "ALREADY_TERMINAL"), "state": enum(*STATES)})
     defs["DiagnosticsHealthResult"] = obj({"components": array(ref("ComponentHealth")), "observed_at": TIME})

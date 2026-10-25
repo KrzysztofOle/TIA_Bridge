@@ -12,6 +12,8 @@ Publiczną granicą danych nieufnych są metody ContractJson.Read*/Write*. Samo 
 
 Granice B-01B to WorkspaceJson i CapabilityJson; surowe konstruktory DTO również nie stanowią walidacji. [Opis formatu i algorytmów](../../docs/12_WORKSPACE_CAPABILITIES.md) obejmuje limity, metadata-assisted decoding, kolizje, konserwatywne odrzucanie reparse points, canonical hashes oraz zewnętrzną weryfikację evidence IDs. Modele używają tożsamości i OperationMethod z B-01A. Nie mają pola potwierdzającego SYNCED.
 
+B-01C dostarcza [macierz pokrycia](../../tests/COVERAGE.md) i powtarzalny przebieg offline; naprawia utratę uszkodzonego Unicode w typowanym wire oraz walidację istniejącego lifecycle w projekcjach operation.status/result. Nie dodaje nowych modeli operacji ani planera.
+
 Nie zaimplementowano synchronizacji, IO projektu/Workspace, normalizatorów Siemens, HTTP, SQLite, kolejki, recovery, fake workera ani Siemens. To następne osobno zlecane pakiety. Timeout zachowuje niepewność, bez sterowania procesami i deklaracji przerwania vendor call. B-01C nie jest częścią B-01B.
 
 Build i [testy](../../tests/README.md), z root repo:

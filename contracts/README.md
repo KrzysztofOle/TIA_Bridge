@@ -44,11 +44,15 @@ Każdy wiersz ma schemat wejścia/wyjścia, klasę parametrów, klasę wyniku or
 
 DTO operation.status/result są projekcjami statusu i odwołań do raportu wskazanej operacji. GET result zwraca raport operacji docelowej albo 202 przy braku wyniku. Events/cancel mają osobne wyniki zdarzeń/disposition. Udany odczyt metadanych nie oznacza sukcesu operacji docelowej.
 
+Regresja B-01C: zagnieżdżone state/outcome w operation.status/result podlegają tym samym regułom lifecycle co envelope (np. SUCCEEDED wymaga CONFIRMED). Generator, oba schematy wyników i OpenAPI sprawdzają te istniejące reguły także w projekcji docelowej; poprawny odczyt statusu nie maskuje niespójnego wyniku. Nie dodano stanu ani operacji i nie zmieniono wersji 1.0.
+
 ## Walidacja
 
 Granica `ContractJson` odrzuca nieznane pola na każdym poziomie, duplicate keys także po odkodowaniu escape, błędny UTF-8, niepoprawny JSON, komentarze, trailing commas, nieznane metody/enumy/wersje. Limity: request 1 MiB, raport 10 MiB, pojedynczy event 64 KiB, głębokość 32, leksykalna liczba do 128 znaków i tablice według schematów. Wszystkie liczby wire v1 są całkowite Int64, z dodatkowymi limitami pól; after_sequence ma jawną granicę Int64. Nie zaokrąglamy przez double ani nie zamieniamy ułamka podprogowego na zero. Daty są RFC 3339; start procesu sesji wymaga UTC. Core dodatkowo sprawdza zgodność error/outcome, completed_units/total_units i binding sesji.
 
 Klasyfikacja wejścia: INVALID_ARGUMENT, SCHEMA_VERSION, VALIDATION_FAILED, LIMIT_EXCEEDED. Wyjątki mają stały komunikat bez wartości, nazw nieznanych pól, pełnego JSON i wyjątków parsera. Nie logujemy payloadów. Producenci raportów muszą redagować message/diagnostics przed użyciem DTO; biblioteka nie wykrywa automatycznie sekretów w dowolnym tekście.
+
+Typowany zapis wire i konstrukcja IdempotencyKey odrzucają również niepoprawne pary UTF-16 surrogate; nie zastępują ich po cichu U+FFFD. Testy graniczne i wspólny korpus .NET/JSON Schema/OpenAPI opisuje [macierz B-01C](../tests/COVERAGE.md). Limity bajtów i dodatkowe zależności semantyczne Core nie są zastępowane samą walidacją JSON Schema.
 
 Authorization_ref jest referencją, nie grantem. Nie przyjmujemy obiektów uprawnień, pól permissions, arbitralnych komend, skryptów, ścieżek projektów ani PID do mutacji. Faktyczna rejestracja i weryfikacja polityki pozostają przyszłemu hostowi/workerowi.
 

@@ -359,8 +359,20 @@ public static class ContractJson
         options.Converters.Add(new UuidConverterFactory());
         options.Converters.Add(new MethodConverter());
         options.Converters.Add(new ResultConverter());
+        options.Converters.Add(new StrictStringConverter());
         options.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false));
         return options;
+    }
+
+    private sealed class StrictStringConverter : JsonConverter<string>
+    {
+        public override string Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => reader.GetString()!;
+        public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options)
+        {
+            try { _ = new UTF8Encoding(false, true).GetByteCount(value); }
+            catch (EncoderFallbackException) { throw new ContractValidationException(ErrorCode.INVALID_ARGUMENT); }
+            writer.WriteStringValue(value);
+        }
     }
 
     private sealed class UuidConverterFactory : JsonConverterFactory
