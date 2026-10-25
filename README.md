@@ -1,6 +1,6 @@
 # TIA_Bridge 2
 
-Projekt nowej aplikacji Windows do integracji CODEX z Siemens TIA Portal. Stan 2026-10-25: **zaimplementowany offline pakiet B-01A — kontrakty oraz Core/Identity i Core/Operations w .NET 10**. Działają walidacja, serializacja, kanonikalizacja i reguły modeli. Host HTTP, SQLite, worker Siemens, adaptery i wykonanie 19 operacji jeszcze nie istnieją; definicja kontraktu nie oznacza dostępnej funkcjonalności TIA.
+Projekt nowej aplikacji Windows do integracji CODEX z Siemens TIA Portal. Stan 2026-10-25: **zaimplementowane offline B-01A i B-01B — kontrakty, Core/Identity, Operations, Workspace i Capabilities w .NET 10**. Działają modele, walidacja, serializacja, codec ścieżek, hashe i registry domyślnie deny. Host HTTP, SQLite, worker Siemens, adaptery i wykonanie 19 operacji jeszcze nie istnieją; definicja kontraktu nie oznacza dostępnej funkcjonalności TIA.
 
 Docelowy przepływ: **TIA → eksport do workspace → edycja CODEX → plan → zatwierdzone Apply → niezależna weryfikacja → kompilacja/symulacja → testy**. Pliki CODEX określają zamierzony stan. Rozbieżności z nieznanymi zmianami TIA wymagają rozstrzygnięcia; import nigdy nie stanowi samodzielnego dowodu zgodności.
 
@@ -28,10 +28,11 @@ Rekomendacja: host C#/.NET 10, trwałe operacje i SQLite na lokalnym NTFS, wykon
 | [09 — Ryzyka i decyzje](docs/09_RISKS_AND_DECISIONS.md) | ADR, ryzyka i eksperymenty do wykonania |
 | [10 — Dowody i jakość](docs/10_EVIDENCE_AND_QUALITY.md) | środowisko, źródła producentów i zakres kontroli |
 | [11 — Snap7](docs/11_SNAP7_PLC_TESTING.md) | dodatkowy transport testów PLC, ograniczenia i kwalifikacja |
+| [12 — Workspace i Capabilities](docs/12_WORKSPACE_CAPABILITIES.md) | zaimplementowany format B-01B, ścieżki, hashe, registry i przykłady |
 | [Instrukcja ChatGPT](Instrukcja_ChatGPT.md) | podział ról ChatGPT/CODEX, workflow zadań i reguły oceny wyników zgodne z AGENTS.md |
 | [Zmiany](Zmiany.md) | zapis prac projektowych |
 
-Wykonany zakres B-01A: [Core](src/TiaBridge.Core/README.md), [19 kontraktów i OpenAPI](contracts/README.md), [testy i polecenia build](tests/README.md). Kolejne pakiety wymagają osobnego zlecenia. Przed integracją z Openness i X-01 obowiązuje pełna bramka B-02A–B-02D na fake workerze. [Plan](docs/08_IMPLEMENTATION_PLAN.md) wskazuje zależności i dowody wymagane przed Apply.
+Wykonany zakres B-01A/B-01B: [Core](src/TiaBridge.Core/README.md), [kontrakty i OpenAPI](contracts/README.md), [testy i polecenia build](tests/README.md). B-01B nie realizuje IO Workspace, synchronizacji ani uprawnień sesji. B-01C i kolejne pakiety wymagają osobnego zlecenia. Przed integracją z Openness i X-01 obowiązuje pełna bramka B-02A–B-02D na fake workerze. [Plan](docs/08_IMPLEMENTATION_PLAN.md) wskazuje zależności i dowody wymagane przed Apply.
 
 ## Granice i praca z repozytorium
 

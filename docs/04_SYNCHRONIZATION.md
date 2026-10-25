@@ -2,6 +2,8 @@
 
 Status: kontrakt projektowy v1, 2026-10-24. Rozwija wejściowy [sync-model](sync-model.md). Priorytet workspace oznacza zachowanie intencji CODEX i pierwszeństwo przy tworzeniu planu, nie uprawnienie do nadpisania nieznanego stanu TIA.
 
+Implementacja offline B-01B konkretyzuje wyłącznie modele, format manifestu, codec i registry: [12 — Workspace i Capabilities](12_WORKSPACE_CAPABILITIES.md). Nie realizuje poniższego silnika synchronizacji, IO, baseline ani kwalifikacji native HMI.
+
 ## Niezależne stany
 
 | Symbol | Stan | Właściciel / rewizja |

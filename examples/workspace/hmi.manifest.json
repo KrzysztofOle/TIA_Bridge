@@ -1,0 +1,351 @@
+{
+  "schema_version": "1.0",
+  "workspace_id": "00000000-0000-4000-8000-000000000001",
+  "project_key": "00000000-0000-4000-8000-000000000003",
+  "adapter_id": "synthetic.offline",
+  "adapter_build": "fixture-1",
+  "capability_set_hash": "9561726e218497b29a9f362162c06a29ff314a5c0e6a451d7654e1c1b7efcba0",
+  "export_revision": "export-1",
+  "project": {
+    "project_key": "00000000-0000-4000-8000-000000000003",
+    "original_name": "Synthetic project",
+    "tia_version": "19.0.synthetic",
+    "devices": [
+      {
+        "device_id": "00000000-0000-4000-8000-00000000001e",
+        "original_name": "Unified Demo",
+        "family": "HMI_UNIFIED"
+      },
+      {
+        "device_id": "00000000-0000-4000-8000-00000000001f",
+        "original_name": "Classic Demo",
+        "family": "HMI_CLASSIC"
+      }
+    ],
+    "groups": [
+      {
+        "group_id": "00000000-0000-4000-8000-000000000020",
+        "device_id": "00000000-0000-4000-8000-00000000001e",
+        "parent_group_id": null,
+        "original_name": "Scripts"
+      },
+      {
+        "group_id": "00000000-0000-4000-8000-000000000021",
+        "device_id": "00000000-0000-4000-8000-00000000001f",
+        "parent_group_id": null,
+        "original_name": "Screens"
+      }
+    ]
+  },
+  "inventory": [
+    {
+      "object_id": "00000000-0000-4000-8000-000000000028",
+      "kind": "ScriptModule",
+      "language": "JS",
+      "vendor_locator": {
+        "device_id": "00000000-0000-4000-8000-00000000001e",
+        "groups": [
+          "00000000-0000-4000-8000-000000000020"
+        ],
+        "kind": "ScriptModule",
+        "original_name": "Module",
+        "public_id": null,
+        "public_id_validity_scope": null,
+        "identity_evidence": [
+          "Synthetic registry assignment; no Siemens observation"
+        ]
+      },
+      "status": "REPRESENTED",
+      "reason": null,
+      "exchange_unit_id": "module",
+      "file_paths": [
+        "HMI/Unified Demo--00000000001e/Scripts--000000000020/Module--000000000028/GlobalDefinitions.js",
+        "HMI/Unified Demo--00000000001e/Scripts--000000000020/Module--000000000028/Functions/function.js",
+        "artifacts/module.hmi.js",
+        "artifacts/module.hmi.yml"
+      ],
+      "dependencies": [],
+      "coverage": {
+        "dimensions": [
+          {
+            "dimension": "CONTENT",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "CONFIG",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "API",
+            "state": "PARTIAL",
+            "reason": "Synthetic projection gap"
+          },
+          {
+            "dimension": "STRUCTURE",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "DEPENDENCIES",
+            "state": "PARTIAL",
+            "reason": "Synthetic projection gap"
+          },
+          {
+            "dimension": "INVENTORY",
+            "state": "COMPLETE",
+            "reason": null
+          }
+        ]
+      },
+      "normalizer_version": "opaque-1",
+      "comparison_profile": "synthetic-1",
+      "model_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "revisions": {
+        "source_revision": "source-1",
+        "native_revision": "native-1"
+      },
+      "vendor_fields": {
+        "SyntheticUnknown": {
+          "KeepOrder": [
+            2,
+            1
+          ],
+          "Decimal": 1.25
+        }
+      }
+    },
+    {
+      "object_id": "00000000-0000-4000-8000-000000000029",
+      "kind": "Function",
+      "language": "JS",
+      "vendor_locator": {
+        "device_id": "00000000-0000-4000-8000-00000000001e",
+        "groups": [
+          "00000000-0000-4000-8000-000000000020"
+        ],
+        "kind": "Function",
+        "original_name": "Function / One",
+        "public_id": null,
+        "public_id_validity_scope": null,
+        "identity_evidence": [
+          "Synthetic registry assignment; no Siemens observation"
+        ]
+      },
+      "status": "REPRESENTED",
+      "reason": null,
+      "exchange_unit_id": "module",
+      "file_paths": [
+        "HMI/Unified Demo--00000000001e/Scripts--000000000020/Module--000000000028/GlobalDefinitions.js",
+        "HMI/Unified Demo--00000000001e/Scripts--000000000020/Module--000000000028/Functions/function.js",
+        "artifacts/module.hmi.js",
+        "artifacts/module.hmi.yml"
+      ],
+      "dependencies": [
+        {
+          "target_object_id": "00000000-0000-4000-8000-000000000028",
+          "relation": "contained_by"
+        }
+      ],
+      "coverage": {
+        "dimensions": [
+          {
+            "dimension": "CONTENT",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "CONFIG",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "API",
+            "state": "PARTIAL",
+            "reason": "Synthetic projection gap"
+          },
+          {
+            "dimension": "STRUCTURE",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "DEPENDENCIES",
+            "state": "PARTIAL",
+            "reason": "Synthetic projection gap"
+          },
+          {
+            "dimension": "INVENTORY",
+            "state": "COMPLETE",
+            "reason": null
+          }
+        ]
+      },
+      "normalizer_version": "opaque-1",
+      "comparison_profile": "synthetic-1",
+      "model_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "revisions": {
+        "source_revision": "source-1",
+        "native_revision": "native-1"
+      },
+      "vendor_fields": {
+        "SyntheticUnknown": {
+          "KeepOrder": [
+            2,
+            1
+          ],
+          "Decimal": 1.25
+        }
+      }
+    },
+    {
+      "object_id": "00000000-0000-4000-8000-00000000002a",
+      "kind": "Screen",
+      "language": null,
+      "vendor_locator": {
+        "device_id": "00000000-0000-4000-8000-00000000001f",
+        "groups": [
+          "00000000-0000-4000-8000-000000000021"
+        ],
+        "kind": "Screen",
+        "original_name": "Main.",
+        "public_id": null,
+        "public_id_validity_scope": null,
+        "identity_evidence": [
+          "Synthetic registry assignment; no Siemens observation"
+        ]
+      },
+      "status": "UNSUPPORTED",
+      "reason": "No implemented capability",
+      "exchange_unit_id": null,
+      "file_paths": [],
+      "dependencies": [],
+      "coverage": {
+        "dimensions": [
+          {
+            "dimension": "CONTENT",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "CONFIG",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "API",
+            "state": "PARTIAL",
+            "reason": "Synthetic projection gap"
+          },
+          {
+            "dimension": "STRUCTURE",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "DEPENDENCIES",
+            "state": "PARTIAL",
+            "reason": "Synthetic projection gap"
+          },
+          {
+            "dimension": "INVENTORY",
+            "state": "COMPLETE",
+            "reason": null
+          }
+        ]
+      },
+      "normalizer_version": "opaque-1",
+      "comparison_profile": "synthetic-1",
+      "model_sha256": null,
+      "revisions": {
+        "source_revision": "source-1",
+        "native_revision": "native-1"
+      },
+      "vendor_fields": {
+        "SyntheticUnknown": {
+          "KeepOrder": [
+            2,
+            1
+          ],
+          "Decimal": 1.25
+        }
+      }
+    }
+  ],
+  "exchange_units": [
+    {
+      "unit_id": "module",
+      "members": [
+        "00000000-0000-4000-8000-000000000028",
+        "00000000-0000-4000-8000-000000000029"
+      ],
+      "files": [
+        {
+          "relative_path": "HMI/Unified Demo--00000000001e/Scripts--000000000020/Module--000000000028/GlobalDefinitions.js",
+          "role": "SOURCE",
+          "format": "js",
+          "raw_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "relative_path": "HMI/Unified Demo--00000000001e/Scripts--000000000020/Module--000000000028/Functions/function.js",
+          "role": "SOURCE",
+          "format": "js",
+          "raw_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "relative_path": "artifacts/module.hmi.js",
+          "role": "NATIVE",
+          "format": "hmi.js",
+          "raw_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "relative_path": "artifacts/module.hmi.yml",
+          "role": "NATIVE",
+          "format": "hmi.yml",
+          "raw_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "unit_sha256": "e4b0694eb4a06fc2d614105c16dd9c57d0da2db3db44709869ddcb6e178e6451",
+      "vendor_fields": {
+        "SyntheticBoundary": "Preserve native members together"
+      }
+    }
+  ],
+  "coverage": {
+    "dimensions": [
+      {
+        "dimension": "CONTENT",
+        "state": "COMPLETE",
+        "reason": null
+      },
+      {
+        "dimension": "CONFIG",
+        "state": "COMPLETE",
+        "reason": null
+      },
+      {
+        "dimension": "API",
+        "state": "PARTIAL",
+        "reason": "Synthetic projection gap"
+      },
+      {
+        "dimension": "STRUCTURE",
+        "state": "COMPLETE",
+        "reason": null
+      },
+      {
+        "dimension": "DEPENDENCIES",
+        "state": "PARTIAL",
+        "reason": "Synthetic projection gap"
+      },
+      {
+        "dimension": "INVENTORY",
+        "state": "COMPLETE",
+        "reason": null
+      }
+    ]
+  },
+  "normalizer_version": "opaque-1",
+  "comparison_profile": "synthetic-1"
+}

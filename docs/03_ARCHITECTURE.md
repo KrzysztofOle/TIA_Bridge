@@ -27,7 +27,7 @@ flowchart LR
 1. **TiaBridge.Host** (.NET 10, C#) działa jako proces użytkownika Windows w jego sesji, bez uprawnień administratora. Zawiera Minimal HTTP API, trwały scheduler, kontrolę uprawnień i supervisor. Windows Service/Session 0 nie jest domyślnym modelem: TIA, UMC i symulatory wymagają osobnej kwalifikacji sesji desktopowej.
 2. **TiaBridge.Core** (.NET 10, bez vendor DLL) odpowiada za identity, model plików, hashe, plan, conflicts i verification. Czyste algorytmy można testować poza Windows. Kontrakty wire są JSON Schema, więc host i net48 nie muszą dzielić binarnej biblioteki Core.
 3. **TiaBridge.Worker.V19** (.NET Framework 4.8, x64) ładuje dokładne zainstalowane DLL V19 z chronionej lokalizacji Siemens. Wersja, token i build są w handshake. Jeden właściciel wywołuje API; żadne proxy nie przechodzi przez IPC. Worker może być utrzymywany dla krótkiej sesji, a po błędzie/restart epoch jest wymieniany. Recycling jest dozwolony na idle, po Dispose i potwierdzeniu braku wywołania.
-4. **TiaBridge.Adapters** zawiera kontrakty i registry możliwości. Każda wersja i rodzina HMI ma oddzielny profil, a nie reflection pozwalający wykonywać dowolną nazwę metody.
+4. **TiaBridge.Adapters** docelowo dostarcza kontrakty i deklaracje możliwości adapterów. Czyste modele i registry B-01B są w Core/Capabilities, zgodnie z pakietem w backlogu; Adapters będzie ich konsumentem. [Implementacja offline](12_WORKSPACE_CAPABILITIES.md) nie jest adapterem Siemens. Każda wersja i rodzina HMI ma oddzielny profil, a nie reflection pozwalający wykonywać dowolną nazwę metody.
 5. **TiaBridge.Cli** jest małym klientem API. Domyślnie submit/status/result; `--wait --max-wait` jest jawne i ograniczone. Wyjście CLI nie anuluje operacji.
 6. **TiaBridge.Mcp** OPTIONAL przekłada tools na ten sam kontrakt. Baza i worker nie należą do procesu MCP; jego restart nie gubi zleceń.
 7. **Runnery testowe i symulatorów** mają osobne procesy i limity. Używają odbiorców z zatwierdzonego profilu; nie łączą się z TIA alternatywnym kanałem ani nie omijają schedulerów.
@@ -103,7 +103,7 @@ Retry wyłącznie dla zakwalifikowanych, nieefektowych odczytów po ustaniu popr
 ```text
 contracts/v1/                    JSON Schema i przykłady wire (projekt)
 src/TiaBridge.Core/               Identity, Workspace, Sync, Validation, Policy
-src/TiaBridge.Adapters/           kontrakty DTO i CapabilityRegistry
+src/TiaBridge.Adapters/           kontrakty adapterów i deklaracje dla Core/Capabilities
 src/TiaBridge.Host/               Api, Operations, Storage, Scheduling, Supervision
 src/TiaBridge.Worker.V19/         Bootstrap, Session, Plc, HmiUnified, HmiClassic
 src/TiaBridge.Cli/                klient HTTP, JSON output, bounded wait

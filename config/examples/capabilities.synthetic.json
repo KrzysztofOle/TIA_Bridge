@@ -1,0 +1,234 @@
+{
+  "schema_version": "1.0",
+  "registry_version": "synthetic-1",
+  "entries": [
+    {
+      "key": {
+        "tia_version": "19.0.synthetic",
+        "adapter_id": "synthetic.offline",
+        "adapter_build": "fixture-1",
+        "device_family": "PLC",
+        "object_kind": "FC",
+        "language": "SCL",
+        "operation": "project.export"
+      },
+      "contract_designed": true,
+      "adapter_implemented": true,
+      "normalizer_version": "opaque-1",
+      "comparison_profile": "synthetic-1",
+      "read_scope": [
+        "content",
+        "native"
+      ],
+      "write_scope": [],
+      "coverage": {
+        "dimensions": [
+          {
+            "dimension": "CONTENT",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "CONFIG",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "API",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "STRUCTURE",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "DEPENDENCIES",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "INVENTORY",
+            "state": "COMPLETE",
+            "reason": null
+          }
+        ]
+      },
+      "required_qualifications": [
+        "synthetic-only-receipt"
+      ]
+    },
+    {
+      "key": {
+        "tia_version": "19.0.synthetic",
+        "adapter_id": "synthetic.offline",
+        "adapter_build": "fixture-1",
+        "device_family": "PLC",
+        "object_kind": "FB",
+        "language": "SCL",
+        "operation": "project.export"
+      },
+      "contract_designed": true,
+      "adapter_implemented": false,
+      "normalizer_version": "opaque-1",
+      "comparison_profile": "synthetic-1",
+      "read_scope": [
+        "content",
+        "native"
+      ],
+      "write_scope": [],
+      "coverage": {
+        "dimensions": [
+          {
+            "dimension": "CONTENT",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "CONFIG",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "API",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "STRUCTURE",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "DEPENDENCIES",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "INVENTORY",
+            "state": "COMPLETE",
+            "reason": null
+          }
+        ]
+      },
+      "required_qualifications": [
+        "synthetic-only-receipt"
+      ]
+    },
+    {
+      "key": {
+        "tia_version": "19.0.synthetic",
+        "adapter_id": "synthetic.offline",
+        "adapter_build": "fixture-1",
+        "device_family": "HMI_UNIFIED",
+        "object_kind": "ScriptModule",
+        "language": "JS",
+        "operation": "project.export"
+      },
+      "contract_designed": true,
+      "adapter_implemented": true,
+      "normalizer_version": "opaque-1",
+      "comparison_profile": "synthetic-1",
+      "read_scope": [
+        "content",
+        "native"
+      ],
+      "write_scope": [],
+      "coverage": {
+        "dimensions": [
+          {
+            "dimension": "CONTENT",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "CONFIG",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "API",
+            "state": "PARTIAL",
+            "reason": "Synthetic projection gap"
+          },
+          {
+            "dimension": "STRUCTURE",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "DEPENDENCIES",
+            "state": "PARTIAL",
+            "reason": "Synthetic projection gap"
+          },
+          {
+            "dimension": "INVENTORY",
+            "state": "COMPLETE",
+            "reason": null
+          }
+        ]
+      },
+      "required_qualifications": [
+        "synthetic-only-receipt"
+      ]
+    },
+    {
+      "key": {
+        "tia_version": "19.0.synthetic",
+        "adapter_id": "synthetic.offline",
+        "adapter_build": "fixture-1",
+        "device_family": "HMI_CLASSIC",
+        "object_kind": "Screen",
+        "language": "JS",
+        "operation": "project.export"
+      },
+      "contract_designed": true,
+      "adapter_implemented": false,
+      "normalizer_version": "opaque-1",
+      "comparison_profile": "synthetic-1",
+      "read_scope": [
+        "content",
+        "native"
+      ],
+      "write_scope": [],
+      "coverage": {
+        "dimensions": [
+          {
+            "dimension": "CONTENT",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "CONFIG",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "API",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "STRUCTURE",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "DEPENDENCIES",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "INVENTORY",
+            "state": "COMPLETE",
+            "reason": null
+          }
+        ]
+      },
+      "required_qualifications": [
+        "synthetic-only-receipt"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,455 @@
+{
+  "schema_version": "1.0",
+  "workspace_id": "00000000-0000-4000-8000-000000000001",
+  "project_key": "00000000-0000-4000-8000-000000000002",
+  "adapter_id": "synthetic.offline",
+  "adapter_build": "fixture-1",
+  "capability_set_hash": "9561726e218497b29a9f362162c06a29ff314a5c0e6a451d7654e1c1b7efcba0",
+  "export_revision": "export-1",
+  "project": {
+    "project_key": "00000000-0000-4000-8000-000000000002",
+    "original_name": "Synthetic project",
+    "tia_version": "19.0.synthetic",
+    "devices": [
+      {
+        "device_id": "00000000-0000-4000-8000-00000000000a",
+        "original_name": "PLC / Demo",
+        "family": "PLC"
+      }
+    ],
+    "groups": [
+      {
+        "group_id": "00000000-0000-4000-8000-00000000000b",
+        "device_id": "00000000-0000-4000-8000-00000000000a",
+        "parent_group_id": null,
+        "original_name": "Program"
+      },
+      {
+        "group_id": "00000000-0000-4000-8000-00000000000c",
+        "device_id": "00000000-0000-4000-8000-00000000000a",
+        "parent_group_id": "00000000-0000-4000-8000-00000000000b",
+        "original_name": "CON"
+      }
+    ]
+  },
+  "inventory": [
+    {
+      "object_id": "00000000-0000-4000-8000-000000000014",
+      "kind": "FC",
+      "language": "SCL",
+      "vendor_locator": {
+        "device_id": "00000000-0000-4000-8000-00000000000a",
+        "groups": [
+          "00000000-0000-4000-8000-00000000000b",
+          "00000000-0000-4000-8000-00000000000c"
+        ],
+        "kind": "FC",
+        "original_name": "Pump",
+        "public_id": null,
+        "public_id_validity_scope": null,
+        "identity_evidence": [
+          "Synthetic registry assignment; no Siemens observation"
+        ]
+      },
+      "status": "REPRESENTED",
+      "reason": null,
+      "exchange_unit_id": "fc-a",
+      "file_paths": [
+        "PLC/PLC %2F Demo--00000000000a/Program--00000000000b/_CON--00000000000c/Pump--000000000014/code.scl",
+        "PLC/PLC %2F Demo--00000000000a/Program--00000000000b/_CON--00000000000c/Pump--000000000014/native.xml"
+      ],
+      "dependencies": [],
+      "coverage": {
+        "dimensions": [
+          {
+            "dimension": "CONTENT",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "CONFIG",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "API",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "STRUCTURE",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "DEPENDENCIES",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "INVENTORY",
+            "state": "COMPLETE",
+            "reason": null
+          }
+        ]
+      },
+      "normalizer_version": "opaque-1",
+      "comparison_profile": "synthetic-1",
+      "model_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "revisions": {
+        "source_revision": "source-1",
+        "native_revision": "native-1"
+      },
+      "vendor_fields": {
+        "SyntheticUnknown": {
+          "KeepOrder": [
+            2,
+            1
+          ],
+          "Decimal": 1.25
+        }
+      }
+    },
+    {
+      "object_id": "00000000-0000-4000-8000-000000000015",
+      "kind": "FC",
+      "language": "SCL",
+      "vendor_locator": {
+        "device_id": "00000000-0000-4000-8000-00000000000a",
+        "groups": [
+          "00000000-0000-4000-8000-00000000000b",
+          "00000000-0000-4000-8000-00000000000c"
+        ],
+        "kind": "FC",
+        "original_name": "pump",
+        "public_id": null,
+        "public_id_validity_scope": null,
+        "identity_evidence": [
+          "Synthetic registry assignment; no Siemens observation"
+        ]
+      },
+      "status": "REPRESENTED",
+      "reason": null,
+      "exchange_unit_id": "fc-b",
+      "file_paths": [
+        "PLC/PLC %2F Demo--00000000000a/Program--00000000000b/_CON--00000000000c/pump--000000000015/code.scl",
+        "PLC/PLC %2F Demo--00000000000a/Program--00000000000b/_CON--00000000000c/pump--000000000015/native.xml"
+      ],
+      "dependencies": [
+        {
+          "target_object_id": "00000000-0000-4000-8000-000000000014",
+          "relation": "uses"
+        }
+      ],
+      "coverage": {
+        "dimensions": [
+          {
+            "dimension": "CONTENT",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "CONFIG",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "API",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "STRUCTURE",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "DEPENDENCIES",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "INVENTORY",
+            "state": "COMPLETE",
+            "reason": null
+          }
+        ]
+      },
+      "normalizer_version": "opaque-1",
+      "comparison_profile": "synthetic-1",
+      "model_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "revisions": {
+        "source_revision": "source-1",
+        "native_revision": "native-1"
+      },
+      "vendor_fields": {
+        "SyntheticUnknown": {
+          "KeepOrder": [
+            2,
+            1
+          ],
+          "Decimal": 1.25
+        }
+      }
+    },
+    {
+      "object_id": "00000000-0000-4000-8000-000000000016",
+      "kind": "FB",
+      "language": "SCL",
+      "vendor_locator": {
+        "device_id": "00000000-0000-4000-8000-00000000000a",
+        "groups": [
+          "00000000-0000-4000-8000-00000000000b"
+        ],
+        "kind": "FB",
+        "original_name": "é",
+        "public_id": null,
+        "public_id_validity_scope": null,
+        "identity_evidence": [
+          "Synthetic registry assignment; no Siemens observation"
+        ]
+      },
+      "status": "UNSUPPORTED",
+      "reason": "No implemented capability",
+      "exchange_unit_id": null,
+      "file_paths": [],
+      "dependencies": [],
+      "coverage": {
+        "dimensions": [
+          {
+            "dimension": "CONTENT",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "CONFIG",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "API",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "STRUCTURE",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "DEPENDENCIES",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "INVENTORY",
+            "state": "COMPLETE",
+            "reason": null
+          }
+        ]
+      },
+      "normalizer_version": "opaque-1",
+      "comparison_profile": "synthetic-1",
+      "model_sha256": null,
+      "revisions": {
+        "source_revision": "source-1",
+        "native_revision": "native-1"
+      },
+      "vendor_fields": {
+        "SyntheticUnknown": {
+          "KeepOrder": [
+            2,
+            1
+          ],
+          "Decimal": 1.25
+        }
+      }
+    },
+    {
+      "object_id": "00000000-0000-4000-8000-000000000017",
+      "kind": "FC",
+      "language": "SCL",
+      "vendor_locator": {
+        "device_id": "00000000-0000-4000-8000-00000000000a",
+        "groups": [
+          "00000000-0000-4000-8000-00000000000b"
+        ],
+        "kind": "FC",
+        "original_name": "é",
+        "public_id": null,
+        "public_id_validity_scope": null,
+        "identity_evidence": [
+          "Synthetic registry assignment; no Siemens observation"
+        ]
+      },
+      "status": "REPRESENTED",
+      "reason": null,
+      "exchange_unit_id": "fc-c",
+      "file_paths": [
+        "PLC/PLC %2F Demo--00000000000a/Program--00000000000b/é--000000000017/code.scl",
+        "PLC/PLC %2F Demo--00000000000a/Program--00000000000b/é--000000000017/native.xml"
+      ],
+      "dependencies": [],
+      "coverage": {
+        "dimensions": [
+          {
+            "dimension": "CONTENT",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "CONFIG",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "API",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "STRUCTURE",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "DEPENDENCIES",
+            "state": "COMPLETE",
+            "reason": null
+          },
+          {
+            "dimension": "INVENTORY",
+            "state": "COMPLETE",
+            "reason": null
+          }
+        ]
+      },
+      "normalizer_version": "opaque-1",
+      "comparison_profile": "synthetic-1",
+      "model_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "revisions": {
+        "source_revision": "source-1",
+        "native_revision": "native-1"
+      },
+      "vendor_fields": {
+        "SyntheticUnknown": {
+          "KeepOrder": [
+            2,
+            1
+          ],
+          "Decimal": 1.25
+        }
+      }
+    }
+  ],
+  "exchange_units": [
+    {
+      "unit_id": "fc-a",
+      "members": [
+        "00000000-0000-4000-8000-000000000014"
+      ],
+      "files": [
+        {
+          "relative_path": "PLC/PLC %2F Demo--00000000000a/Program--00000000000b/_CON--00000000000c/Pump--000000000014/code.scl",
+          "role": "SOURCE",
+          "format": "scl",
+          "raw_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "relative_path": "PLC/PLC %2F Demo--00000000000a/Program--00000000000b/_CON--00000000000c/Pump--000000000014/native.xml",
+          "role": "NATIVE",
+          "format": "SimaticML",
+          "raw_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "unit_sha256": "0f0df5e59ae103711c130073e8b21ba029a3db0f33b4c29bbad132dcd1a27227",
+      "vendor_fields": {
+        "SyntheticBoundary": "Preserve native members together"
+      }
+    },
+    {
+      "unit_id": "fc-b",
+      "members": [
+        "00000000-0000-4000-8000-000000000015"
+      ],
+      "files": [
+        {
+          "relative_path": "PLC/PLC %2F Demo--00000000000a/Program--00000000000b/_CON--00000000000c/pump--000000000015/code.scl",
+          "role": "SOURCE",
+          "format": "scl",
+          "raw_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "relative_path": "PLC/PLC %2F Demo--00000000000a/Program--00000000000b/_CON--00000000000c/pump--000000000015/native.xml",
+          "role": "NATIVE",
+          "format": "SimaticML",
+          "raw_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "unit_sha256": "4248b0f25c30d6754b3e3acaa8866db663cb017a68058f496d92a1edb545ca6e",
+      "vendor_fields": {
+        "SyntheticBoundary": "Preserve native members together"
+      }
+    },
+    {
+      "unit_id": "fc-c",
+      "members": [
+        "00000000-0000-4000-8000-000000000017"
+      ],
+      "files": [
+        {
+          "relative_path": "PLC/PLC %2F Demo--00000000000a/Program--00000000000b/é--000000000017/code.scl",
+          "role": "SOURCE",
+          "format": "scl",
+          "raw_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "relative_path": "PLC/PLC %2F Demo--00000000000a/Program--00000000000b/é--000000000017/native.xml",
+          "role": "NATIVE",
+          "format": "SimaticML",
+          "raw_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "unit_sha256": "4897c8bf46481ba2c6b4b42cb2b1df21bc27f8f9a4d12ae52a4058a2b6eacf3c",
+      "vendor_fields": {
+        "SyntheticBoundary": "Preserve native members together"
+      }
+    }
+  ],
+  "coverage": {
+    "dimensions": [
+      {
+        "dimension": "CONTENT",
+        "state": "COMPLETE",
+        "reason": null
+      },
+      {
+        "dimension": "CONFIG",
+        "state": "COMPLETE",
+        "reason": null
+      },
+      {
+        "dimension": "API",
+        "state": "COMPLETE",
+        "reason": null
+      },
+      {
+        "dimension": "STRUCTURE",
+        "state": "COMPLETE",
+        "reason": null
+      },
+      {
+        "dimension": "DEPENDENCIES",
+        "state": "COMPLETE",
+        "reason": null
+      },
+      {
+        "dimension": "INVENTORY",
+        "state": "COMPLETE",
+        "reason": null
+      }
+    ]
+  },
+  "normalizer_version": "opaque-1",
+  "comparison_profile": "synthetic-1"
+}

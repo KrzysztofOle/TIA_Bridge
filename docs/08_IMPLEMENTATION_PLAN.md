@@ -22,6 +22,8 @@ Pierwszy task CODEX: zbudować kontrakty + host na fake, `submit/status/result/c
 
 ## Etap 1 — Kontrakty i rdzeń [MVP]
 
+Stan 2026-10-25: B-01A oraz B-01B zaimplementowane offline w [Core](../src/TiaBridge.Core/README.md); zakres i ograniczenia B-01B opisuje [12](12_WORKSPACE_CAPABILITIES.md). B-01C nie rozpoczęty; poniższe kryteria i bramki następnych pakietów pozostają obowiązujące.
+
 **Cel:** stabilny model i spójna semantyka klientów. **Zależności:** etap 0, D-01–D-06. **Pakiety:**
 
 | ID | Zadanie / moduły | Kryterium commita |

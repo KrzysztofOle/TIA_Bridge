@@ -1,4 +1,4 @@
-# Kontrakty v1 — B-01A
+# Kontrakty v1 — B-01A i B-01B
 
 Zaimplementowane są modele i walidacja offline w [Core](../src/TiaBridge.Core/README.md). Semantykę 19 metod określa [interfejs CODEX](../docs/05_CODEX_INTERFACE.md). Host, ledger i wykonywanie operacji nie istnieją. Poprawny JSON nie potwierdza odbiorcy ani uprawnień.
 
@@ -6,12 +6,13 @@ Zaimplementowane są modele i walidacja offline w [Core](../src/TiaBridge.Core/R
 
 - [operation-request.schema.json](v1/operation-request.schema.json): wejścia 19 metod, zamknięte envelope/params, wymagane pola i warunkowe odwołania do grantu.
 - [operation.schema.json](v1/operation.schema.json): status/raport z wynikiem zależnym od metody. SUCCEEDED wymaga typowanego result i CONFIRMED; RECONCILIATION_REQUIRED wymaga UNKNOWN. Wynik nieudanej operacji może opisywać pracę częściową.
-- [operation-result.schema.json](v1/operation-result.schema.json): DTO podsumowań i odwołań do dowodów. Szczegółowe manifesty, plany, baseline i scenariusze pozostają artefaktami następnych pakietów; ich algorytmy nie należą do B-01A.
+- [operation-result.schema.json](v1/operation-result.schema.json): DTO podsumowań i odwołań do dowodów. Szczegółowy manifest jest osobnym artefaktem B-01B; plany, baseline i scenariusze pozostają artefaktami następnych pakietów. Nie rozszerzono wyników 19 metod.
 - [error.schema.json](v1/error.schema.json): kody z registry/dokumentu 05, kategorie, redagowany message, outcome i evidence refs. Retryable wymaga NOT_STARTED; sam nie uprawnia do retry.
 - [acceptance.schema.json](v1/acceptance.schema.json): ACCEPTED/QUEUED, ID, polling, względne URL i accepted_at. Rzeczywista trwałość będzie zadaniem B-02A.
 - [session-identity.schema.json](v1/session-identity.schema.json): binding projektu/epoch/PID/start/handshake, bez odczytu Siemens.
 - [operations.json](v1/operations.json): nazwy, wymagane params, limity i wymagane prawa; DESIGN_ONLY oznacza brak handlerów, nie brak walidatora.
 - [openapi.json](v1/openapi.json): OpenAPI 3.1.1, wspólny POST z 19 wariantami oraz status/result/events/cancel i health. Opis endpointów nie oznacza ich implementacji. Token transportowy jest poza body i nie nadaje praw TIA.
+- [workspace-manifest.schema.json](v1/workspace-manifest.schema.json), [workspace-config.schema.json](v1/workspace-config.schema.json), [capability-registry.schema.json](v1/capability-registry.schema.json): artefakty B-01B walidowane przez WorkspaceJson/CapabilityJson. Osobne schematy 1.0 nie zmieniają wire operacji; OperationMethod ma te same nazwy, np. project.export. Extension bag vendor_fields zachowuje unknown vendor JSON, pozostałe pola są zamknięte. Schematy sprawdzają kształt; Core dodatkowo sprawdza graf, kolizje, membership i unit hash. [Dokumentacja B-01B](../docs/12_WORKSPACE_CAPABILITIES.md) definiuje format i odrębny profil canonical hashes artefaktów, w tym dokładne liczby dziesiętne. Hash manifestu nie nadaje statusu SYNCED.
 
 Wire schema_version ma dokładnie wartość `1.0`; inne wersje są odrzucane. Numer OpenAPI 3.1.1 i info.version 1.0.0 są niezależne. Schematy Draft 2020-12 mają wyłącznie lokalne refs. Zmiany semantyki wymagają jawnego wersjonowania zgodnie z dokumentem 04; parser nie zgaduje zgodności przyszłych wersji.
 
