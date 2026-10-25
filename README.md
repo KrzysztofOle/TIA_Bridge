@@ -28,6 +28,7 @@ Rekomendacja: host C#/.NET 10, trwałe operacje i SQLite na lokalnym NTFS, wykon
 | [09 — Ryzyka i decyzje](docs/09_RISKS_AND_DECISIONS.md) | ADR, ryzyka i eksperymenty do wykonania |
 | [10 — Dowody i jakość](docs/10_EVIDENCE_AND_QUALITY.md) | środowisko, źródła producentów i zakres kontroli |
 | [11 — Snap7](docs/11_SNAP7_PLC_TESTING.md) | dodatkowy transport testów PLC, ograniczenia i kwalifikacja |
+| [Instrukcja ChatGPT](Instrukcja_ChatGPT.md) | podział ról ChatGPT/CODEX, workflow zadań i reguły oceny wyników zgodne z AGENTS.md |
 | [Zmiany](Zmiany.md) | zapis prac projektowych |
 
 Pierwsze zadanie implementacyjne: **etap 1 + pierwszy przekrój etapu 2**, kontrakty i asynchroniczny silnik na fałszywym wykonawcy. Następnie read-only V19 i jeden kwalifikowany round-trip SCL FC na czystej kopii syntetycznego projektu. [Plan](docs/08_IMPLEMENTATION_PLAN.md) wskazuje kolejność i dowody wymagane przed Apply.
