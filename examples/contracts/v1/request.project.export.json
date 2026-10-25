@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "method": "project.export",
+  "idempotency_key": "synthetic-project.export",
+  "project_key": "11111111-1111-4111-8111-111111111111",
+  "params": {
+    "scope": [
+      "synthetic.1"
+    ]
+  }
+}

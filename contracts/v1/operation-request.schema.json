@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:tia-bridge2:operation-request:1",
-  "title": "TIA_Bridge 2 proposed transport-neutral request v1",
-  "description": "Design artifact only; policy and live identity checks are not expressed fully in JSON Schema.",
+  "title": "TIA_Bridge 2 transport-neutral request v1",
+  "description": "B-01A validated wire contract; no operation handler or authorization is implemented.",
   "oneOf": [
     {
       "type": "object",
@@ -1126,7 +1126,8 @@
             },
             "after_sequence": {
               "type": "integer",
-              "minimum": 0
+              "minimum": 0,
+              "maximum": 9223372036854775807
             },
             "limit": {
               "type": "integer",

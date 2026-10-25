@@ -1,0 +1,6 @@
+{
+  "schema_version": "1.0",
+  "method": "diagnostics.health",
+  "idempotency_key": "synthetic-diagnostics.health",
+  "params": {}
+}

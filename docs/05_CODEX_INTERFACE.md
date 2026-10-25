@@ -1,6 +1,6 @@
 # 05 — Interfejs CODEX: HTTP, CLI i opcjonalne MCP
 
-Status: projekt v1, nie działające API. Jedno źródło nazw i deadline w [registry](../contracts/v1/operations.json), projektowe [JSON Schema](../contracts/v1/operation-request.schema.json) i [przykłady](../examples/README.md). Schemat wejścia celowo nie jest OpenAPI kompletnej aplikacji; schema/check nie zastępuje walidacji identity, authorization ani Siemens.
+Status: kontrakty v1 i ich walidacja offline zaimplementowane w B-01A; brak działającego API i handlerów operacji. Jedno źródło nazw i deadline w [registry](../contracts/v1/operations.json), wersjonowane [JSON Schema](../contracts/v1/operation-request.schema.json), [OpenAPI 3.1.1](../contracts/v1/openapi.json) i [przykłady](../examples/README.md). [Dokumentacja kontraktów](../contracts/README.md) opisuje modele, kanonikalizację i granice walidacji. Schema/check nie zastępuje rejestracji projektu, autoryzacji ani kwalifikacji Siemens.
 
 ## Wybór interfejsu
 

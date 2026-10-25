@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tia-bridge2:session-identity:1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "project_key",
+    "session_epoch",
+    "process_id",
+    "process_started_at",
+    "handshake_instance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "project_key": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "session_epoch": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "process_id": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    "process_started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "handshake_instance": {
+      "type": "string",
+      "format": "uuid",
+      "not": {
+        "const": "00000000-0000-0000-0000-000000000000"
+      }
+    }
+  }
+}

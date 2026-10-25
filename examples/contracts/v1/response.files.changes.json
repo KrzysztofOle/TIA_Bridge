@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "operation_id": "11111111-1111-4111-8111-111111111111",
+  "method": "files.changes",
+  "state": "SUCCEEDED",
+  "phase": "COMPLETED",
+  "outcome": "CONFIRMED",
+  "cancel_requested": false,
+  "poll_after_ms": 0,
+  "artifact_refs": [],
+  "result": {
+    "workspace_id": "11111111-1111-4111-8111-111111111111",
+    "source_revision": "0000000000000000000000000000000000000000000000000000000000000000",
+    "changes": []
+  }
+}

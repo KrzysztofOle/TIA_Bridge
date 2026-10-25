@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "operation_id": "11111111-1111-4111-8111-111111111111",
+  "method": "project.status",
+  "state": "SUCCEEDED",
+  "phase": "COMPLETED",
+  "outcome": "CONFIRMED",
+  "cancel_requested": false,
+  "poll_after_ms": 0,
+  "artifact_refs": [],
+  "result": {
+    "observed_at": "2026-10-25T08:00:00Z",
+    "session_epoch": "11111111-1111-4111-8111-111111111111",
+    "age_ms": 0,
+    "quarantined": false,
+    "objects": [],
+    "freshness_refs": []
+  }
+}

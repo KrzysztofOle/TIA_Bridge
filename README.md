@@ -1,6 +1,6 @@
 # TIA_Bridge 2
 
-Projekt nowej aplikacji Windows do integracji CODEX z Siemens TIA Portal. Stan opracowania 2026-10-24–25: **analiza i projekt, bez implementacji aplikacji**. Istniejące katalogi `src/` są miejscami na przyszły kod. Schematy w `contracts/` i przykłady opisują projekt kontraktu, nie działający serwer.
+Projekt nowej aplikacji Windows do integracji CODEX z Siemens TIA Portal. Stan 2026-10-25: **zaimplementowany offline pakiet B-01A — kontrakty oraz Core/Identity i Core/Operations w .NET 10**. Działają walidacja, serializacja, kanonikalizacja i reguły modeli. Host HTTP, SQLite, worker Siemens, adaptery i wykonanie 19 operacji jeszcze nie istnieją; definicja kontraktu nie oznacza dostępnej funkcjonalności TIA.
 
 Docelowy przepływ: **TIA → eksport do workspace → edycja CODEX → plan → zatwierdzone Apply → niezależna weryfikacja → kompilacja/symulacja → testy**. Pliki CODEX określają zamierzony stan. Rozbieżności z nieznanymi zmianami TIA wymagają rozstrzygnięcia; import nigdy nie stanowi samodzielnego dowodu zgodności.
 
@@ -31,7 +31,7 @@ Rekomendacja: host C#/.NET 10, trwałe operacje i SQLite na lokalnym NTFS, wykon
 | [Instrukcja ChatGPT](Instrukcja_ChatGPT.md) | podział ról ChatGPT/CODEX, workflow zadań i reguły oceny wyników zgodne z AGENTS.md |
 | [Zmiany](Zmiany.md) | zapis prac projektowych |
 
-Pierwsze zadanie implementacyjne: **etap 1 + pierwszy przekrój etapu 2**, kontrakty i asynchroniczny silnik na fałszywym wykonawcy. Następnie read-only V19 i jeden kwalifikowany round-trip SCL FC na czystej kopii syntetycznego projektu. [Plan](docs/08_IMPLEMENTATION_PLAN.md) wskazuje kolejność i dowody wymagane przed Apply.
+Wykonany zakres B-01A: [Core](src/TiaBridge.Core/README.md), [19 kontraktów i OpenAPI](contracts/README.md), [testy i polecenia build](tests/README.md). Kolejne pakiety wymagają osobnego zlecenia. Przed integracją z Openness i X-01 obowiązuje pełna bramka B-02A–B-02D na fake workerze. [Plan](docs/08_IMPLEMENTATION_PLAN.md) wskazuje zależności i dowody wymagane przed Apply.
 
 ## Granice i praca z repozytorium
 

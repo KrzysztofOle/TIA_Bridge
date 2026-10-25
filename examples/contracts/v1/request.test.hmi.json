@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "method": "test.hmi",
+  "idempotency_key": "synthetic-test.hmi",
+  "project_key": "11111111-1111-4111-8111-111111111111",
+  "params": {
+    "test_profile_id": "synthetic.1",
+    "scenario_id": "synthetic.1",
+    "authorization_ref": "synthetic.1"
+  }
+}

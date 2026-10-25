@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tia-bridge2:error:1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "code",
+    "category",
+    "message",
+    "retryable",
+    "outcome"
+  ],
+  "properties": {
+    "code": {
+      "type": "string",
+      "enum": [
+        "ACCESS_DENIED",
+        "ATTACH_DENIED",
+        "AUTHORIZATION_EXPIRED",
+        "BACKUP_FAILED",
+        "BAD_QUALITY",
+        "BASELINE_RACE",
+        "CIRCUIT_OPEN",
+        "COMPILER_UNAVAILABLE",
+        "COMPILE_ERRORS",
+        "CONFLICT",
+        "CONNECTION_LOST",
+        "COVERAGE_GAP",
+        "CURSOR_INVALID",
+        "DEGRADED",
+        "DEPENDENCY_UNRESOLVED",
+        "ENDPOINT_MISMATCH",
+        "EXPORT_FAILED",
+        "IDEMPOTENCY_MISMATCH",
+        "IDENTITY_MISMATCH",
+        "IMPORT_PARTIAL",
+        "INVALID_ARGUMENT",
+        "LICENSE_UNVERIFIED",
+        "LIMIT_EXCEEDED",
+        "LOAD_FAILED",
+        "LOGIN_REQUIRED",
+        "NOT_FOUND",
+        "NOT_OWNER",
+        "NOT_READY",
+        "PATH_UNSAFE",
+        "PHYSICAL_DOWNLOAD_DENIED",
+        "PROJECT_QUARANTINED",
+        "QUEUE_FULL",
+        "READBACK_MISMATCH",
+        "RECIPIENT_UNVERIFIED",
+        "RESULT_NOT_READY",
+        "RUNTIME_NOT_READY",
+        "SCHEMA_VERSION",
+        "SECURITY_PROFILE_REQUIRED",
+        "SELECTOR_UNSUPPORTED",
+        "SIM_UNAVAILABLE",
+        "STALE_OBSERVATION",
+        "STALE_PLAN",
+        "STOP_UNCONFIRMED",
+        "STORAGE_FULL",
+        "STORE_UNAVAILABLE",
+        "TEST_FAILED",
+        "TIA_UNAVAILABLE",
+        "TIMED_OUT",
+        "TIMEOUT",
+        "TLS_UNTRUSTED",
+        "UNAUTHENTICATED",
+        "UNKNOWN_INITIAL",
+        "UNSUPPORTED",
+        "VALIDATION_FAILED",
+        "VENDOR_CALL_TIMEOUT",
+        "VERIFY_FAILED",
+        "WAIT_TIMEOUT",
+        "WARNINGS_REJECTED",
+        "WORKER_UNAVAILABLE",
+        "WORKSPACE_CHANGED"
+      ]
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "VALIDATION",
+        "AUTHORIZATION",
+        "IDENTITY",
+        "CONFLICT",
+        "CAPABILITY",
+        "STORAGE",
+        "TRANSPORT",
+        "EXECUTION",
+        "INTERNAL"
+      ]
+    },
+    "message": {
+      "type": "string",
+      "maxLength": 2048
+    },
+    "retryable": {
+      "type": "boolean"
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "NOT_STARTED",
+        "CONFIRMED",
+        "UNKNOWN"
+      ]
+    },
+    "phase": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+      },
+      "maxItems": 10000
+    },
+    "recovery_hint": {
+      "type": "string",
+      "maxLength": 2048
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "retryable": {
+            "const": true
+          }
+        },
+        "required": [
+          "retryable"
+        ]
+      },
+      "then": {
+        "properties": {
+          "outcome": {
+            "const": "NOT_STARTED"
+          }
+        }
+      }
+    }
+  ]
+}

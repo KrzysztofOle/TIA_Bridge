@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/TiaBridge.Core/TiaBridge.Core.csproj" />
+  <Project Path="tests/unit/TiaBridge.Core.Tests/TiaBridge.Core.Tests.csproj" />
+</Solution>

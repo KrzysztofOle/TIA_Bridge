@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0",
+  "method": "project.status",
+  "idempotency_key": "synthetic-project.status",
+  "project_key": "11111111-1111-4111-8111-111111111111",
+  "params": {}
+}

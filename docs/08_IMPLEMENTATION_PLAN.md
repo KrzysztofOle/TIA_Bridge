@@ -4,7 +4,7 @@ Plan przygotowany 2026-10-24/25. Obecne zadanie dostarcza projekt etapu 0 i kont
 
 ## Kolejność dostarczenia
 
-Najkrótsza droga: **1A→2A/2B na fake→3A/3B read-only→4A/4B dla jednej FC→5A→6A→ograniczone 4C Apply**. Bez qualification importer pozostaje disabled. Równoległe moduły logiczne mogą być rozwijane osobno, ale nie uruchamiają jednocześnie vendor calls do tego samego portalu. HMI, symulatory i E2E nie blokują pierwszego PLC MVP. Odporność jest budowana od2B; etap 10 rozszerza ją, nie odkłada bezpieczeństwa na koniec.
+Najkrótsza droga: **1A→2A–2D na fake→X-01→3A/3B read-only→4A/4B dla jednej FC→5A→6A→ograniczone 4C Apply**. Pełna bramka B-02A–B-02D musi zakończyć się pozytywnie przed integracją z rzeczywistym Siemens Openness, także przed eksperymentem X-01. Pozostałe zależności pakietów poniżej nadal obowiązują. Bez qualification importer pozostaje disabled. Równoległe moduły logiczne mogą być rozwijane osobno, ale nie uruchamiają jednocześnie vendor calls do tego samego portalu. HMI, symulatory i E2E nie blokują pierwszego PLC MVP. Odporność jest budowana od2B; etap 10 rozszerza ją, nie odkłada bezpieczeństwa na koniec.
 
 Pierwszy task CODEX: zbudować kontrakty + host na fake, `submit/status/result/cancel`, durable idempotency i test wiszącego wykonawcy. Bez Siemens DLL, uprawnień TIA ani importów. Dopiero kolejny task X-01 daje read-only worker V19.
 

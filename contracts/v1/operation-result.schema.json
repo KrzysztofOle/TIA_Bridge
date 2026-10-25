@@ -1,0 +1,1435 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tia-bridge2:operation-result:1",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "result"
+      ],
+      "properties": {
+        "method": {
+          "const": "project.inspect"
+        },
+        "result": {
+          "$ref": "#/$defs/ProjectInspectResult"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "result"
+      ],
+      "properties": {
+        "method": {
+          "const": "project.export"
+        },
+        "result": {
+          "$ref": "#/$defs/ProjectExportResult"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "result"
+      ],
+      "properties": {
+        "method": {
+          "const": "project.status"
+        },
+        "result": {
+          "$ref": "#/$defs/ProjectStatusResult"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "result"
+      ],
+      "properties": {
+        "method": {
+          "const": "files.changes"
+        },
+        "result": {
+          "$ref": "#/$defs/FilesChangesResult"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "result"
+      ],
+      "properties": {
+        "method": {
+          "const": "sync.plan"
+        },
+        "result": {
+          "$ref": "#/$defs/SyncPlanResult"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "result"
+      ],
+      "properties": {
+        "method": {
+          "const": "sync.apply"
+        },
+        "result": {
+          "$ref": "#/$defs/SyncApplyResult"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "result"
+      ],
+      "properties": {
+        "method": {
+          "const": "sync.verify"
+        },
+        "result": {
+          "$ref": "#/$defs/SyncVerifyResult"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "result"
+      ],
+      "properties": {
+        "method": {
+          "const": "compile.plc"
+        },
+        "result": {
+          "$ref": "#/$defs/CompilePlcResult"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "result"
+      ],
+      "properties": {
+        "method": {
+          "const": "compile.hmi"
+        },
+        "result": {
+          "$ref": "#/$defs/CompileHmiResult"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "result"
+      ],
+      "properties": {
+        "method": {
+          "const": "simulation.prepare"
+        },
+        "result": {
+          "$ref": "#/$defs/SimulationPrepareResult"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "result"
+      ],
+      "properties": {
+        "method": {
+          "const": "simulation.start"
+        },
+        "result": {
+          "$ref": "#/$defs/SimulationStartResult"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "result"
+      ],
+      "properties": {
+        "method": {
+          "const": "simulation.stop"
+        },
+        "result": {
+          "$ref": "#/$defs/SimulationStopResult"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "result"
+      ],
+      "properties": {
+        "method": {
+          "const": "test.plc"
+        },
+        "result": {
+          "$ref": "#/$defs/TestPlcResult"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "result"
+      ],
+      "properties": {
+        "method": {
+          "const": "test.hmi"
+        },
+        "result": {
+          "$ref": "#/$defs/TestHmiResult"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "result"
+      ],
+      "properties": {
+        "method": {
+          "const": "operation.status"
+        },
+        "result": {
+          "$ref": "#/$defs/OperationStatusResult"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "result"
+      ],
+      "properties": {
+        "method": {
+          "const": "operation.result"
+        },
+        "result": {
+          "$ref": "#/$defs/OperationResultResult"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "result"
+      ],
+      "properties": {
+        "method": {
+          "const": "operation.events"
+        },
+        "result": {
+          "$ref": "#/$defs/OperationEventsResult"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "result"
+      ],
+      "properties": {
+        "method": {
+          "const": "operation.cancel"
+        },
+        "result": {
+          "$ref": "#/$defs/OperationCancelResult"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "result"
+      ],
+      "properties": {
+        "method": {
+          "const": "diagnostics.health"
+        },
+        "result": {
+          "$ref": "#/$defs/DiagnosticsHealthResult"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "ArtifactRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "sha256"
+      ],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "ObjectStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "object_id",
+        "status",
+        "reason_code"
+      ],
+      "properties": {
+        "object_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "SYNCED",
+            "MODIFIED",
+            "CONFLICT",
+            "UNSUPPORTED",
+            "ERROR",
+            "UNKNOWN"
+          ]
+        },
+        "reason_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        }
+      }
+    },
+    "DeviceSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "device_id",
+        "family"
+      ],
+      "properties": {
+        "device_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "family": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        }
+      }
+    },
+    "InventoryItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "object_id",
+        "kind",
+        "capability"
+      ],
+      "properties": {
+        "object_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "capability": {
+          "type": "string",
+          "enum": [
+            "UNSUPPORTED",
+            "UNKNOWN",
+            "QUALIFIED"
+          ]
+        }
+      }
+    },
+    "FileChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "object_id",
+        "kind"
+      ],
+      "properties": {
+        "object_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "MODIFIED",
+            "ADDED",
+            "MISSING",
+            "TOMBSTONE",
+            "INVALID"
+          ]
+        }
+      }
+    },
+    "DimensionEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dimension",
+        "status",
+        "evidence_refs"
+      ],
+      "properties": {
+        "dimension": {
+          "type": "string",
+          "enum": [
+            "content",
+            "config",
+            "api",
+            "structure",
+            "dependencies",
+            "inventory"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL",
+            "UNKNOWN",
+            "UNSUPPORTED"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+          },
+          "maxItems": 10000
+        }
+      }
+    },
+    "StepReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step_id",
+        "outcome",
+        "evidence_refs"
+      ],
+      "properties": {
+        "step_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "NOT_STARTED",
+            "CONFIRMED",
+            "UNKNOWN"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+          },
+          "maxItems": 10000
+        }
+      }
+    },
+    "CompilerDiagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "severity",
+        "code",
+        "message"
+      ],
+      "properties": {
+        "severity": {
+          "type": "string",
+          "enum": [
+            "ERROR",
+            "WARNING",
+            "INFO"
+          ]
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "object_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
+    "AssertionSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "test_id",
+        "status",
+        "evidence_refs"
+      ],
+      "properties": {
+        "test_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL",
+            "ERROR",
+            "BLOCKED",
+            "NOT_RUN",
+            "SKIP"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+          },
+          "maxItems": 10000
+        }
+      }
+    },
+    "OperationEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence",
+        "operation_id",
+        "state",
+        "phase",
+        "occurred_at",
+        "evidence_refs"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "operation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "ACCEPTED",
+            "QUEUED",
+            "RUNNING",
+            "SUCCEEDED",
+            "FAILED",
+            "CANCELLED",
+            "RECONCILIATION_REQUIRED"
+          ]
+        },
+        "phase": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "occurred_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+          },
+          "maxItems": 10000
+        }
+      }
+    },
+    "ComponentHealth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "component",
+        "status",
+        "age_ms"
+      ],
+      "properties": {
+        "component": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "HEALTHY",
+            "DEGRADED",
+            "UNAVAILABLE",
+            "UNKNOWN"
+          ]
+        },
+        "age_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        }
+      }
+    },
+    "ProjectInspectResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project_key",
+        "session_epoch",
+        "api_build",
+        "devices",
+        "inventory",
+        "coverage_refs"
+      ],
+      "properties": {
+        "project_key": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "session_epoch": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "api_build": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "devices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DeviceSummary"
+          },
+          "maxItems": 10000
+        },
+        "inventory": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InventoryItem"
+          },
+          "maxItems": 10000
+        },
+        "coverage_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+          },
+          "maxItems": 10000
+        }
+      }
+    },
+    "ProjectExportResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_id",
+        "manifest",
+        "item_statuses"
+      ],
+      "properties": {
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "manifest": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "item_statuses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ObjectStatus"
+          },
+          "maxItems": 10000
+        }
+      }
+    },
+    "ProjectStatusResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observed_at",
+        "session_epoch",
+        "age_ms",
+        "quarantined",
+        "objects",
+        "freshness_refs"
+      ],
+      "properties": {
+        "observed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "session_epoch": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "age_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "quarantined": {
+          "type": "boolean"
+        },
+        "objects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ObjectStatus"
+          },
+          "maxItems": 10000
+        },
+        "freshness_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+          },
+          "maxItems": 10000
+        }
+      }
+    },
+    "FilesChangesResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspace_id",
+        "source_revision",
+        "changes"
+      ],
+      "properties": {
+        "workspace_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "source_revision": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FileChange"
+          },
+          "maxItems": 10000
+        }
+      }
+    },
+    "SyncPlanResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plan_id",
+        "plan_sha256",
+        "snapshot_id",
+        "eligible",
+        "issues",
+        "plan_artifact"
+      ],
+      "properties": {
+        "plan_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "plan_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "eligible": {
+          "type": "boolean"
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+          },
+          "maxItems": 10000
+        },
+        "plan_artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        }
+      }
+    },
+    "SyncApplyResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "steps",
+        "workspace_advanced",
+        "evidence_refs"
+      ],
+      "properties": {
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StepReceipt"
+          },
+          "maxItems": 10000
+        },
+        "workspace_advanced": {
+          "type": "boolean"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+          },
+          "maxItems": 10000
+        },
+        "verified_revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        }
+      }
+    },
+    "SyncVerifyResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "objects",
+        "dimensions",
+        "promoted"
+      ],
+      "properties": {
+        "objects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ObjectStatus"
+          },
+          "maxItems": 10000
+        },
+        "dimensions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DimensionEvidence"
+          },
+          "maxItems": 10000
+        },
+        "promoted": {
+          "type": "boolean"
+        },
+        "baseline_revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        }
+      }
+    },
+    "CompilePlcResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "error_count",
+        "warning_count",
+        "fingerprint",
+        "diagnostics",
+        "elapsed_ms"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL",
+            "ERROR",
+            "NOT_RUN"
+          ]
+        },
+        "error_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "warning_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CompilerDiagnostic"
+          },
+          "maxItems": 10000
+        },
+        "elapsed_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        }
+      }
+    },
+    "CompileHmiResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "error_count",
+        "warning_count",
+        "fingerprint",
+        "diagnostics",
+        "elapsed_ms"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL",
+            "ERROR",
+            "NOT_RUN"
+          ]
+        },
+        "error_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "warning_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CompilerDiagnostic"
+          },
+          "maxItems": 10000
+        },
+        "elapsed_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        }
+      }
+    },
+    "SimulationPrepareResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instance_id",
+        "lease_id",
+        "program_fingerprint",
+        "isolation_evidence_refs"
+      ],
+      "properties": {
+        "instance_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "lease_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "program_fingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "isolation_evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+          },
+          "maxItems": 10000
+        }
+      }
+    },
+    "SimulationStartResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instance_id",
+        "lease_id",
+        "state"
+      ],
+      "properties": {
+        "instance_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "lease_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "STARTING",
+            "RUNNING",
+            "PROGRAM_LOADED",
+            "READY",
+            "NOT_READY",
+            "ERROR"
+          ]
+        }
+      }
+    },
+    "SimulationStopResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instance_id",
+        "state",
+        "cleanup_refs"
+      ],
+      "properties": {
+        "instance_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "STOPPED",
+            "STOP_UNCONFIRMED",
+            "ERROR"
+          ]
+        },
+        "cleanup_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+          },
+          "maxItems": 10000
+        }
+      }
+    },
+    "TestPlcResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "assertions",
+        "report",
+        "environment_refs",
+        "transport",
+        "mapping_sha256"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL",
+            "ERROR",
+            "BLOCKED",
+            "NOT_RUN",
+            "SKIP"
+          ]
+        },
+        "assertions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AssertionSummary"
+          },
+          "maxItems": 10000
+        },
+        "report": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "environment_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+          },
+          "maxItems": 10000
+        },
+        "transport": {
+          "type": "string",
+          "enum": [
+            "opcua",
+            "snap7"
+          ]
+        },
+        "mapping_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "TestHmiResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "assertions",
+        "report",
+        "environment_refs",
+        "browser_version",
+        "runtime_version"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL",
+            "ERROR",
+            "BLOCKED",
+            "NOT_RUN",
+            "SKIP"
+          ]
+        },
+        "assertions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AssertionSummary"
+          },
+          "maxItems": 10000
+        },
+        "report": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "environment_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+          },
+          "maxItems": 10000
+        },
+        "browser_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "runtime_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        }
+      }
+    },
+    "OperationStatusResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "state",
+        "phase",
+        "outcome",
+        "cancel_requested"
+      ],
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "ACCEPTED",
+            "QUEUED",
+            "RUNNING",
+            "SUCCEEDED",
+            "FAILED",
+            "CANCELLED",
+            "RECONCILIATION_REQUIRED"
+          ]
+        },
+        "phase": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "NOT_STARTED",
+            "CONFIRMED",
+            "UNKNOWN"
+          ]
+        },
+        "cancel_requested": {
+          "type": "boolean"
+        }
+      }
+    },
+    "OperationResultResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "state",
+        "outcome",
+        "artifact_refs"
+      ],
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "ACCEPTED",
+            "QUEUED",
+            "RUNNING",
+            "SUCCEEDED",
+            "FAILED",
+            "CANCELLED",
+            "RECONCILIATION_REQUIRED"
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "NOT_STARTED",
+            "CONFIRMED",
+            "UNKNOWN"
+          ]
+        },
+        "artifact_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactRef"
+          },
+          "maxItems": 10000
+        }
+      }
+    },
+    "OperationEventsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "events",
+        "next_sequence"
+      ],
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OperationEvent"
+          },
+          "maxItems": 1000
+        },
+        "next_sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        }
+      }
+    },
+    "OperationCancelResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "disposition",
+        "state"
+      ],
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "disposition": {
+          "type": "string",
+          "enum": [
+            "CANCELLED",
+            "CANCEL_REQUESTED",
+            "CANNOT_INTERRUPT",
+            "ALREADY_TERMINAL"
+          ]
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "ACCEPTED",
+            "QUEUED",
+            "RUNNING",
+            "SUCCEEDED",
+            "FAILED",
+            "CANCELLED",
+            "RECONCILIATION_REQUIRED"
+          ]
+        }
+      }
+    },
+    "DiagnosticsHealthResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "components",
+        "observed_at"
+      ],
+      "properties": {
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ComponentHealth"
+          },
+          "maxItems": 10000
+        },
+        "observed_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}
