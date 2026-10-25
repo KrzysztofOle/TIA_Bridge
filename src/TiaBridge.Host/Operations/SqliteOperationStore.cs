@@ -30,7 +30,12 @@ public sealed partial class SqliteOperationStore : IOperationRepository, IOutbox
         database.Write((c, t) => { Exec(c, t, "INSERT INTO projects VALUES($id,$at) ON CONFLICT(project_key) DO NOTHING", ("$id", project.ToString()), ("$at", clock.GetUtcNow().ToString("O"))); return 0; });
     }
 
-    public Admission Accept(string authenticatedPrincipal, ReadOnlyMemory<byte> requestJson)
+    public const int QueueCapacity = 1000;
+    public Admission Accept(string authenticatedPrincipal, ReadOnlyMemory<byte> requestJson) => AcceptInternal(authenticatedPrincipal, requestJson, null);
+    public Admission AcceptSupported(string authenticatedPrincipal, ReadOnlyMemory<byte> requestJson, Func<OperationMethod, bool> supports)
+        => AcceptInternal(authenticatedPrincipal, requestJson, null, supports);
+    private Admission AcceptInternal(string authenticatedPrincipal, ReadOnlyMemory<byte> requestJson,
+        Func<SqliteConnection, SqliteTransaction, StoredOperation, ValidatedRequest, StoredOperation>? complete, Func<OperationMethod, bool>? supports = null)
     {
         ValidatePrincipal(authenticatedPrincipal);
         // Snapshot and validate before entering the short SQLite transaction. No caller-owned DTO is trusted.
@@ -50,6 +55,8 @@ public sealed partial class SqliteOperationStore : IOperationRepository, IOutbox
                     || !request.Identity.GetCanonicalBody().AsSpan().SequenceEqual(previous.Identity.GetCanonicalBody())) throw new StorageException(ErrorCode.IDEMPOTENCY_MISMATCH);
                 return new Admission(stored, true);
             }
+            if (supports is not null && !supports(request.Identity.Method)) throw new StorageException(ErrorCode.UNSUPPORTED);
+            if (complete is null && ScalarLong(c, t, "SELECT count(*) FROM operations WHERE state IN ('ACCEPTED','QUEUED','RUNNING')") >= QueueCapacity) throw new StorageException(ErrorCode.QUEUE_FULL);
             if (project is not null && ScalarLong(c, t, "SELECT count(*) FROM projects WHERE project_key=$p", ("$p", project)) != 1) throw new StorageException(ErrorCode.IDENTITY_MISMATCH);
             var id = new OperationId(Guid.NewGuid()); var acceptedAt = clock.GetUtcNow();
             var report = new OperationReport("1.0", id, request.Identity.Method, OperationState.ACCEPTED, "ACCEPTED", OperationOutcome.NOT_STARTED, false, 1000, ImmutableArray<ArtifactRef>.Empty, AcceptedAt: acceptedAt);
@@ -61,7 +68,9 @@ public sealed partial class SqliteOperationStore : IOperationRepository, IOutbox
             InsertEvent(c, t, report, 1, bytes);
             Exec(c, t, "INSERT INTO outbox(operation_id,state) VALUES($id,'PENDING')", ("$id", id.ToString()));
             database.Faults.Checkpoint(StorageFaultPoint.OutboxInserted);
-            return new Admission(new StoredOperation(report, 0, wire, request.Identity.BodySha256), false);
+            var accepted = new StoredOperation(report, 0, wire, request.Identity.BodySha256);
+            if (complete is not null) accepted = complete(c, t, accepted, request);
+            return new Admission(accepted, false);
         }, checkpoints: true);
         if (admission.AlreadyAccepted)
         {

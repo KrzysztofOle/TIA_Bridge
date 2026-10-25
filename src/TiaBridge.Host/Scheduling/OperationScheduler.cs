@@ -49,7 +49,7 @@ public sealed class OperationScheduler : IAsyncDisposable
                 while (!stop.IsCancellationRequested) { await PumpOnceAsync(stop.Token); await Task.Delay(20, stop.Token); }
             }
             catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
-            catch (Exception e) when (e is IOException or StorageException or ContractValidationException or InvalidOperationException or ArgumentException)
+            catch (Exception e) when (e is IOException or StorageException or ContractValidationException or InvalidOperationException or ArgumentException or OperationCanceledException or System.ComponentModel.Win32Exception)
             { LastError = "SCHEDULER_STOPPED"; Volatile.Write(ref observation, Observation with { State = "STORE_OR_EXECUTOR_ERROR" }); }
         });
     }
@@ -67,11 +67,9 @@ public sealed class OperationScheduler : IAsyncDisposable
             if (now - queueScannedAt >= Watchdog.HeartbeatInterval)
             {
                 // Queue deadlines remain enforceable while a worker call hangs or its project is quarantined.
-                foreach (var id in store.WaitingOperations())
+                foreach (var id in store.ExpiredWaitingOperations(now))
                 {
-                    var queued = store.Read(id); using var input = JsonDocument.Parse(queued.RequestJson);
-                    int seconds = input.RootElement.GetProperty("params").TryGetProperty("queue_timeout_s", out var limit) ? limit.GetInt32() : 300;
-                    if (now - queued.Report.AcceptedAt >= TimeSpan.FromSeconds(seconds)) FailQueued(queued, ErrorCode.WAIT_TIMEOUT);
+                    var queued = store.Read(id); FailQueued(queued, ErrorCode.WAIT_TIMEOUT);
                 }
                 queueScannedAt = now;
             }
@@ -133,7 +131,13 @@ public sealed class OperationScheduler : IAsyncDisposable
                     PersistBreaker(spec, breaker);
                     if (worker is null)
                     {
-                        worker = await supervisor.StartAsync(ct);
+                        try { worker = await supervisor.StartAsync(ct); }
+                        catch (Exception e) when (e is IOException or OperationCanceledException or System.ComponentModel.Win32Exception && !ct.IsCancellationRequested)
+                        {
+                            // Startup failed before any durable dispatch; the supervisor owns cleanup of that child.
+                            breaker.Failure(clock.GetUtcNow()); PersistBreaker(spec, breaker);
+                            FailQueued(operation, ErrorCode.WORKER_UNAVAILABLE); break;
+                        }
                         store.RegisterWorker(Owner, worker.Epoch, worker.Pid, worker.StartTicks, worker.WorkerId);
                     }
                     // Materialize the immutable input before entering the dispatch transaction.

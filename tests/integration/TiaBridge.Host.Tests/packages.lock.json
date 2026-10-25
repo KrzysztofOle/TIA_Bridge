@@ -165,6 +165,12 @@
           "xunit.extensibility.core": "[2.9.3]"
         }
       },
+      "tiabridge.client": {
+        "type": "Project",
+        "dependencies": {
+          "TiaBridge.Core": "[1.0.0, )"
+        }
+      },
       "tiabridge.core": {
         "type": "Project",
         "dependencies": {
@@ -175,6 +181,7 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.Data.Sqlite": "[10.0.13, )",
+          "TiaBridge.Client": "[1.0.0, )",
           "TiaBridge.Core": "[1.0.0, )",
           "TiaBridge.Ipc": "[1.0.0, )"
         }

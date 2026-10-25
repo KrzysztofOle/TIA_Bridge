@@ -36,7 +36,7 @@ Stan 2026-10-25: B-01A/B-01B zaimplementowane offline w [Core](../src/TiaBridge.
 
 ## Etap 2 — Silnik operacji, procesy i recovery [MVP]
 
-Stan 2026-10-25: zrealizowano [B-02A — warstwę trwałości](13_DURABLE_STORAGE.md) oraz [B-02B — scheduler, supervisor i Fake Worker/IPC](14_SCHEDULER_IPC.md). Działa wyłącznie wykonanie syntetyczne. B-02C/D i pełna bramka przed Siemens nie są jeszcze zrealizowane.
+Stan 2026-10-25: zrealizowano [B-02A — warstwę trwałości](13_DURABLE_STORAGE.md) oraz [B-02B — scheduler, supervisor i Fake Worker/IPC](14_SCHEDULER_IPC.md). Działa wyłącznie wykonanie syntetyczne. [B-02C — HTTP API i CLI](15_HTTP_API_CLI.md) udostępnia ten sam silnik. B-02D i pełna bramka przed Siemens nie są jeszcze zrealizowane.
 
 **Cel:** nieblokujący, trwały interfejs jeszcze przed TIA. **Zależności:**1A, częściowo 1B. **Pakiety:**
 

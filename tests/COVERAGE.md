@@ -98,4 +98,20 @@ Runner agreguje dwa TRX z katalogu danego przebiegu i wymaga wskazanych testów 
 
 Pełny runner wymaga konkretnych testów procesowych i nowych dziewięciu przypadków framing. 1000 odczytów metadata statusu podczas realnego fake hang sprawdza p95≤100 ms; nie deklaruje HTTP SLO ani testu ośmiu klientów. Wszystkie DB/artifacts są syntetyczne na lokalnym NTFS. Process exit hosta jest deterministyczny po Started, nie losowy kill.
 
-Braki pozostawione zgodnie z pakietami: publiczne API/CLI i jego auth/Origin/rate/SLO — B-02C; pełny resilience harness i wszystkie punkty awarii — B-02D; rzeczywisty worker, Dispose/apartment/Job Object parent-loss — X-01; obcy SID/ACL deployment i sprzętowy power-loss wymagają osobnego środowiska. Nie ma reconciliacji TIA ani automatycznego clear quarantine. PASS Fake nie potwierdza Siemens, SYNCED, Engineering lub Runtime.
+Braki B-02B pozostawiono właściwym pakietom: publiczne API/CLI/auth/SLO realizuje opisane niżej B-02C; pełny harness — B-02D; rzeczywisty worker, Dispose/apartment/Job Object parent-loss — X-01. Obcy SID i sprzętowy power-loss wymagają osobnego środowiska. Nie ma reconciliacji TIA ani automatycznego clear quarantine. PASS Fake nie potwierdza Siemens, SYNCED, Engineering lub Runtime.
+
+## B-02C — HTTP API, CLI i nieblokowanie
+
+39 nowych przypadków .NET: 38 w Host i 1 regresja Core. Razem 700 .NET (538 Core +48 Storage +76 Scheduler/IPC +38 HTTP/CLI) i 20 Python. Każda liczba oznacza odrębny przypadek xUnit/unittest, nie liczbę requestów w pętli.
+
+| Źródło / liczba | Zachowanie i dowód |
+|---|---|
+| [HttpApiTests](integration/TiaBridge.Host.Tests/HttpApiTests.cs) / 13 | rzeczywisty Host+CLI+Fake, pełny submit/status/events/result, durable duplicate/409, 202 przed wynikiem, cursor/Last-Modified, queued/running cancel, restart i token rotation, unsupported bez acceptance, invalid JSON/version/query/body |
+| [ApiSecurityTests](integration/TiaBridge.Host.Tests/ApiSecurityTests.cs) / 15 | token absent/wrong/query, Origin/null/Sec-Fetch/Host/proxy denial, rzeczywisty owner/ACL i celowe poszerzenie ACL własnego pliku z odmową CLI, foreign principal, declared/chunked body limit, rate window i reserved concurrency, redaction/CLI offline |
+| [ApiMetadataAndCliTests](integration/TiaBridge.Host.Tests/ApiMetadataAndCliTests.cs) / 8 | 19 poprawnych nazw requestów i właściwy available/unsupported outcome, wspólny ledger szybkich POST/cancel, bounded wait bez auto-cancel, wynik FAILED/exit 6 vs status/exit 0, UNKNOWN i quarantine po cancel/restart, walidacja syntetycznego host.fake.json; rzeczywisty błąd startu workera daje trwały FAILED/NOT_STARTED przy dostępnym API |
+| [ApiPerformanceTests](integration/TiaBridge.Host.Tests/ApiPerformanceTests.cs) / 2 | 1000 HTTP status reads przy 1/8 klientach, 64 submit/8 klientów, 100 zapisów 1 MiB co ≥100 ms i niezależny SHA przy wiszącym procesie; twarde progi NF-01/02/03; rzeczywista kolejka 999 i wyścig 4 requestów o ostatnie miejsce, duplicate/status/health przy 1000 |
+| [RequiredNullableTests](unit/TiaBridge.Core.Tests/RequiredNullableTests.cs) / 1 | najpierw rzeczywisty FAIL, potem zachowanie wymaganego age_ms=null przez generator/typowaną serializację, zgodnie z niezmienionym schema 1.0 |
+
+Dotychczasowe regresje nadal są wykonywane. Procesowe kolekcje HTTP są izolowane od innych startów procesów, a ośmiu równoczesnych klientów działa wewnątrz tego samego profilu Host. Nie zwiększono timeout workera ani progów SLO. Percentyle obejmują wszystkie próbki; metryki/środowisko w ignorowanym .tia-bridge/b02c/performance.json. Wstępny profil burst edit bez odstępów na wymiennym exFAT przekraczał NF-03; nie deklarujemy jego kwalifikacji ani conditional replace na exFAT.
+
+Odrębne pozostają B-02D i długotrwały soak B-10, rzeczywisty drugi SID, sprzętowy power-loss, native adapter/session grants i wszystkie testy Siemens/Engineering/Runtime. Dokument 15 opisuje dostępny podzbiór CLI i zakres API bez obietnicy wykonawców 19 metod.

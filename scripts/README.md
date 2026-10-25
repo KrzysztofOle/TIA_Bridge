@@ -42,3 +42,5 @@ py -3 scripts/generate_test_vectors.py --write
 ```
 
 B-02B rozszerza ten sam validate_offline.py o procesy Fake Worker/Named Pipes i wymagane przypadki schedulera, timeout, restartu, quarantine oraz dziewięć wspólnych fixtures IPC. Całość: 661 .NET i 20 Python; żaden test nie wymaga Siemens. Procesy testowe uruchamiają wyłącznie własny zbudowany Fake Worker; brak publicznego API/CLI i pełnego harnessu B-02D.
+
+B-02C rozszerza wspólny validate_offline.py o obowiązkowe procesy Host/CLI/Fake, security, metadane, kolejkę 1000 i rzeczywiste pomiary NF-01/02/03. Przebieg jest nadal bez Siemens i bez sieciowego restore, ale testy uruchamiają własny serwer wyłącznie loopback oraz edytują własny syntetyczny plik. Aktualny zestaw: 700 .NET, 20 Python. Raporty HTTP performance w .tia-bridge/b02c; szczegóły profilu i komend w tests/README.md.

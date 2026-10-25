@@ -1,5 +1,100 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-25 — B-02C: lokalne HTTP API, CLI i komunikacja nieblokująca
+
+**Stan wejściowy:** czysty main/origin main `9bcf216eee753ba2844eea346be1adb80cf4fcea`. Przeczytano aktualne instrukcje, README, dokumenty 02–09/13/14, Core/Host, contracts/v1, testy i historię. Wykorzystano B-01A–B-02B, bez drugiego magazynu, lifecycle, schedulera lub IPC. Zrealizowano wyłącznie Host/CLI i syntetyczne wykonanie; bez B-02D, Siemens, PLC/HMI, symulatorów, OPC, Playwright lub MCP.
+
+- Host jest procesem ASP.NET Core Minimal API .NET 10. Udostępnia POST /v1/operations, GET status/result/events, POST cancel i GET diagnostics/health. Dokładne DTO i OpenAPI pozostają źródłem semantyki. Nowe długie zlecenie zwraca 202 dopiero po istniejącym commit intent/journal/outbox; handler nie czeka na workera i nie wykonuje snapshot/hash/scan. Duplicate daje 200 z istniejącym ID, inny canonical body 409. Wyłączenie profilu po restarcie nie ukrywa istniejącego idempotentnego wyniku.
+- Pięć szybkich metod metadata POST korzysta z tego samego trwałego ledgeru, dziennika i outbox; akcja/cancel oraz terminalny raport są atomowe. Nie uruchamiają Fake. Wszystkie 19 nazw ma jawny HTTP outcome: wykonawca syntetyczny wyłącznie dla skonfigurowanych project.inspect/sync.apply, pięć metod metadata i UNSUPPORTED dla pozostałych. Nie ma fałszywego SUCCEEDED brakującego wykonawcy.
+- Startup config jest wersjonowany, bounded i zamknięty; operator rejestruje ProjectKey przed API. Fake scenario/worker path/synthetic template nie pochodzą z HTTP. Domyślnie brak profilu oznacza deny; fake mutation wymaga osobnego jawnego enable w lokalnym config, bez grantów Siemens. host.fake.json jest syntetyczny, używa dev NTFS state i nie otwiera AP19. Względne ścieżki wymagają uruchomienia z root repo.
+- Bind wyłącznie 127.0.0.1 i przydzielony port, niezależnie od ASPNETCORE_URLS. Wymuszone Production nie pozwala włączyć developer error pages przez env; testowy proces startuje z env Development i niezaufanym URL. Token bieżącej instancji ma 32 losowe bajty, SID/PID/start/instance binding i jest publikowany do user-only ACL discovery na lokalnym NTFS, poza repo. CLI sprawdza owner/DACL, containment/reparse/ADS, wersję, bounded/duplicate/unknown JSON i PID/start; sekret nie trafia do argv/URL/logów. Restart rotuje token. Każdy zasób operacji sprawdza principal w SQLite; request nie nadaje uprawnień innemu SID/projektowi.
+- API sprawdza Host/loopback/Origin/Sec-Fetch/forwarded host, odmawia żądań przeglądarkowych, nie dodaje CORS wildcard. Brak endpointu dowolnej komendy, konfiguracji lub kill. Limity: 1 MiB request, bounded header/body time, 2048 requests/s, 256 POST/s i 64 concurrency/connections, z rezerwą dla metadata. Zamknięte query/JSON i stałe błędy bez payloadu. Kolejka ma atomowy limit 1000 aktywnych zleceń po lookup idempotencji; przy 999 wyścig 4 requestów daje 1 acceptance i 3 odmowy. Pełna kolejka pozostawia duplicate/status/health dostępne.
+- Status jest odczytem aktualnego report/hash/journal bez request-schema revalidation, artifact IO lub blokady wykonawczej. Last-Modified i journal rozróżniają czas zmiany; worker heartbeat age jest związany z epoch. Health oddziela host/store/queue/scheduler/worker/progress/tia_probe/quarantine, bez live probe. Result 202 zwraca status; terminalny result weryfikuje zarządzane artefakty. Events zachowuje sequence, cursor i references. Cancel queued jest atomowy bez dispatch; running zapisuje żądanie i nie deklaruje przerwania. UNKNOWN/quarantine pozostaje po cancel/restart, bez clear/retry.
+- CLI i TiaBridge.Client są klientami tego samego HTTP, bez własnej kolejki/SQLite/workera. Obsługują submit METHOD --request FILE, operation status/result/events/cancel/wait i health, JSON, stabilne kody 0/2/3/4/5/6, protected discovery i bounded HTTP. --wait wymaga --max-wait 1..3600; zakończenie CLI/Ctrl+C nie anuluje zaakceptowanej operacji. Brak token/url/force flags i automatycznego retry. Skróty składania requestu z --workspace/--scope pozostają niezaimplementowanym zakresem docelowym, nie brakującym wykonawcą CLI.
+- Utrzymano SQLite WAL/FULL/FK, jeden writer i niezmienione migracje v1–v3. Host lifetime handle usuwa koszt checkpointu po zamknięciu ostatniego połączenia; osiem wyłącznych reader connections obsługuje krótkie metadata queries bez współdzielenia aktywnych command/transaction. Nie jest to drugi ledger/cache. Pełna walidacja kolejki następuje przed zmianą wygasłego zlecenia; zwykły skan deadline nie waliduje stale tych samych 1000 requestów. Default storage API bez Host lifetime zachowuje wcześniejsze reguły i testy awarii.
+
+**Naprawa istniejącego błędu Core:** rzeczywisty cykl HTTP/CLI wykrył, że typed serialization pomija wymagane nullable ComponentHealth.age_ms=null. Najpierw dodano i uruchomiono regresję FAIL; potem generator oznaczył wymagane nullable property JsonIgnoreCondition.Never. Regresja i health z UNKNOWN/null przechodzą. Nie zmieniono schema 1.0, stanów, błędów lub wersji kontraktu. OpenAPI otrzymało aktualny opis serwisu i typowany Operation report dla GET result/202, bez nowych endpointów lub semantyki.
+
+**Regresja startu workera:** końcowy przegląd wykrył, że błąd uruchomienia procesu przed dispatch mógł zatrzymać scheduler bez trwałej klasyfikacji. Test rzeczywistego Host z własnym niepoprawnym plikiem Fake DLL potwierdza teraz FAILED/WORKER_UNAVAILABLE/NOT_STARTED i dalszą dostępność API. Supervisor rozpoznaje exit przed handshake, ograniczonymi buforami odprowadza stdout/stderr własnego procesu i nie ujawnia nieufnego tekstu w konsoli Host. Nie było dispatch ani efektu, więc brak kwarantanny; błędy po dispatch nadal podlegają dotychczasowym regułom UNKNOWN.
+
+**Pomiary i wcześniejsze FAIL:** początkowy NF-02 submit/8 klientów miał p95 402,3 ms i nie był deklarowany jako PASS. Lifetime SQLite/readers oraz ograniczenie ponownej walidacji poprawiły ten wynik. Pełny przebieg wykrył presję wielu równoległych startów Host na deadline workera; kolekcje procesowe HTTP są serializowane względem innych kolekcji, a projekty Core/Host runner wykonuje kolejno (-m:1), bez zwiększania timeoutów produkcyjnych i bez pomijania przypadków. Jeden z pełnych przebiegów miał 699 PASS/1 FAIL: startup Fake w istniejącym teście Completed_quarantined_operation konkurował z masowymi testami Core. Ten sam przypadek wykonany oddzielnie przeszedł w 1 s; runner izoluje teraz wykonanie projektów, zachowując wszystkie scenariusze i pomiary. Niepulsowany burst zapisu 1 MiB na wymiennym exFAT przekroczył NF-03 (p95 188,4 ms); taki profil i conditional replace exFAT nie są kwalifikowane. Próba rename napotkała także odmowę filesystemu; NF-03 sprawdza zapis pliku w miejscu, nie kwalifikację replace. Ostateczny profil edytora jawnie stosuje odstęp 100 ms, zachowuje wszystkie 100 próbek i te same progi. Jest to udokumentowane ograniczenie pomiaru, nie ogólna gwarancja opóźnienia dysku wymiennego.
+
+**Ostateczny profil NF:** Windows 10.0.22000, .NET 10.0.13 x64, 8 procesorów logicznych; state NTFS, syntetyczny workspace exFAT; rzeczywisty Fake Hang. Pomiar 2026-10-25T17:06:58.8244419+00:00. Status 1 klient/1000 próbek: p50/p95/p99 4,9455 / 6,4832 / 8,1994 ms. Status 8 klientów/1000: 8,9800 / 14,9753 / 24,0917 ms. Submit 8 klientów/64: 92,3584 / 104,7887 / 115,3513 ms. Edycja 1 MiB/100 próbek/co ≥100 ms i niezależne SHA: 16,8563 / 32,8080 / 103,8299 ms. Progi NF-01/02/03 w tym profilu: PASS. Raporty metryk/TRX/logi są ignorowane w .tia-bridge/b02c i .tia-bridge/offline, nie w Git.
+
+**Testy i wynik:** dodano 39 przypadków .NET — 38 Host (13 HTTP, 15 security, 8 metadata/CLI, 2 performance) i 1 Core regression. Łącznie 700/700 .NET (538 Core +48 Storage +76 Scheduler/IPC +38 HTTP/CLI), 20/20 Python, FAIL 0, SKIP 0. Wszystkie wcześniejsze regresje wykonano rzeczywiście. validate_offline.py sprawdza obowiązkowe nowe procesowe cases, pełny Release build, kontrakty/JSON Schema/OpenAPI/przykłady, generatory, Core dependency boundary, audyt, format i diff. Build Release 0 błędów/0 ostrzeżeń. Końcowy pełny runner: PASS, TRX 63f5fa663e68414faa4c6ea17cd8eaee. Audyt: 39 dokumentów Markdown/281 lokalnych odnośników, 0 błędów. Formatowanie, diff i kontrola 52 ścieżek pod kątem sekretów, danych projektowych i niedozwolonych binariów: PASS. Automatyczna kontrola odrzuciła cleanup jednego własnego UUID po wcześniejszym nieudanym teście (blocked by policy); syntetyczny katalog a71bad688cf24e0eb6e04f85d6474ab9 pozostaje poza repo w dev/storage-tests. Nie jest częścią dostawy ani działającego Host. Pliki testowe/sekrety/DB/binaries nie trafiają do indeksu.
+
+**Lista zmienionych plików (52):**
+
+```text
+README.md
+TiaBridge.slnx
+Zmiany.md
+config/examples/README.md
+config/examples/host.fake.json
+contracts/README.md
+contracts/v1/openapi.json
+docs/05_CODEX_INTERFACE.md
+docs/08_IMPLEMENTATION_PLAN.md
+docs/13_DURABLE_STORAGE.md
+docs/14_SCHEDULER_IPC.md
+docs/15_HTTP_API_CLI.md
+examples/README.md
+scripts/README.md
+scripts/generate_contracts.py
+scripts/validate_offline.py
+src/TiaBridge.Cli/Program.cs
+src/TiaBridge.Cli/README.md
+src/TiaBridge.Cli/TiaBridge.Cli.csproj
+src/TiaBridge.Cli/packages.lock.json
+src/TiaBridge.Client/BridgeClient.cs
+src/TiaBridge.Client/HostDiscovery.cs
+src/TiaBridge.Client/README.md
+src/TiaBridge.Client/TiaBridge.Client.csproj
+src/TiaBridge.Client/packages.lock.json
+src/TiaBridge.Core/Transport/V1/MethodModels.g.cs
+src/TiaBridge.Host/Api/ApiResponses.cs
+src/TiaBridge.Host/Api/HostApi.cs
+src/TiaBridge.Host/Api/HostConfiguration.cs
+src/TiaBridge.Host/Api/RequestGate.cs
+src/TiaBridge.Host/Operations/ApiStorage.cs
+src/TiaBridge.Host/Operations/ExecutionStorage.cs
+src/TiaBridge.Host/Operations/SqliteOperationStore.cs
+src/TiaBridge.Host/Program.cs
+src/TiaBridge.Host/README.md
+src/TiaBridge.Host/Scheduling/OperationScheduler.cs
+src/TiaBridge.Host/Storage/SQLite/SqliteDatabase.cs
+src/TiaBridge.Host/Supervision/WorkerSupervisor.cs
+src/TiaBridge.Host/TiaBridge.Host.csproj
+src/TiaBridge.Host/packages.lock.json
+tests/COVERAGE.md
+tests/README.md
+tests/contracts/test_offline_runner.py
+tests/integration/TiaBridge.Host.Tests/ApiFixture.cs
+tests/integration/TiaBridge.Host.Tests/ApiMetadataAndCliTests.cs
+tests/integration/TiaBridge.Host.Tests/ApiPerformanceTests.cs
+tests/integration/TiaBridge.Host.Tests/ApiSecurityTests.cs
+tests/integration/TiaBridge.Host.Tests/HttpApiTests.cs
+tests/integration/TiaBridge.Host.Tests/TiaBridge.Host.Tests.csproj
+tests/integration/TiaBridge.Host.Tests/packages.lock.json
+tests/integration/TiaBridge.StorageProbe/packages.lock.json
+tests/unit/TiaBridge.Core.Tests/RequiredNullableTests.cs
+```
+
+**Ocena wpływu instrukcji sekcja po sekcji:**
+
+| AGENTS.md / Instrukcja_ChatGPT.md | Ocena i decyzja |
+|---|---|
+| Zakres/stan i role / 1–2 | Jawne zadanie B-02C implementuje API/CLI. Pierwotny opis scaffold w instrukcjach pozostaje historyczny; stan rzeczywisty jest w README/15, bez modyfikacji instrukcji. |
+| Hierarchia / 3 | Użyto istniejącej architektury, v1 DTO, ledgeru i schedulera. Brak konfliktu wymagającego nowej decyzji; required-nullable to naprawa zgodności z istniejącym schematem. |
+| Niezmienne granice / 6 | Core bez Host/vendor, durable acceptance przed 202, brak inline workera/TIA, UNKNOWN bez replay, niezależne heartbeat/progress i status. |
+| Autoryzacja / 4–5, 8 | Token/ACL daje wyłącznie lokalny transport i SID ownership. Brak sesji/grantów Siemens, GUI lub obcych procesów; własne testowe Host/CLI/Fake i pliki objęte zadaniem. |
+| Testy/bramki / 7, 10 | Rzeczywisty pełny przepływ i pomiary z jawnym profilem. B-02D, soak, rzeczywisty drugi SID, power-loss i X-01 nadal odrębne. |
+| Dyscyplina / 9, 11–12 | Dokumentacja, config/example, generator, testy i runner aktualne. Wyniki robocze i protected discovery poza Git; bez uruchamiania znalezionych skryptów. |
+| Git / 5, 11 | Jeden angielski Conventional Commit feat(host), named-path staging, staged review i normalny push z HEAD check, bez force. |
+| Dane nieufne / 6, 9 | Zamknięte bounded JSON/query/config/discovery, user-only ACL i principal checks, brak arbitralnego endpointu/komendy; result zachowuje integrity verification. |
+
+Decyzja: AGENTS.md i Instrukcja_ChatGPT.md bez zmian. ADR 0001/0002, wymagania 02, architektura 03, synchronizacja 04, testy 07 i ryzyka 09 bez zmiany zatwierdzonej semantyki. Dokument 05/08 ma aktualny stan i odsyła do ograniczonej implementacji 15; dokumenty 13/14 rozróżniają starszy zakres i rozszerzenie B-02C. Core nie otrzymał zależności infrastrukturalnych. Brak nierozwiązanych błędów krytycznych w zakresie; burst exFAT/conditional replace, drugi SID, B-02D/soak/power-loss i Siemens pozostają poza dowodem. Gotowość do osobnego B-02D nie otwiera bramki X-01. Po potwierdzonym commit/push praca zostaje zatrzymana.
+
 ## 2026-10-25 — B-02B: scheduler, nadzorowany Fake Worker i IPC
 
 **Wejście i zakres:** czysty main/origin main `216c550d87c03507a641903a6e3d546308848ccf`, B-01A–C/B-02A. Przeczytano aktualne instrukcje, README, dokumenty 02–09/13, ADR 0002, Core/Host, kontrakty i testy. Zrealizowano wyłącznie wykonanie syntetyczne offline, bez HTTP/CLI B-02C, pełnego harnessu B-02D, workera V19 lub uruchamiania Siemens/PLC/HMI/symulatorów. Nie kopiowano starego Bridge lub danych klienta.

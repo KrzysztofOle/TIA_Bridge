@@ -44,18 +44,35 @@ public sealed partial class SqliteOperationStore
         using var reader = command.ExecuteReader(); var ids = new List<OperationId>();
         while (reader.Read()) ids.Add(new(Guid.Parse(reader.GetString(0)))); return (IReadOnlyList<OperationId>)ids;
     });
+    internal IReadOnlyList<OperationId> ExpiredWaitingOperations(DateTimeOffset now) => database.Read(c =>
+    {
+        using var command = Command(c, null, "SELECT operation_id,accepted_at,request_json FROM operations WHERE state IN ('ACCEPTED','QUEUED') ORDER BY accepted_at,operation_id LIMIT 1000");
+        using var reader = command.ExecuteReader(); var ids = new List<OperationId>();
+        while (reader.Read())
+        {
+            var accepted = DateTimeOffset.Parse(reader.GetString(1), CultureInfo.InvariantCulture);
+            if (now - accepted < TimeSpan.FromSeconds(1)) continue;
+            // Requests were validated and frozen at admission. Full validation is repeated only if an expired item is about to change state.
+            using var request = JsonDocument.Parse((byte[])reader[2], new JsonDocumentOptions { MaxDepth = ContractJson.MaxDepth });
+            int seconds = request.RootElement.GetProperty("params").TryGetProperty("queue_timeout_s", out var timeout) ? timeout.GetInt32() : 300;
+            if (seconds is < 1 or > 3600) throw new StorageException(ErrorCode.VERIFY_FAILED);
+            if (now - accepted >= TimeSpan.FromSeconds(seconds)) ids.Add(new(Guid.Parse(reader.GetString(0))));
+        }
+        return (IReadOnlyList<OperationId>)ids;
+    });
     internal void RegisterWorker(OwnerToken owner, Guid epoch, int pid, long startTicks, string workerId) => database.Write((c, t) =>
     {
         CheckOwner(c, t, owner, true);
         Exec(c, t, "INSERT INTO worker_processes VALUES($e,$h,$p,$s,$w,$at)", ("$e", epoch.ToString()), ("$h", owner.Epoch.ToString()), ("$p", pid), ("$s", startTicks), ("$w", workerId), ("$at", At(clock.GetUtcNow()))); return 0;
     });
-    public StoredOperation Cancel(OperationId id) => database.Write((c, t) =>
+    public StoredOperation Cancel(OperationId id) => database.Write((c, t) => CancelCore(c, t, id), checkpoints: true);
+    private StoredOperation CancelCore(SqliteConnection c, SqliteTransaction t, OperationId id)
     {
         var previous = ReadStored(c, t, id); if (OperationLifecycle.IsTerminal(previous.Report.State) || previous.Report.CancelRequested) return previous;
         var report = previous.Report with { CancelRequested = true };
         if (report.State is OperationState.ACCEPTED or OperationState.QUEUED) report = report with { State = OperationState.CANCELLED, Phase = "CANCELLED_BEFORE_DISPATCH", Outcome = OperationOutcome.NOT_STARTED, CompletedAt = clock.GetUtcNow(), PollAfterMs = 0 };
         return Save(c, t, previous, report);
-    }, checkpoints: true);
+    }
     private StoredOperation Save(SqliteConnection c, SqliteTransaction t, StoredOperation previous, OperationReport report, Guid? claim = null)
     {
         byte[] bytes = ContractJson.WriteReport(report);

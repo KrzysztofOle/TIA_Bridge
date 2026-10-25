@@ -1,6 +1,6 @@
-"""Run B-01A-C/B-02A-B offline gates. QA Python, cached .NET SDK/packages and local NTFS.
+"""Run B-01A-C/B-02A-C offline gates. QA Python, cached .NET SDK/packages and local NTFS.
 
-No network restore/feed, package installation, Siemens, public server or project IO. Starts own Fake Workers.
+No network restore/feed, package installation or Siemens. Starts own loopback Host/CLI/Fake processes and edits synthetic files.
 Run with the isolated QA Python from repo root; exit 0 only when every gate passes.
 """
 from __future__ import annotations
@@ -42,7 +42,7 @@ def check_core_boundary(root=ROOT):
     return {"status": "PASS", "scope": "Core project, locked transitive package names and source imports; assembly closure is tested by .NET"}
 
 
-def check_trx(path, host_required=False, scheduler_required=False):
+def check_trx(path, host_required=False, scheduler_required=False, api_required=False):
     ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
     paths = sorted(path.glob("*.trx")) if path.is_dir() else [path]
     results = [result for item in paths for result in ET.parse(item).getroot().findall(".//t:UnitTestResult", ns)]
@@ -82,7 +82,22 @@ def check_trx(path, host_required=False, scheduler_required=False):
                             "Shared_ipc_schema_examples_round_trip_through_actual_framing": 9}.items():
             if sum(name in r.attrib.get("testName", "") for r in scheduler) != count:
                 raise ValueError("Missing required process IPC/scheduler/quarantine cases.")
-    return {"passed": len(results), "failed": 0, "skipped": 0, "deterministic_cases": 100, "host_storage_cases": len(host) - len(scheduler), "scheduler_ipc_cases": len(scheduler)}
+    api = [r for r in host if any(name in r.attrib.get("testName", "") for name in ["HttpApiTests.", "ApiSecurityTests.", "ApiMetadataAndCliTests.", "ApiPerformanceTests."])]
+    if api_required:
+        for name in ["Real_host_cli_and_fake_complete_the_submit_status_events_result_cycle",
+                     "All_nineteen_valid_requests_have_an_explicit_http_outcome",
+                     "Metadata_post_uses_the_same_durable_idempotency_and_cancel_journal",
+                     "Host_restart_keeps_results_identity_and_history_and_rotates_transport_token",
+                     "Discovery_is_user_only_and_a_widened_acl_is_rejected_by_cli",
+                     "Worker_start_failure_becomes_a_durable_error_while_api_stays_available",
+                     "One_and_eight_clients_keep_status_and_workspace_responsive_during_real_worker_hang",
+                     "Queue_is_bounded_at_one_thousand_and_duplicate_health_and_status_still_work",
+                     "Unknown_mutation_stays_quarantined_after_api_cancel_and_host_restart"]:
+            if sum(name in r.attrib.get("testName", "") for r in api) != 1:
+                raise ValueError("Missing required HTTP/CLI/process/auth/performance cases.")
+        if sum("Required_nullable_diagnostic_age_is_preserved" in r.attrib.get("testName", "") for r in results) != 1:
+            raise ValueError("Missing required nullable wire regression.")
+    return {"passed": len(results), "failed": 0, "skipped": 0, "deterministic_cases": 100, "host_storage_cases": len(host) - len(scheduler) - len(api), "scheduler_ipc_cases": len(scheduler), "http_cli_cases": len(api)}
 
 
 def run_step(name, command, steps):
@@ -99,7 +114,7 @@ def run_step(name, command, steps):
 
 def main():
     OUTPUT.mkdir(parents=True, exist_ok=True)
-    report = {"schema_version": "1.0", "scope": "B-01A-C/B-02A-B OFFLINE", "status": "FAIL", "steps": [], "engineering": "NOT_RUN", "runtime": "NOT_RUN"}
+    report = {"schema_version": "1.0", "scope": "B-01A-C/B-02A-C OFFLINE", "status": "FAIL", "steps": [], "engineering": "NOT_RUN", "runtime": "NOT_RUN"}
     try:
         for dependency in ["jsonschema", "openapi_spec_validator"]:
             if importlib.util.find_spec(dependency) is None:
@@ -112,7 +127,7 @@ def main():
         steps = [
             ("01-restore", ["dotnet", "restore", "TiaBridge.slnx", "--locked-mode", "--source", str(feed), "-p:NuGetAudit=false"]),
             ("02-build", ["dotnet", "build", "TiaBridge.slnx", "-c", "Release", "--no-restore"]),
-            ("03-dotnet", ["dotnet", "test", "TiaBridge.slnx", "-c", "Release", "--no-build", "--no-restore", "--logger", "trx", "--results-directory", str(test_results)]),
+            ("03-dotnet", ["dotnet", "test", "TiaBridge.slnx", "-c", "Release", "--no-build", "--no-restore", "-m:1", "--logger", "trx", "--results-directory", str(test_results)]),
             ("04-json-schema-openapi", [sys.executable, "-B", "-m", "unittest", "discover", "-s", "tests/contracts", "-p", "test_*.py", "-v"]),
             ("05-contract-generator", [sys.executable, "-B", "scripts/generate_contracts.py"]),
             ("06-test-vectors", [sys.executable, "-B", "scripts/generate_test_vectors.py"]),
@@ -123,7 +138,7 @@ def main():
         for name, command in steps:
             run_step(name, command, report["steps"])
             if name == "03-dotnet":
-                report["dotnet"] = check_trx(test_results, host_required=True, scheduler_required=True)
+                report["dotnet"] = check_trx(test_results, host_required=True, scheduler_required=True, api_required=True)
                 report["test_results"] = str(test_results.relative_to(ROOT))
         report["status"] = "PASS"
     except (OSError, ValueError, ET.ParseError) as error:

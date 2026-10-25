@@ -1,6 +1,6 @@
 # 14 — Scheduler, Supervisor i IPC B-02B
 
-Stan 2026-10-25: zaimplementowany scheduler biblioteczny, nadzór własnego procesu Fake Worker i wersjonowany IPC. Jest to wykonanie syntetyczne offline, bez HTTP/CLI, Siemens lub rekoncyliacji rzeczywistego projektu. Obowiązują [architektura 03](03_ARCHITECTURE.md), [synchronizacja 04](04_SYNCHRONIZATION.md), [interfejs 05](05_CODEX_INTERFACE.md), [backlog](08_IMPLEMENTATION_PLAN.md) i [Storage B-02A](13_DURABLE_STORAGE.md). B-02C/D i X-01 nadal wymagają odrębnych zadań.
+Stan 2026-10-25: zaimplementowany scheduler biblioteczny, nadzór własnego procesu Fake Worker i wersjonowany IPC. Zakres B-02B jest wykonaniem syntetycznym offline. Bieżące [B-02C](15_HTTP_API_CLI.md) dodaje HTTP/CLI; nadal brak Siemens lub rekoncyliacji rzeczywistego projektu. Obowiązują [architektura 03](03_ARCHITECTURE.md), [synchronizacja 04](04_SYNCHRONIZATION.md), [interfejs 05](05_CODEX_INTERFACE.md), [backlog](08_IMPLEMENTATION_PLAN.md) i [Storage B-02A](13_DURABLE_STORAGE.md). B-02D i X-01 nadal wymagają odrębnych zadań.
 
 ## Scheduler i ownership
 

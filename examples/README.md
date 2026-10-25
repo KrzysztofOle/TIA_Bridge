@@ -17,3 +17,7 @@ Wyniki są syntetycznymi obserwacjami kontraktu, nie dowodami wykonania aplikacj
 ## B-01B: Workspace i Capabilities
 
 [PLC manifest](workspace/plc.manifest.json) zawiera zagnieżdżone grupy, nazwę CON, Pump/pump, równoważne prezentacje Unicode i nieobsługiwany FB. [HMI manifest](workspace/hmi.manifest.json) rozdziela Unified/Classic oraz pokazuje moduł i funkcję w jednej jednostce hmi.js/hmi.yml z niepełnym coverage. [Konfiguracje](../config/examples/README.md) wiążą projekty i registry. Wszystko jest syntetyczne; zerowe raw/model hashes są placeholderami bez plików Siemens, a unit/capability hashes dotyczą tylko deklarowanych metadanych. [Format](../docs/12_WORKSPACE_CAPABILITIES.md), [walidacja](../tests/README.md).
+
+## B-02C — rzeczywiste wywołania lokalnego API
+
+[Host Fake configuration](../config/examples/host.fake.json) i [pełny cykl submit → status → events → result oraz cancel](../docs/15_HTTP_API_CLI.md) używają istniejących request JSON bez ujawniania tokenu. Stały syntetyczny key zwraca tę samą operację; zmiana pliku nie uruchamia automatycznie TIA.

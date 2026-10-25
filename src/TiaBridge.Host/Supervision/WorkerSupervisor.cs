@@ -35,31 +35,40 @@ public sealed class FakeWorkerSupervisor(string workerDll, string artifactRoot, 
         string name = "tia-bridge2-" + Guid.NewGuid().ToString("N"); Guid epoch = Guid.NewGuid(), nonce = Guid.NewGuid(); byte[] secret = RandomNumberGenerator.GetBytes(32);
         var pipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly | PipeOptions.FirstPipeInstance);
         using var current = Process.GetCurrentProcess();
-        var start = new ProcessStartInfo("dotnet") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true };
+        var start = new ProcessStartInfo("dotnet") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
         start.ArgumentList.Add(Path.GetFullPath(workerDll));
-        Process? process = null; FramedConnection? framed = null;
+        Process? process = null; FramedConnection? framed = null; Task stdout = Task.CompletedTask, stderr = Task.CompletedTask;
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct); deadline.CancelAfter(TimeSpan.FromSeconds(10));
         try
         {
             process = Process.Start(start) ?? throw new IOException("Own worker failed to start.");
+            stdout = Drain(process.StandardOutput); stderr = Drain(process.StandardError);
             long ticks = process.StartTime.ToUniversalTime().Ticks;
             var bootstrap = new Bootstrap(name, Convert.ToBase64String(secret), epoch, nonce, current.Id, current.StartTime.ToUniversalTime().Ticks, artifactRoot);
             await process.StandardInput.WriteLineAsync(JsonSerializer.Serialize(bootstrap, Protocol.Json).AsMemory(), deadline.Token); process.StandardInput.Close();
-            await pipe.WaitForConnectionAsync(deadline.Token); PipePeer.Verify(pipe, process.Id, server: true);
+            var connected = pipe.WaitForConnectionAsync(deadline.Token);
+            var exited = process.WaitForExitAsync(deadline.Token);
+            if (await Task.WhenAny(connected, exited) == exited) { await exited; throw new IOException("Own worker exited before handshake."); }
+            await connected; PipePeer.Verify(pipe, process.Id, server: true);
             framed = new FramedConnection(pipe, secret, epoch);
             var hello = await framed.ReadAsync(deadline.Token); var identity = Protocol.Read<Hello>(hello.Body);
             if (hello.Kind != MessageKind.Hello || hello.OperationId is not null || hello.Fence != 0 || identity.Pid != process.Id || identity.StartTicks != ticks || identity.Nonce != nonce || identity.WorkerId != "tia-bridge.fake" || identity.Build != "1.0") throw new ProtocolException();
             await framed.SendAsync(MessageKind.Ready, null, 0, Protocol.Body(new { accepted = true }), deadline.Token);
-            return new WorkerConnection(process, framed, epoch, ticks, identity.WorkerId, clock);
+            return new WorkerConnection(process, framed, epoch, ticks, identity.WorkerId, clock, [stdout, stderr]);
         }
         catch
         {
             if (framed is not null) await framed.DisposeAsync(); else pipe.Dispose();
             // No dispatch has occurred during startup. Only this exact owned child can be terminated here.
-            if (process is not null) { if (!process.HasExited) { process.Kill(); await process.WaitForExitAsync(CancellationToken.None); } process.Dispose(); }
+            if (process is not null) { if (!process.HasExited) { process.Kill(); await process.WaitForExitAsync(CancellationToken.None); } await Task.WhenAll(stdout, stderr); process.Dispose(); }
             throw;
         }
         finally { CryptographicOperations.ZeroMemory(secret); }
+    }
+    private static async Task Drain(StreamReader reader)
+    {
+        // Only versioned IPC diagnostics are trusted. Bounded buffers prevent inherited console leakage/blocking.
+        var buffer = new char[1024]; while (await reader.ReadAsync(buffer) != 0) { }
     }
 }
 
@@ -71,6 +80,7 @@ internal sealed class WorkerConnection : IWorkerConnection
     private readonly CancellationTokenSource stop = new();
     private readonly Channel<WireMessage> inbox = Channel.CreateBounded<WireMessage>(64);
     private readonly Task reader;
+    private readonly Task[] outputDrains;
     private long heartbeatTicks, progressTicks;
     private int connected = 1;
     public Guid Epoch { get; }
@@ -81,9 +91,9 @@ internal sealed class WorkerConnection : IWorkerConnection
     public bool Connected => Volatile.Read(ref connected) == 1;
     public DateTimeOffset LastHeartbeat => new(Interlocked.Read(ref heartbeatTicks), TimeSpan.Zero);
     public DateTimeOffset? LastProgress => Interlocked.Read(ref progressTicks) is var ticks && ticks > 0 ? new DateTimeOffset(ticks, TimeSpan.Zero) : null;
-    internal WorkerConnection(Process process, FramedConnection framed, Guid epoch, long ticks, string workerId, TimeProvider clock)
+    internal WorkerConnection(Process process, FramedConnection framed, Guid epoch, long ticks, string workerId, TimeProvider clock, Task[] outputDrains)
     {
-        this.process = process; this.framed = framed; this.clock = clock; Epoch = epoch; Pid = process.Id; StartTicks = ticks; WorkerId = workerId;
+        this.process = process; this.framed = framed; this.clock = clock; this.outputDrains = outputDrains; Epoch = epoch; Pid = process.Id; StartTicks = ticks; WorkerId = workerId;
         heartbeatTicks = clock.GetUtcNow().UtcTicks;
         reader = ReadLoop();
     }
@@ -117,7 +127,7 @@ internal sealed class WorkerConnection : IWorkerConnection
         stop.Cancel(); await framed.DisposeAsync(); await reader;
         // Closing IPC lets this synthetic child cancel its own fake delay. Never kill TIA or infer vendor quiescence.
         using var wait = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        try { await process.WaitForExitAsync(wait.Token); }
+        try { await process.WaitForExitAsync(wait.Token); await Task.WhenAll(outputDrains); }
         catch (OperationCanceledException) { throw new IOException("Own Fake Worker shutdown unconfirmed."); }
         finally { process.Dispose(); stop.Dispose(); }
     }

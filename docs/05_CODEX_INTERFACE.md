@@ -1,6 +1,6 @@
 # 05 — Interfejs CODEX: HTTP, CLI i opcjonalne MCP
 
-Status: kontrakty v1 i ich walidacja offline zaimplementowane w B-01A; brak działającego API i handlerów operacji. Jedno źródło nazw i deadline w [registry](../contracts/v1/operations.json), wersjonowane [JSON Schema](../contracts/v1/operation-request.schema.json), [OpenAPI 3.1.1](../contracts/v1/openapi.json) i [przykłady](../examples/README.md). [Dokumentacja kontraktów](../contracts/README.md) opisuje modele, kanonikalizację i granice walidacji. Schema/check nie zastępuje rejestracji projektu, autoryzacji ani kwalifikacji Siemens.
+Status: kontrakty v1 i walidacja Core zaimplementowane w B-01A; B-02C dostarcza [lokalne API i CLI](15_HTTP_API_CLI.md) nad Storage/Scheduler/Fake. Nie ma wykonawców Siemens; metody bez dostępnego profilu są odrzucane. Jedno źródło nazw i deadline w [registry](../contracts/v1/operations.json), wersjonowane [JSON Schema](../contracts/v1/operation-request.schema.json), [OpenAPI 3.1.1](../contracts/v1/openapi.json) i [przykłady](../examples/README.md). [Dokumentacja kontraktów](../contracts/README.md) opisuje modele, kanonikalizację i granice walidacji. Schema/check nie zastępuje rejestracji projektu, autoryzacji ani kwalifikacji Siemens.
 
 ## Wybór interfejsu
 
@@ -77,7 +77,7 @@ Każda metoda ma registry default/max. Queue timeout, execution deadline, heartb
 
 ## CLI i korzystanie przez CODEX
 
-Projektowana składnia (jeszcze niedostępna):
+Docelowa składnia; B-02C implementuje submit METHOD --request FILE oraz operation status/result/events/cancel/wait i health. Skróty --scope/--workspace pozostają przyszłym zakresem; aktualne przykłady są w dokumencie 15:
 
 ```text
 tiabridge submit sync.plan --project <key> --workspace <id> --scope <id> --key <request-key> --json

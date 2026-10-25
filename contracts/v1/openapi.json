@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.1",
   "info": {
-    "title": "TIA_Bridge 2 contracts (no running service)",
+    "title": "TIA_Bridge 2 local asynchronous API",
     "version": "1.0.0"
   },
   "security": [
@@ -13,7 +13,7 @@
     "/v1/operations": {
       "post": {
         "operationId": "submitOperation",
-        "description": "Contract only; no host or operation handler is implemented. Acceptance requires durable intent in B-02.",
+        "description": "Durable asynchronous admission or fast metadata result. Available execution profiles are explicit; B-02C has no Siemens executor.",
         "x-methods": [
           "project.inspect",
           "project.export",
@@ -399,7 +399,14 @@
             }
           },
           "202": {
-            "description": "Result is not ready; use operation status"
+            "description": "Result is not ready; current operation status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Operation"
+                }
+              }
+            }
           }
         }
       }

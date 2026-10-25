@@ -15,6 +15,7 @@ internal sealed class SqliteDatabase
     internal StorageLocation Location { get; }
     internal IStorageFaults Faults { get; }
     private readonly object writerGate;
+    private MetadataReaders? metadataReaders;
 
     internal SqliteDatabase(StorageLocation location, IStorageFaults faults, int targetVersion = SchemaVersion)
     {
@@ -36,6 +37,49 @@ internal sealed class SqliteDatabase
         }.ToString());
         try { connection.Open(); Exec(connection, null, "PRAGMA synchronous=FULL;"); return connection; }
         catch { connection.Dispose(); throw; }
+    }
+
+    internal IDisposable KeepOpen()
+    {
+        try { return Connect(); }
+        catch (SqliteException) { throw new StorageException(ErrorCode.STORE_UNAVAILABLE); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { throw new StorageException(ErrorCode.STORE_UNAVAILABLE); }
+    }
+
+    internal IDisposable OpenMetadataReaders()
+    {
+        if (metadataReaders is not null) throw new InvalidOperationException("Metadata readers already opened.");
+        metadataReaders = new MetadataReaders(this); return metadataReaders;
+    }
+    internal T ReadMetadata<T>(Func<SqliteConnection, T> action)
+    {
+        if (metadataReaders is null) return Read(action);
+        try { Location.Check(); return metadataReaders.Use(action); }
+        catch (SqliteException) { throw new StorageException(ErrorCode.STORE_UNAVAILABLE); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { throw new StorageException(ErrorCode.STORE_UNAVAILABLE); }
+    }
+    private sealed class MetadataReaders : IDisposable
+    {
+        private readonly System.Collections.Concurrent.ConcurrentQueue<SqliteConnection> connections = new();
+        private readonly SemaphoreSlim slots = new(8);
+        private bool disposed;
+        internal MetadataReaders(SqliteDatabase database)
+        {
+            try { for (int i = 0; i < 8; i++) connections.Enqueue(database.Connect()); }
+            catch { Dispose(); throw; }
+        }
+        internal T Use<T>(Func<SqliteConnection, T> action)
+        {
+            if (disposed || !slots.Wait(TimeSpan.FromMilliseconds(100))) throw new StorageException(ErrorCode.STORE_UNAVAILABLE);
+            if (!connections.TryDequeue(out var connection)) { slots.Release(); throw new StorageException(ErrorCode.STORE_UNAVAILABLE); }
+            try { return action(connection); }
+            finally { connections.Enqueue(connection); slots.Release(); }
+        }
+        public void Dispose()
+        {
+            // Host disposes this after Kestrel and scheduler stop; no command may outlive a borrowed connection.
+            disposed = true; while (connections.TryDequeue(out var connection)) connection.Dispose(); slots.Dispose();
+        }
     }
 
     private void Initialize(int targetVersion)

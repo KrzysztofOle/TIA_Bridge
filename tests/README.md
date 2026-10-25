@@ -1,6 +1,6 @@
-# Testy B-01A–B-01C i B-02A/B — wyłącznie offline
+# Testy B-01A–B-01C i B-02A–C — bez Siemens
 
-Wymagania: .NET SDK 10.0.4xx (global.json dopuszcza najnowszy patch tego pasma), Python 3.12. Zależności .NET są przypięte w csproj/packages.lock.json; QA Python w [requirements-qa.txt](../scripts/requirements-qa.txt). Pierwszy restore/install wymaga dostępu do repozytoriów pakietów; same testy nie łączą się z Siemens ani endpointami aplikacji.
+Wymagania: .NET SDK 10.0.4xx (global.json dopuszcza najnowszy patch tego pasma), Python 3.12. Zależności .NET są przypięte w csproj/packages.lock.json; QA Python w [requirements-qa.txt](../scripts/requirements-qa.txt). Pierwszy restore/install wymaga dostępu do repozytoriów pakietów; testy B-02C łączą się wyłącznie z własnym lokalnym Host; nie łączą się z Siemens lub obcymi endpointami.
 
 ## Pełny przebieg offline jednym poleceniem
 
@@ -12,7 +12,7 @@ Po jednorazowym przygotowaniu zależności według instrukcji niżej uruchom z r
 
 `$b01Python` wskazuje ścieżkę do Scripts/python.exe w tym środowisku; można użyć istniejącego venv z requirements-qa.txt. W bieżącej walidacji użyto `%LOCALAPPDATA%/TIA_Bridge2/dev/qa-b01a-20261025/Scripts/python.exe`. Runner nie instaluje zależności. Wymaga SDK i wszystkich pakietów .NET już w lokalnym cache; locked restore używa pustego lokalnego feedu, z wyłączonym sieciowym NuGet audit. Brak pakietu/SDK/dependency daje FAIL; nie następuje fallback do publicznego feedu. Zwykły restore opisany niżej służy jednorazowemu przygotowaniu cache i może wymagać sieci.
 
-Runner kolejno wykonuje locked restore, Build Release, cały zestaw .NET, cały unittest JSON Schema/OpenAPI i przykładów, oba generatory w trybie check, audit_quality.py, dotnet format whitespace verify i git diff --check. Przed build sprawdza statyczną granicę zależności Core; test .NET sprawdza także tranzytywną closure assembly. Wyniki obu projektów testowych są agregowane z oddzielnych TRX w nowym katalogu danego przebiegu; raport Host nie nadpisuje Core ani nie miesza się ze starymi PASS. TRX muszą zawierać niepuste wyniki, zero FAIL/SKIP, dokładnie 100 deterministycznych przypadków oraz wymagane przypadki SQLite/restart/fault B-02A oraz procesów IPC/schedulera/quarantine B-02B. Pierwszy błąd kończy przebieg kodem 1; kod 0 oznacza wszystkie bramki PASS. Raport `.tia-bridge/offline/run.json`, quality.json i logi kroków są zastępowane przy kolejnym uruchomieniu; TRX mają osobny UUID katalog. Wszystko pozostaje ignorowane w Git.
+Runner kolejno wykonuje locked restore, Build Release, cały zestaw .NET, cały unittest JSON Schema/OpenAPI i przykładów, oba generatory w trybie check, audit_quality.py, dotnet format whitespace verify i git diff --check. Przed build sprawdza statyczną granicę zależności Core; test .NET sprawdza także tranzytywną closure assembly. Projekty testowe są wykonywane kolejno (`-m:1`), aby masowe testy granic JSON w Core nie konkurowały z deadline startu procesów Host/Fake. Nie zmienia to deadline produkcyjnych ani równoczesnego profilu ośmiu klientów. Wyniki obu projektów testowych są agregowane z oddzielnych TRX w nowym katalogu danego przebiegu; raport Host nie nadpisuje Core ani nie miesza się ze starymi PASS. TRX muszą zawierać niepuste wyniki, zero FAIL/SKIP, dokładnie 100 deterministycznych przypadków oraz wymagane przypadki SQLite/restart/fault B-02A oraz procesów IPC/schedulera/quarantine B-02B i HTTP/CLI/auth/performance B-02C. Pierwszy błąd kończy przebieg kodem 1; kod 0 oznacza wszystkie bramki PASS. Raport `.tia-bridge/offline/run.json`, quality.json i logi kroków są zastępowane przy kolejnym uruchomieniu; TRX mają osobny UUID katalog. Wszystko pozostaje ignorowane w Git.
 
 [Macierz pokrycia](COVERAGE.md) podaje istniejące testy, wykryte luki, nazwy nowych testów per 19 metod, naprawione błędy i ograniczenia. B-01C dodaje 377 testów .NET: 57 macierzy kontraktów, 100 golden scenariuszy, 147 lifecycle edges, 38 idempotency/budget, 1 phase/status, 13 boundary i 21 adversarial/dependency. Razem 537 .NET oraz 17 unittest Python (7 nowych); wewnętrznych pętli mutacji nie liczymy jako dodatkowych testów. Modelowe testy path/reparse nie wykonują filesystem Workspace IO. Rzeczywiste deterministyczne planowanie jest odłożone do B-04A; nie ma atrapy planera.
 
@@ -43,6 +43,22 @@ dotnet test tests/integration/TiaBridge.Host.Tests/TiaBridge.Host.Tests.csproj -
 ```
 
 [Dokumentacja Scheduler/IPC](../docs/14_SCHEDULER_IPC.md) opisuje ograniczenia Fake i brak automatycznej rekoncyliacji TIA. Przebieg akceptacyjny to nadal pełny validate_offline.py, bez pomijania Core/Storage/Python/generatorów/audytu/formatu.
+
+## B-02C — rzeczywiste HTTP API i CLI
+
+Nowy zakres dodaje 38 przypadków Host (HttpApiTests 13, ApiSecurityTests 15, ApiMetadataAndCliTests 8, ApiPerformanceTests 2) i 1 regresję Core required-nullable. Łącznie **700 .NET (538 Core +48 Storage +76 Scheduler/IPC +38 HTTP/CLI)** i **20 Python**. Runtime ASP.NET Core 10 jest wymagany obok .NET SDK; nie dodano NuGet do Kestrel/ACL. Każdy proces Host ma własny UUID dev state na lokalnym NTFS i chroniony discovery. CLI jest rzeczywistym osobnym procesem, a wykonanie przechodzi przez istniejący Fake Worker/IPC.
+
+Testy obejmują pełny cykl i wszystkie 19 nazw requestów z jawnym dostępem/UNSUPPORTED, metadata POST idempotency, queued/running cancel, token/Origin/Host/principal/ACL, limity body także chunked, rate, restart z rotacją tokenu i zachowaną historią, CLI offline/exit/wait bez auto-cancel oraz UNKNOWN po cancel/restart. Błąd startu własnego procesu przed dispatch daje trwały FAILED/NOT_STARTED, bez utraty dostępności API lub wycieku stdout/stderr dziecka. Przykład host.fake.json jest walidowany przez produkcyjny parser przy podmienieniu wyłącznie ścieżek na własne testowe. Procesowe kolekcje HTTP są serializowane względem innych testów procesowych, zamiast rozluźniania deadline workera pod obciążeniem kilku równoczesnych startów.
+
+Profil NF: 1000 kompletnych HTTP status reads przy 1 i 8 klientach; 64 submit przy 8; 100 edycji 1 MiB na bieżącym repo exFAT, z jawnym odstępem 100 ms między zapisami, oraz niezależne SHA podczas fake Hang. Wszystkie zmierzone próbki są uwzględniane. Limity asercji pozostają NF-01 p95≤100/p99≤250 ms, NF-02 p95≤250/p99≤500 ms i NF-03 p95≤100 ms. Test nie kwalifikuje nieograniczonego ciągłego zapisu na dysku wymiennym ani conditional replace exFAT. Osobny test wypełnia 999 miejsc i ściga 4 requesty o ostatnie: 1 acceptance, 3 odmowy; przy 1000 duplicate/status/health nadal działają.
+
+Raport metryk i środowiska: `.tia-bridge/b02c/performance.json`; TRX i logi są ignorowane. Dla samych nowych testów, po build/cache:
+
+```powershell
+dotnet test tests/integration/TiaBridge.Host.Tests/TiaBridge.Host.Tests.csproj -c Release --no-restore --filter "FullyQualifiedName~HttpApiTests|FullyQualifiedName~ApiSecurityTests|FullyQualifiedName~ApiMetadataAndCliTests|FullyQualifiedName~ApiPerformanceTests"
+```
+
+Akceptacja wymaga całego validate_offline.py. [API/CLI i przykład uruchomienia](../docs/15_HTTP_API_CLI.md), [macierz](COVERAGE.md). B-02D/soak, drugi rzeczywisty SID, power-loss i Siemens pozostają poza tym przebiegiem.
 
 ## Build i testy .NET
 
@@ -83,4 +99,4 @@ py -3 scripts/audit_quality.py
 git diff --check
 ```
 
-Audyt dokumentacji pozostaje oddzielny od walidacji OpenAPI i artefaktów B-01B. Wszystkie dane testowe są syntetyczne. Istnieje biblioteka Host Storage i ledger B-02A; brak testów live, działającego hosta API, fake workera, IO synchronizacji i adapterów. Testy Storage nie kwalifikują pełnego silnika B-02A–D ani capabilities Siemens. Wyniki: OFFLINE; ENGINEERING i RUNTIME NOT_RUN. Następne pakiety wymagają osobnego zlecenia zgodnie z [backlogiem](../docs/08_IMPLEMENTATION_PLAN.md).
+Audyt dokumentacji pozostaje oddzielny od walidacji OpenAPI i artefaktów B-01B. Wszystkie dane testowe są syntetyczne. Host udostępnia Storage/ledger B-02A, wykonanie Fake B-02B i HTTP/CLI B-02C. Brak testów live, IO synchronizacji i adapterów Siemens. Testy offline nie zastępują pełnego harnessu B-02D ani kwalifikacji capabilities Siemens. Wyniki: OFFLINE; ENGINEERING i RUNTIME NOT_RUN. Następne pakiety wymagają osobnego zlecenia zgodnie z [backlogiem](../docs/08_IMPLEMENTATION_PLAN.md).
