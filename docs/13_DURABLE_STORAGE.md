@@ -1,6 +1,6 @@
 # 13 — Trwały magazyn B-02A
 
-Stan 2026-10-25: biblioteka Host Storage, SQLite i plikowe artefakty zaimplementowane offline. Brak uruchamiania zadań. Granice: [architektura 03](03_ARCHITECTURE.md), [synchronizacja 04](04_SYNCHRONIZATION.md), [interfejs 05](05_CODEX_INTERFACE.md), [Host README](../src/TiaBridge.Host/README.md). Żaden zapis SQLite nie dowodzi wykonania TIA, Compile lub Runtime.
+Stan 2026-10-25: biblioteka Host Storage, SQLite i plikowe artefakty zaimplementowane offline. B-02A sam nie uruchamia zadań; rozszerzenie [B-02B](14_SCHEDULER_IPC.md) dodaje wykonanie Fake i migrację 003. Granice: [architektura 03](03_ARCHITECTURE.md), [synchronizacja 04](04_SYNCHRONIZATION.md), [interfejs 05](05_CODEX_INTERFACE.md), [Host README](../src/TiaBridge.Host/README.md). Żaden zapis SQLite nie dowodzi wykonania TIA, Compile lub Runtime.
 
 ## Lokalizacja i inicjalizacja
 
@@ -12,7 +12,7 @@ Init mutex serializuje inicjalizację w sesji Windows; poprawność transakcyjna
 
 ## Schemat i migracje
 
-PRAGMA application_id ma wartość 0x54494232. PRAGMA user_version i `schema_migrations(version, sha256, applied_at)` muszą się zgadzać z osadzonymi migracjami. SHA-256 jest liczony nad UTF-8 SQL z EOL LF, niezależnie od CRLF checkoutu. Unknown version, drift hasha, obcy schemat, błąd integrity_check lub foreign_key_check blokują użycie. Nie ma down migration, resetu ani automatycznej zmiany dawnych hashy.
+PRAGMA application_id ma wartość 0x54494232. Aktualny schemat po B-02B ma user_version=3; poniższe dwie migracje opisują zachowany zakres B-02A. PRAGMA user_version i `schema_migrations(version, sha256, applied_at)` muszą się zgadzać z osadzonymi migracjami. SHA-256 jest liczony nad UTF-8 SQL z EOL LF, niezależnie od CRLF checkoutu. Unknown version, drift hasha, obcy schemat, błąd integrity_check lub foreign_key_check blokują użycie. Nie ma down migration, resetu ani automatycznej zmiany dawnych hashy.
 
 - `001_initial.sql`: 18 tabel z kluczami i FK, w tym encje docelowe 03 oraz outbox, operation_results, operation_artifacts i ledger migracji.
 - `002_guards.sql`: indeksy i triggery retencji/niemutowalności, zakaz requeue outbox i terminalnego stanu bez trwałego raportu.
@@ -71,4 +71,4 @@ Fault injection obejmuje realne transakcje i błędy SQL przy events/outbox, kon
 
 Nowe [testy Host](../tests/integration/TiaBridge.Host.Tests/OperationStorageTests.cs), [awarii/restartu](../tests/integration/TiaBridge.Host.Tests/FailureAndRestartTests.cs), [migracji/polityki](../tests/integration/TiaBridge.Host.Tests/MigrationAndPolicyTests.cs) i [artefaktów](../tests/integration/TiaBridge.Host.Tests/ArtifactStorageTests.cs) używają plikowych SQLite na C:/lokalnym NTFS w własnych UUID katalogach `%LOCALAPPDATA%\TIA_Bridge2\dev\storage-tests`. Sprzątanie ograniczono do tej ścieżki i nie przechodzi przez reparse points. Test junction powstaje tylko we własnym katalogu testu. [StorageProbe](../tests/integration/TiaBridge.StorageProbe/Program.cs) jest krótkim procesem testowym, nie workerem/fake workerem ani CLI aplikacji.
 
-Pełne polecenie i raporty: [instrukcja testów](../tests/README.md). Runner zbiera oddzielne TRX obu projektów, nie pozwala nadpisać regresji wynikiem Host i wymaga również określonych testów trwałości. B-02A kończy wyłącznie tę warstwę. ENGINEERING/RUNTIME NOT_RUN; dalszy B-02B wymaga osobnego zadania i nadal nie otwiera bramki Siemens przed pełnym B-02A–D.
+Pełne polecenie i raporty: [instrukcja testów](../tests/README.md). Runner zbiera oddzielne TRX obu projektów, nie pozwala nadpisać regresji wynikiem Host i wymaga również określonych testów trwałości. B-02A kończy wyłącznie tę warstwę. ENGINEERING/RUNTIME NOT_RUN; rozszerzenie B-02B opisuje dokument 14; B-02C/D nadal nie są wykonane i bramka Siemens pozostaje zamknięta.

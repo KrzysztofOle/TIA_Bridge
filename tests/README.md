@@ -1,8 +1,8 @@
-# Testy B-01A–B-01C i B-02A — wyłącznie offline
+# Testy B-01A–B-01C i B-02A/B — wyłącznie offline
 
 Wymagania: .NET SDK 10.0.4xx (global.json dopuszcza najnowszy patch tego pasma), Python 3.12. Zależności .NET są przypięte w csproj/packages.lock.json; QA Python w [requirements-qa.txt](../scripts/requirements-qa.txt). Pierwszy restore/install wymaga dostępu do repozytoriów pakietów; same testy nie łączą się z Siemens ani endpointami aplikacji.
 
-## Pełny przebieg B-01C jednym poleceniem
+## Pełny przebieg offline jednym poleceniem
 
 Po jednorazowym przygotowaniu zależności według instrukcji niżej uruchom z root repo, używając Python z izolowanego środowiska QA:
 
@@ -12,7 +12,7 @@ Po jednorazowym przygotowaniu zależności według instrukcji niżej uruchom z r
 
 `$b01Python` wskazuje ścieżkę do Scripts/python.exe w tym środowisku; można użyć istniejącego venv z requirements-qa.txt. W bieżącej walidacji użyto `%LOCALAPPDATA%/TIA_Bridge2/dev/qa-b01a-20261025/Scripts/python.exe`. Runner nie instaluje zależności. Wymaga SDK i wszystkich pakietów .NET już w lokalnym cache; locked restore używa pustego lokalnego feedu, z wyłączonym sieciowym NuGet audit. Brak pakietu/SDK/dependency daje FAIL; nie następuje fallback do publicznego feedu. Zwykły restore opisany niżej służy jednorazowemu przygotowaniu cache i może wymagać sieci.
 
-Runner kolejno wykonuje locked restore, Build Release, cały zestaw .NET, cały unittest JSON Schema/OpenAPI i przykładów, oba generatory w trybie check, audit_quality.py, dotnet format whitespace verify i git diff --check. Przed build sprawdza statyczną granicę zależności Core; test .NET sprawdza także tranzytywną closure assembly. Wyniki obu projektów testowych są agregowane z oddzielnych TRX w nowym katalogu danego przebiegu; raport Host nie nadpisuje Core ani nie miesza się ze starymi PASS. TRX muszą zawierać niepuste wyniki, zero FAIL/SKIP, dokładnie 100 deterministycznych przypadków oraz wymagane przypadki SQLite/restart/fault B-02A. Pierwszy błąd kończy przebieg kodem 1; kod 0 oznacza wszystkie bramki PASS. Raport `.tia-bridge/offline/run.json`, quality.json i logi kroków są zastępowane przy kolejnym uruchomieniu; TRX mają osobny UUID katalog. Wszystko pozostaje ignorowane w Git.
+Runner kolejno wykonuje locked restore, Build Release, cały zestaw .NET, cały unittest JSON Schema/OpenAPI i przykładów, oba generatory w trybie check, audit_quality.py, dotnet format whitespace verify i git diff --check. Przed build sprawdza statyczną granicę zależności Core; test .NET sprawdza także tranzytywną closure assembly. Wyniki obu projektów testowych są agregowane z oddzielnych TRX w nowym katalogu danego przebiegu; raport Host nie nadpisuje Core ani nie miesza się ze starymi PASS. TRX muszą zawierać niepuste wyniki, zero FAIL/SKIP, dokładnie 100 deterministycznych przypadków oraz wymagane przypadki SQLite/restart/fault B-02A oraz procesów IPC/schedulera/quarantine B-02B. Pierwszy błąd kończy przebieg kodem 1; kod 0 oznacza wszystkie bramki PASS. Raport `.tia-bridge/offline/run.json`, quality.json i logi kroków są zastępowane przy kolejnym uruchomieniu; TRX mają osobny UUID katalog. Wszystko pozostaje ignorowane w Git.
 
 [Macierz pokrycia](COVERAGE.md) podaje istniejące testy, wykryte luki, nazwy nowych testów per 19 metod, naprawione błędy i ograniczenia. B-01C dodaje 377 testów .NET: 57 macierzy kontraktów, 100 golden scenariuszy, 147 lifecycle edges, 38 idempotency/budget, 1 phase/status, 13 boundary i 21 adversarial/dependency. Razem 537 .NET oraz 17 unittest Python (7 nowych); wewnętrznych pętli mutacji nie liczymy jako dodatkowych testów. Modelowe testy path/reparse nie wykonują filesystem Workspace IO. Rzeczywiste deterministyczne planowanie jest odłożone do B-04A; nie ma atrapy planera.
 
@@ -20,7 +20,7 @@ Runner kolejno wykonuje locked restore, Build Release, cały zestaw .NET, cały 
 
 [Host.Tests](integration/TiaBridge.Host.Tests/TiaBridge.Host.Tests.csproj) dodaje 48 testów: przyjęcie/idempotencja/journal/outbox, awarie/restarty, migracje/polityka i artefakty. Razem z Core: **585 testów .NET**, osobno **17 testów Python**. Wymagany jest Windows i lokalny stały NTFS w `%LOCALAPPDATA%\TIA_Bridge2`; brak tych warunków daje FAIL, nie SKIP. Testy tworzą własne UUID katalogi `dev\storage-tests`, nigdy produkcyjnego state ani DB w repo M:/exFAT. Sprzątanie sprawdza containment i nie przechodzi przez junction/reparse points. Testy nie wymagają TIA, Openness, PLC/HMI ani symulatorów.
 
-[Scenariusze i granice](../docs/13_DURABLE_STORAGE.md): 100 jednoczesnych nowych submitów → jeden OperationId; wyścigi niezależnych procesów o idempotencję i outbox; proces kończony w dokładnym checkpoint przed/po commit; wynik SUCCEEDED i UNKNOWN po restarcie; SQL failure przy event/outbox; migracja v1→v2 i rollback; kontrolowany SQLITE_FULL/IO disk-full bez zapełniania dysku; przerwany stream, uszkodzone/brakujące artefakty i orphan retention. Rzeczywisty test junction jest ograniczony do własnego syntetycznego katalogu. [StorageProbe](integration/TiaBridge.StorageProbe/Program.cs) jest helperem testowym, bez workera/IPC/API. Nie jest to pełny harness B-02D ani kwalifikacja power-loss.
+[Scenariusze i granice](../docs/13_DURABLE_STORAGE.md): 100 jednoczesnych nowych submitów → jeden OperationId; wyścigi niezależnych procesów o idempotencję i outbox; proces kończony w dokładnym checkpoint przed/po commit; wynik SUCCEEDED i UNKNOWN po restarcie; SQL failure przy event/outbox; migracje v1→v3 i rollback; kontrolowany SQLITE_FULL/IO disk-full bez zapełniania dysku; przerwany stream, uszkodzone/brakujące artefakty i orphan retention. Rzeczywisty test junction jest ograniczony do własnego syntetycznego katalogu. [StorageProbe](integration/TiaBridge.StorageProbe/Program.cs) jest helperem testowym; B-02B dodaje do niego kontrolowany crash hosta z Fake Worker, nadal bez API. Nie jest to pełny harness B-02D ani kwalifikacja power-loss.
 
 Do samych testów Storage po przygotowaniu cache:
 
@@ -29,6 +29,20 @@ dotnet test tests/integration/TiaBridge.Host.Tests/TiaBridge.Host.Tests.csproj -
 ```
 
 Przebieg całego pakietu nadal uruchamia `scripts/validate_offline.py`. Nowe csproj/packages.lock.json przypinają Microsoft.Data.Sqlite i zależności poza Core. Pierwsze pobranie pakietów wymaga zwykłego restore z siecią; późniejsze pełne przebiegi offline używają cache. Testy badają warstwę trwałości; nie uruchamiają zadań ani nie potwierdzają Engineering/Runtime.
+
+## B-02B — rzeczywiste procesy Fake i Named Pipes
+
+Ten sam Host.Tests dodaje **76 testów** B-02B. Łącznie **661 .NET (537 Core +48 Storage +76 Scheduler/IPC)** oraz **20 Python** (3 nowe testy schematu IPC). Scenariusze obejmują normalne/opóźnione wykonanie, duplicate dispatch/effect counter, cancel queued/running/race/backoff, hang/no heartbeat/heartbeat bez postępu, deadline/loss/exit, UNKNOWN i trwałą quarantine z epoch/fence, host process restart mutation/read, late success, bounded retry i breaker, singleton/lease/fence oraz negatywny IPC. Dziewięć wspólnych przykładów przechodzi .NET framing i niezależny JSON Schema. Test 1000 odczytów metadata sprawdza p95≤100 ms przy wiszącym procesie. Nie zastępuje on HTTP/8-klientowego testu B-02C/D.
+
+Testy budują i uruchamiają własny TiaBridge.FakeWorker jako proces .NET 10 przez CurrentUserOnly Named Pipes. StorageProbe kończy host deterministycznie przez Environment.Exit(76) po Started; Fake kończy własne oczekiwanie po utracie pipe. Nie ma Siemens, PLC/HMI, symulatorów lub serwera HTTP. Heartbeat Fake ma interwał 2 s; logika deadline/backoff/lease/breaker ma kontrolowany zegar i jitter. Testy mogą trwać około minuty zależnie od hosta. Pełny harness B-02D, obcy SID, sprzętowy power-loss i rzeczywisty worker pozostają NOT_RUN.
+
+Po przygotowaniu cache można uruchomić samą grupę:
+
+```powershell
+dotnet test tests/integration/TiaBridge.Host.Tests/TiaBridge.Host.Tests.csproj -c Release --no-restore --filter "FullyQualifiedName~Scheduler|FullyQualifiedName~IpcAndPolicy"
+```
+
+[Dokumentacja Scheduler/IPC](../docs/14_SCHEDULER_IPC.md) opisuje ograniczenia Fake i brak automatycznej rekoncyliacji TIA. Przebieg akceptacyjny to nadal pełny validate_offline.py, bez pomijania Core/Storage/Python/generatorów/audytu/formatu.
 
 ## Build i testy .NET
 

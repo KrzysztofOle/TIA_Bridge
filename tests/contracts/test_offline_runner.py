@@ -35,6 +35,8 @@ class OfflineRunnerTests(unittest.TestCase):
             self.assertEqual(100, runner.check_trx(path)["deterministic_cases"])
             with self.assertRaises(ValueError):
                 runner.check_trx(path, host_required=True)
+            with self.assertRaises(ValueError):
+                runner.check_trx(path, scheduler_required=True)
 
     def test_failed_command_is_never_reported_as_pass(self):
         with tempfile.TemporaryDirectory(prefix="tia-bridge2-runner-") as directory:

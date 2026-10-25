@@ -1,6 +1,6 @@
-"""Run B-01A-C/B-02A offline gates. QA Python, cached .NET SDK/packages and local NTFS.
+"""Run B-01A-C/B-02A-B offline gates. QA Python, cached .NET SDK/packages and local NTFS.
 
-No network restore/feed, package installation, Siemens, server, worker or project IO.
+No network restore/feed, package installation, Siemens, public server or project IO. Starts own Fake Workers.
 Run with the isolated QA Python from repo root; exit 0 only when every gate passes.
 """
 from __future__ import annotations
@@ -42,7 +42,7 @@ def check_core_boundary(root=ROOT):
     return {"status": "PASS", "scope": "Core project, locked transitive package names and source imports; assembly closure is tested by .NET"}
 
 
-def check_trx(path, host_required=False):
+def check_trx(path, host_required=False, scheduler_required=False):
     ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
     paths = sorted(path.glob("*.trx")) if path.is_dir() else [path]
     results = [result for item in paths for result in ET.parse(item).getroot().findall(".//t:UnitTestResult", ns)]
@@ -70,7 +70,19 @@ def check_trx(path, host_required=False):
                             "Sqlite_full_and_artifact_io_full": 1}.items():
             if sum(name in r.attrib.get("testName", "") for r in host) != count:
                 raise ValueError("Missing required NTFS SQLite/restart/failure tests.")
-    return {"passed": len(results), "failed": 0, "skipped": 0, "deterministic_cases": 100, "host_storage_cases": len(host)}
+    scheduler = [r for r in host if any(name in r.attrib.get("testName", "") for name in ["SchedulerTests.", "SchedulerSafetyTests.", "IpcAndPolicyTests."])]
+    if scheduler_required:
+        for name, count in {"Real_worker_completes_a_durable_operation_once": 3,
+                            "Queued_cancel_is_atomic_and_never_dispatches": 1,
+                            "Hung_mutation_times_out_to_durable_quarantine_without_retry": 5,
+                            "Host_process_restart_quarantines_a_dispatched_mutation": 1,
+                            "Host_status_remains_responsive_while_a_real_fake_process_is_hung": 1,
+                            "Late_success_is_retained_without_changing_unknown_to_success": 1,
+                            "Wrong_fence_or_plan_from_a_real_worker_is_evidence_only": 2,
+                            "Shared_ipc_schema_examples_round_trip_through_actual_framing": 9}.items():
+            if sum(name in r.attrib.get("testName", "") for r in scheduler) != count:
+                raise ValueError("Missing required process IPC/scheduler/quarantine cases.")
+    return {"passed": len(results), "failed": 0, "skipped": 0, "deterministic_cases": 100, "host_storage_cases": len(host) - len(scheduler), "scheduler_ipc_cases": len(scheduler)}
 
 
 def run_step(name, command, steps):
@@ -87,7 +99,7 @@ def run_step(name, command, steps):
 
 def main():
     OUTPUT.mkdir(parents=True, exist_ok=True)
-    report = {"schema_version": "1.0", "scope": "B-01A-C/B-02A OFFLINE", "status": "FAIL", "steps": [], "engineering": "NOT_RUN", "runtime": "NOT_RUN"}
+    report = {"schema_version": "1.0", "scope": "B-01A-C/B-02A-B OFFLINE", "status": "FAIL", "steps": [], "engineering": "NOT_RUN", "runtime": "NOT_RUN"}
     try:
         for dependency in ["jsonschema", "openapi_spec_validator"]:
             if importlib.util.find_spec(dependency) is None:
@@ -111,7 +123,7 @@ def main():
         for name, command in steps:
             run_step(name, command, report["steps"])
             if name == "03-dotnet":
-                report["dotnet"] = check_trx(test_results, host_required=True)
+                report["dotnet"] = check_trx(test_results, host_required=True, scheduler_required=True)
                 report["test_results"] = str(test_results.relative_to(ROOT))
         report["status"] = "PASS"
     except (OSError, ValueError, ET.ParseError) as error:

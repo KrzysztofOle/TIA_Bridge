@@ -1,0 +1,15 @@
+{
+  "protocol_version": "1.0",
+  "worker_epoch": "11111111-1111-4111-8111-111111111111",
+  "sequence": 1,
+  "kind": "Hello",
+  "operation_id": null,
+  "fence": 0,
+  "body": {
+    "pid": 123,
+    "start_ticks": 638000000000000000,
+    "nonce": "11111111-1111-4111-8111-111111111111",
+    "worker_id": "tia-bridge.fake",
+    "build": "1.0"
+  }
+}

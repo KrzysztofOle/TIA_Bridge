@@ -9,6 +9,24 @@ string root = args[0], repository = args[1], mode = args[2], checkpoint = args[3
 var faults = new ExitFault(checkpoint);
 var location = StorageLocation.Open(root, repository);
 var store = new SqliteOperationStore(location, faults);
+if (mode is "scheduler-crash" or "scheduler-crash-read")
+{
+    string method = mode == "scheduler-crash" ? "sync.apply" : "project.inspect";
+    byte[] wire = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "request." + method + ".json"));
+    store.RegisterProject(ContractJson.ReadRequest(wire).Identity.Project!);
+    var operation = store.Accept("synthetic-principal", wire).Operation;
+    var artifact = store.Artifacts.Put(operation.Report.OperationId, new MemoryStream(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "response." + method + ".json"))));
+    string configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent!.Name;
+    var worker = new TiaBridge.Host.Supervision.FakeWorkerSupervisor(Path.Combine(repository, "src", "TiaBridge.FakeWorker", "bin", configuration, "net10.0", "TiaBridge.FakeWorker.dll"), root);
+    await using var scheduler = new TiaBridge.Host.Scheduling.OperationScheduler(store, worker, new CrashProfile(artifact));
+    var deadline = System.Diagnostics.Stopwatch.StartNew();
+    while (store.ReadStatus(operation.Report.OperationId).Phase != "EXECUTING")
+    {
+        if (deadline.Elapsed > TimeSpan.FromSeconds(10)) return 77;
+        await scheduler.PumpOnceAsync(); await Task.Delay(10);
+    }
+    Environment.Exit(76);
+}
 if (mode == "inspect")
 {
     var id = new TiaBridge.Core.Identity.OperationId(Guid.Parse(checkpoint));
@@ -54,4 +72,9 @@ sealed class ExitFault(string checkpoint) : IStorageFaults
     {
         if (point.ToString() == checkpoint) Environment.Exit(73); // Abrupt deterministic exit; no managed cleanup/finally.
     }
+}
+
+sealed class CrashProfile(ArtifactDescriptor report) : TiaBridge.Host.Scheduling.IExecutionProfile
+{
+    public TiaBridge.Host.Scheduling.ExecutionSpec? Resolve(StoredOperation operation) => new("synthetic-portal", "fake.1.sync.apply", false, report, TiaBridge.Ipc.FakeScenario.Hang);
 }

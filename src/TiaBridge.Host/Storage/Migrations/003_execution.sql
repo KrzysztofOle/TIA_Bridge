@@ -1,0 +1,11 @@
+ALTER TABLE quarantines ADD COLUMN worker_epoch TEXT;
+ALTER TABLE quarantines ADD COLUMN fence INTEGER;
+CREATE TABLE scheduler_ownership(slot INTEGER PRIMARY KEY CHECK(slot=1), host_epoch TEXT NOT NULL, fence INTEGER NOT NULL CHECK(fence>0), host_pid INTEGER NOT NULL, host_start_ticks INTEGER NOT NULL, sid TEXT NOT NULL, lease_until TEXT NOT NULL, blocked INTEGER NOT NULL DEFAULT 0 CHECK(blocked IN (0,1))) STRICT;
+CREATE TABLE worker_processes(worker_epoch TEXT PRIMARY KEY NOT NULL, host_epoch TEXT NOT NULL, pid INTEGER NOT NULL, start_ticks INTEGER NOT NULL, worker_id TEXT NOT NULL, recorded_at TEXT NOT NULL) STRICT;
+CREATE TABLE dispatch_attempts(operation_id TEXT NOT NULL REFERENCES operations(operation_id), attempt INTEGER NOT NULL CHECK(attempt BETWEEN 1 AND 3), host_epoch TEXT NOT NULL, worker_epoch TEXT NOT NULL REFERENCES worker_processes(worker_epoch), fence INTEGER NOT NULL, portal_key TEXT NOT NULL, capability TEXT NOT NULL, mutation INTEGER NOT NULL CHECK(mutation IN (0,1)), input_hash TEXT NOT NULL, plan_hash TEXT, deadline_at TEXT NOT NULL, disposition TEXT NOT NULL DEFAULT 'POSSIBLY_SENT', PRIMARY KEY(operation_id,attempt)) STRICT;
+CREATE TABLE worker_receipts(receipt_id INTEGER PRIMARY KEY, operation_id TEXT NOT NULL REFERENCES operations(operation_id), worker_epoch TEXT NOT NULL, fence INTEGER NOT NULL, attempt INTEGER NOT NULL, received_at TEXT NOT NULL, message_json BLOB NOT NULL, sha256 TEXT NOT NULL, disposition TEXT NOT NULL) STRICT;
+CREATE TABLE circuit_breakers(portal_key TEXT NOT NULL, capability TEXT NOT NULL, state_json TEXT NOT NULL, PRIMARY KEY(portal_key,capability)) STRICT;
+CREATE TRIGGER receipt_no_update BEFORE UPDATE ON worker_receipts BEGIN SELECT RAISE(ABORT,'immutable receipt'); END;
+CREATE TRIGGER receipt_no_delete BEFORE DELETE ON worker_receipts BEGIN SELECT RAISE(ABORT,'retained receipt'); END;
+CREATE TRIGGER attempt_no_delete BEFORE DELETE ON dispatch_attempts BEGIN SELECT RAISE(ABORT,'retained dispatch'); END;
+CREATE TRIGGER worker_no_delete BEFORE DELETE ON worker_processes BEGIN SELECT RAISE(ABORT,'retained worker'); END;

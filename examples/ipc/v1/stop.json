@@ -1,0 +1,11 @@
+{
+  "protocol_version": "1.0",
+  "worker_epoch": "11111111-1111-4111-8111-111111111111",
+  "sequence": 1,
+  "kind": "Stop",
+  "operation_id": null,
+  "fence": 0,
+  "body": {
+    "synthetic_shutdown": true
+  }
+}

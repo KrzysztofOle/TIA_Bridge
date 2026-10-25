@@ -1,6 +1,6 @@
 # Kontrakty v1 — B-01A i B-01B
 
-Zaimplementowane są modele i walidacja offline w [Core](../src/TiaBridge.Core/README.md). Semantykę 19 metod określa [interfejs CODEX](../docs/05_CODEX_INTERFACE.md). Host, ledger i wykonywanie operacji nie istnieją. Poprawny JSON nie potwierdza odbiorcy ani uprawnień.
+Zaimplementowane są modele i walidacja offline w [Core](../src/TiaBridge.Core/README.md). Semantykę 19 metod określa [interfejs CODEX](../docs/05_CODEX_INTERFACE.md). Host Storage/ledger i syntetyczny scheduler/Fake istnieją jako biblioteki; publiczne handlery i rzeczywiste operacje TIA nie istnieją. Poprawny JSON nie potwierdza odbiorcy ani uprawnień.
 
 ## Artefakty
 
@@ -8,7 +8,7 @@ Zaimplementowane są modele i walidacja offline w [Core](../src/TiaBridge.Core/R
 - [operation.schema.json](v1/operation.schema.json): status/raport z wynikiem zależnym od metody. SUCCEEDED wymaga typowanego result i CONFIRMED; RECONCILIATION_REQUIRED wymaga UNKNOWN. Wynik nieudanej operacji może opisywać pracę częściową.
 - [operation-result.schema.json](v1/operation-result.schema.json): DTO podsumowań i odwołań do dowodów. Szczegółowy manifest jest osobnym artefaktem B-01B; plany, baseline i scenariusze pozostają artefaktami następnych pakietów. Nie rozszerzono wyników 19 metod.
 - [error.schema.json](v1/error.schema.json): kody z registry/dokumentu 05, kategorie, redagowany message, outcome i evidence refs. Retryable wymaga NOT_STARTED; sam nie uprawnia do retry.
-- [acceptance.schema.json](v1/acceptance.schema.json): ACCEPTED/QUEUED, ID, polling, względne URL i accepted_at. Rzeczywista trwałość będzie zadaniem B-02A.
+- [acceptance.schema.json](v1/acceptance.schema.json): ACCEPTED/QUEUED, ID, polling, względne URL i accepted_at. Trwałość implementuje B-02A, a wykonanie syntetyczne B-02B.
 - [session-identity.schema.json](v1/session-identity.schema.json): binding projektu/epoch/PID/start/handshake, bez odczytu Siemens.
 - [operations.json](v1/operations.json): nazwy, wymagane params, limity i wymagane prawa; DESIGN_ONLY oznacza brak handlerów, nie brak walidatora.
 - [openapi.json](v1/openapi.json): OpenAPI 3.1.1, wspólny POST z 19 wariantami oraz status/result/events/cancel i health. Opis endpointów nie oznacza ich implementacji. Token transportowy jest poza body i nie nadaje praw TIA.
@@ -84,3 +84,7 @@ py -3 scripts/generate_contracts.py --write
 ```
 
 [Instrukcja testów](../tests/README.md) opisuje build, testy .NET, niezależne JSON Schema/OpenAPI i zależności QA. Wyniki są wyłącznie OFFLINE; ENGINEERING i RUNTIME pozostają NOT_RUN.
+
+## IPC B-02B
+
+[Odrębny schemat IPC 1.0](ipc/v1/message.schema.json) i [opis transportu](../docs/14_SCHEDULER_IPC.md) definiują dziewięć typów komunikatów, epoch/fence/sequence i bounded artifact references. To kontrakt Host ↔ Fake Worker, bez zmian semantyki 19 operacji API. Shared fixtures są walidowane przez .NET i JSON Schema; hash/HMAC, limity bajtów i stan połączenia są dodatkowo sprawdzane w kodzie.

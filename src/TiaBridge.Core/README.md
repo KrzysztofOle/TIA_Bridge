@@ -14,7 +14,7 @@ Granice B-01B to WorkspaceJson i CapabilityJson; surowe konstruktory DTO równie
 
 B-01C dostarcza [macierz pokrycia](../../tests/COVERAGE.md) i powtarzalny przebieg offline; naprawia utratę uszkodzonego Unicode w typowanym wire oraz walidację istniejącego lifecycle w projekcjach operation.status/result. Nie dodaje nowych modeli operacji ani planera.
 
-Nie zaimplementowano synchronizacji, IO projektu/Workspace, normalizatorów Siemens, HTTP, SQLite, kolejki, recovery, fake workera ani Siemens. To następne osobno zlecane pakiety. Timeout zachowuje niepewność, bez sterowania procesami i deklaracji przerwania vendor call. B-01C nie jest częścią B-01B.
+Core nie implementuje synchronizacji, IO projektu/Workspace, normalizatorów Siemens, HTTP, SQLite ani procesów. Storage, scheduler i Fake Worker są w osobnych projektach [Host](../TiaBridge.Host/README.md); Core nadal nie zależy od tej infrastruktury. Timeout zachowuje niepewność, bez sterowania procesami i deklaracji przerwania vendor call. B-01C nie jest częścią B-01B.
 
 Build i [testy](../../tests/README.md), z root repo:
 

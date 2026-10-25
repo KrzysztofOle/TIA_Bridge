@@ -4,4 +4,6 @@
   <Project Path="tests/unit/TiaBridge.Core.Tests/TiaBridge.Core.Tests.csproj" />
   <Project Path="tests/integration/TiaBridge.StorageProbe/TiaBridge.StorageProbe.csproj" />
   <Project Path="tests/integration/TiaBridge.Host.Tests/TiaBridge.Host.Tests.csproj" />
+  <Project Path="src/TiaBridge.Ipc/TiaBridge.Ipc.csproj" />
+  <Project Path="src/TiaBridge.FakeWorker/TiaBridge.FakeWorker.csproj" />
 </Solution>

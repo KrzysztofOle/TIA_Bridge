@@ -12,7 +12,7 @@ using static TiaBridge.Host.Storage.SQLite.SqliteDatabase;
 namespace TiaBridge.Host.Operations;
 
 /// <summary>Durable metadata only: no scheduler, API server, grant evaluation or executor.</summary>
-public sealed class SqliteOperationStore : IOperationRepository, IOutboxRepository
+public sealed partial class SqliteOperationStore : IOperationRepository, IOutboxRepository
 {
     private readonly SqliteDatabase database;
     private readonly TimeProvider clock;
@@ -96,33 +96,36 @@ public sealed class SqliteOperationStore : IOperationRepository, IOutboxReposito
         report = ContractJson.ReadReport(bytes);
         if (report.OperationId != operationId) throw new StorageException(ErrorCode.IDENTITY_MISMATCH);
         using var proof = VerifyArtifacts(bytes); // Hashing is outside the transaction; handles deny write/delete through commit on Windows.
-        return database.Write((c, t) =>
+        return database.Write((c, t) => RecordCore(c, t, operationId, expectedRevision, report, bytes, proof, claimId), checkpoints: true);
+    }
+
+    private StoredOperation RecordCore(SqliteConnection c, SqliteTransaction t, OperationId operationId, long expectedRevision,
+        OperationReport report, byte[] bytes, ArtifactProof proof, Guid? claimId = null)
+    {
+        var previous = ReadStored(c, t, operationId);
+        if (previous.Revision != expectedRevision || OperationLifecycle.IsTerminal(previous.Report.State)) throw new StorageException(ErrorCode.CONFLICT);
+        if (report.Method != previous.Report.Method || report.AcceptedAt != previous.Report.AcceptedAt) throw new StorageException(ErrorCode.IDENTITY_MISMATCH);
+        if (report.State != previous.Report.State) OperationLifecycle.ValidateTransition(previous.Report.State, report.State, report.Outcome);
+        else OperationLifecycle.Validate(report.State, report.Outcome);
+        if (report.State == OperationState.RUNNING && previous.Report.State != OperationState.RUNNING)
         {
-            var previous = ReadStored(c, t, operationId);
-            if (previous.Revision != expectedRevision || OperationLifecycle.IsTerminal(previous.Report.State)) throw new StorageException(ErrorCode.CONFLICT);
-            if (report.Method != previous.Report.Method || report.AcceptedAt != previous.Report.AcceptedAt) throw new StorageException(ErrorCode.IDENTITY_MISMATCH);
-            if (report.State != previous.Report.State) OperationLifecycle.ValidateTransition(previous.Report.State, report.State, report.Outcome);
-            else OperationLifecycle.Validate(report.State, report.Outcome);
-            if (report.State == OperationState.RUNNING && previous.Report.State != OperationState.RUNNING)
-            {
-                string? claim = Scalar(c, t, "SELECT claim_id FROM outbox WHERE operation_id=$id AND state='DISPATCH_RECORDED'", ("$id", operationId.ToString())) as string;
-                if (claimId is null || claim != claimId.Value.ToString("D")) throw new StorageException(ErrorCode.CONFLICT);
-            }
-            if (report.State == OperationState.SUCCEEDED && report.Result is null) throw new StorageException(ErrorCode.VALIDATION_FAILED);
-            if (OperationLifecycle.IsTerminal(report.State))
-            {
-                Exec(c, t, "INSERT INTO operation_results VALUES($id,$report,$sha)", ("$id", operationId.ToString()), ("$report", bytes), ("$sha", Hash(bytes)));
-                Exec(c, t, "UPDATE outbox SET state='CLOSED' WHERE operation_id=$id AND state!='CLOSED'", ("$id", operationId.ToString()));
-            }
-            string? project = Scalar(c, t, "SELECT project_key FROM operations WHERE operation_id=$id", ("$id", operationId.ToString())) as string;
-            if (report.State == OperationState.RECONCILIATION_REQUIRED && project is not null)
-                Exec(c, t, "INSERT INTO quarantines VALUES($p,$id,'UNKNOWN_OUTCOME',$at) ON CONFLICT(project_key) DO NOTHING", ("$p", project), ("$id", operationId.ToString()), ("$at", clock.GetUtcNow().ToString("O")));
-            long sequence = previous.Revision + 2;
-            Exec(c, t, "UPDATE operations SET state=$state,outcome=$outcome,revision=revision+1,report_json=$report,report_sha256=$sha,last_sequence=$seq WHERE operation_id=$id AND revision=$rev", ("$state", report.State.ToString()), ("$outcome", report.Outcome.ToString()), ("$report", bytes), ("$sha", Hash(bytes)), ("$seq", sequence), ("$id", operationId.ToString()), ("$rev", expectedRevision));
-            InsertEvent(c, t, report, sequence, bytes);
-            foreach (var artifact in proof.Artifacts) Exec(c, t, "INSERT INTO operation_artifacts VALUES($id,$a) ON CONFLICT DO NOTHING", ("$id", operationId.ToString()), ("$a", artifact.Descriptor.ArtifactId));
-            return new StoredOperation(report, previous.Revision + 1, previous.RequestJson, previous.BodySha256);
-        }, checkpoints: true);
+            string? claim = Scalar(c, t, "SELECT claim_id FROM outbox WHERE operation_id=$id AND state='DISPATCH_RECORDED'", ("$id", operationId.ToString())) as string;
+            if (claimId is null || claim != claimId.Value.ToString("D")) throw new StorageException(ErrorCode.CONFLICT);
+        }
+        if (report.State == OperationState.SUCCEEDED && report.Result is null) throw new StorageException(ErrorCode.VALIDATION_FAILED);
+        if (OperationLifecycle.IsTerminal(report.State))
+        {
+            Exec(c, t, "INSERT INTO operation_results VALUES($id,$report,$sha)", ("$id", operationId.ToString()), ("$report", bytes), ("$sha", Hash(bytes)));
+            Exec(c, t, "UPDATE outbox SET state='CLOSED' WHERE operation_id=$id AND state!='CLOSED'", ("$id", operationId.ToString()));
+        }
+        string? project = Scalar(c, t, "SELECT project_key FROM operations WHERE operation_id=$id", ("$id", operationId.ToString())) as string;
+        if (report.State == OperationState.RECONCILIATION_REQUIRED && project is not null)
+            Exec(c, t, "INSERT INTO quarantines(project_key,operation_id,reason,created_at) VALUES($p,$id,'UNKNOWN_OUTCOME',$at) ON CONFLICT(project_key) DO NOTHING", ("$p", project), ("$id", operationId.ToString()), ("$at", clock.GetUtcNow().ToString("O")));
+        long sequence = previous.Revision + 2;
+        Exec(c, t, "UPDATE operations SET state=$state,outcome=$outcome,revision=revision+1,report_json=$report,report_sha256=$sha,last_sequence=$seq WHERE operation_id=$id AND revision=$rev", ("$state", report.State.ToString()), ("$outcome", report.Outcome.ToString()), ("$report", bytes), ("$sha", Hash(bytes)), ("$seq", sequence), ("$id", operationId.ToString()), ("$rev", expectedRevision));
+        InsertEvent(c, t, report, sequence, bytes);
+        foreach (var artifact in proof.Artifacts) Exec(c, t, "INSERT INTO operation_artifacts VALUES($id,$a) ON CONFLICT DO NOTHING", ("$id", operationId.ToString()), ("$a", artifact.Descriptor.ArtifactId));
+        return new StoredOperation(report, previous.Revision + 1, previous.RequestJson, previous.BodySha256);
     }
 
     public IReadOnlyList<JournalEvent> Events(OperationId operationId, long afterSequence = 0, int limit = 100)

@@ -84,3 +84,18 @@ Regresyjne 537 .NET i 17 Python pozostają bez zmiany liczby; Core i wire v1 nie
 Źródła: [operacje](integration/TiaBridge.Host.Tests/OperationStorageTests.cs), [awarie](integration/TiaBridge.Host.Tests/FailureAndRestartTests.cs), [migracje](integration/TiaBridge.Host.Tests/MigrationAndPolicyTests.cs), [artefakty](integration/TiaBridge.Host.Tests/ArtifactStorageTests.cs). Interfejs IStorageFaults wstrzykuje błąd w określony checkpoint; proces StorageProbe kończy się przez Environment.Exit(73), a nie losowy kill. Test pełnego dysku nie zapełnia fizycznego dysku. RetainedOrphans niczego nie usuwa i nie adoptuje.
 
 Runner agreguje dwa TRX z katalogu danego przebiegu i wymaga wskazanych testów Host; same stare PASS Core nie zamkną B-02A. Nie jest to kwalifikacja power-loss/ACL deployment, schedulera B-02B, pełnego harnessu B-02D, jakiegokolwiek efektu Siemens lub Runtime.
+
+## B-02B — scheduler, rzeczywisty Fake Worker i IPC
+
+76 nowych przypadków .NET: SchedulerTests (29), SchedulerSafetyTests (13) i IpcAndPolicyTests (34). Łącznie 661 .NET, w tym 537 Core i 48 B-02A; Python 20, w tym 3 nowe testy IPC. Liczymy przypadki xUnit/unittest, bez mnożenia wewnętrznych pętli i prób. Migracyjna regresja obejmuje teraz v1→v3 oraz rzeczywisty baseline B-02A v2→v3 z zachowaniem danych i deduplikacji.
+
+| Obszar / źródło | Rzeczywiste zachowanie i dowód |
+|---|---|
+| [SchedulerTests](integration/TiaBridge.Host.Tests/SchedulerTests.cs) | osobny proces, success/delay/duplicate i synthetic effect counter=1, trwały wynik; queued i running cancel; pięć scenariuszy hang/watchdog, heartbeat bez postępu, missing heartbeat, loss/exit/partial; timeout read bez overlap, late UNKNOWN receipt, retry tylko po no-effect i backoff, trzy próby/breaker, singleton/fence i host process crash mutation |
+| [SchedulerSafetyTests](integration/TiaBridge.Host.Tests/SchedulerSafetyTests.cs) | różne projekty na tym samym portalu bez overlap; cancel vs dispatch race i cancel backoff; hung cancel pozostaje niepotwierdzony; brak profilu, queue timeout, pending restart, lease expiry, rosnący fence/UNKNOWN po drugim owner; rzeczywisty proces ze złym fence/planhash; host crash read i nowy odczyt dopiero po potwierdzeniu końca starego procesu |
+| [IpcAndPolicyTests](integration/TiaBridge.Host.Tests/IpcAndPolicyTests.cs) | dziewięć współdzielonych przykładów i framing; HMAC/key/version/epoch/sequence/replay/unknown/missing/duplicate/UTF-8/depth/length/truncation; deterministic backoff/jitter, deny policy/identity retry, cooldown/half-open i niezależne zegary watchdog |
+| [Python IPC](contracts/test_ipc_contracts.py) | niezależny JSON Schema: dziewięć poprawnych rodzajów komunikatów, missing/unknown/type/version/identity, unsafe artifact references i bounded inline result |
+
+Pełny runner wymaga konkretnych testów procesowych i nowych dziewięciu przypadków framing. 1000 odczytów metadata statusu podczas realnego fake hang sprawdza p95≤100 ms; nie deklaruje HTTP SLO ani testu ośmiu klientów. Wszystkie DB/artifacts są syntetyczne na lokalnym NTFS. Process exit hosta jest deterministyczny po Started, nie losowy kill.
+
+Braki pozostawione zgodnie z pakietami: publiczne API/CLI i jego auth/Origin/rate/SLO — B-02C; pełny resilience harness i wszystkie punkty awarii — B-02D; rzeczywisty worker, Dispose/apartment/Job Object parent-loss — X-01; obcy SID/ACL deployment i sprzętowy power-loss wymagają osobnego środowiska. Nie ma reconciliacji TIA ani automatycznego clear quarantine. PASS Fake nie potwierdza Siemens, SYNCED, Engineering lub Runtime.

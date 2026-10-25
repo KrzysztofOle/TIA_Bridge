@@ -80,6 +80,9 @@
         "dependencies": {
           "JsonSchema.Net": "[7.3.3, )"
         }
+      },
+      "tiabridge.ipc": {
+        "type": "Project"
       }
     }
   }

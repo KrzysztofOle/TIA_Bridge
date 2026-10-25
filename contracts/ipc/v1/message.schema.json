@@ -1,0 +1,571 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tia-bridge2:ipc:1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "worker_epoch",
+    "sequence",
+    "kind",
+    "operation_id",
+    "fence",
+    "body"
+  ],
+  "properties": {
+    "protocol_version": {
+      "const": "1.0"
+    },
+    "worker_epoch": {
+      "type": "string",
+      "format": "uuid",
+      "not": {
+        "const": "00000000-0000-0000-0000-000000000000"
+      }
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9223372036854775807
+    },
+    "kind": {
+      "enum": [
+        "Hello",
+        "Ready",
+        "Heartbeat",
+        "Dispatch",
+        "Started",
+        "Progress",
+        "Receipt",
+        "Cancel",
+        "Stop"
+      ]
+    },
+    "operation_id": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "fence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9223372036854775807
+    },
+    "body": {
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "Hello"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pid",
+              "start_ticks",
+              "nonce",
+              "worker_id",
+              "build"
+            ],
+            "properties": {
+              "pid": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 2147483647
+              },
+              "start_ticks": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "nonce": {
+                "type": "string",
+                "format": "uuid",
+                "not": {
+                  "const": "00000000-0000-0000-0000-000000000000"
+                }
+              },
+              "worker_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "build": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          },
+          "operation_id": {
+            "type": "null"
+          },
+          "fence": {
+            "const": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "Ready"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "accepted"
+            ],
+            "properties": {
+              "accepted": {
+                "const": true
+              }
+            }
+          },
+          "operation_id": {
+            "type": "null"
+          },
+          "fence": {
+            "const": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "Heartbeat"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "synthetic"
+            ],
+            "properties": {
+              "synthetic": {
+                "const": true
+              }
+            }
+          },
+          "operation_id": {
+            "type": "null"
+          },
+          "fence": {
+            "const": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "Dispatch"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "request",
+              "success_report",
+              "scenario",
+              "delay_ms",
+              "attempt",
+              "input_hash",
+              "plan_hash",
+              "failure_code"
+            ],
+            "properties": {
+              "request": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "artifact_id",
+                  "sha256"
+                ],
+                "properties": {
+                  "artifact_id": {
+                    "type": "string",
+                    "pattern": "^artifact-[0-9a-f]{32}$(?![\\s\\S])"
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$(?![\\s\\S])"
+                  }
+                }
+              },
+              "success_report": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "artifact_id",
+                  "sha256"
+                ],
+                "properties": {
+                  "artifact_id": {
+                    "type": "string",
+                    "pattern": "^artifact-[0-9a-f]{32}$(?![\\s\\S])"
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$(?![\\s\\S])"
+                  }
+                }
+              },
+              "scenario": {
+                "enum": [
+                  "Success",
+                  "DelayedSuccess",
+                  "FailBefore",
+                  "FailAfter",
+                  "Hang",
+                  "NoHeartbeat",
+                  "HeartbeatWithoutProgress",
+                  "Timeout",
+                  "Disconnect",
+                  "Exit",
+                  "LateSuccess",
+                  "UnknownMutation",
+                  "Cancellable",
+                  "DuplicateDispatch",
+                  "SuccessAfterRetry",
+                  "WrongFence",
+                  "WrongPlanHash"
+                ]
+              },
+              "delay_ms": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 600000
+              },
+              "attempt": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3
+              },
+              "input_hash": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$(?![\\s\\S])"
+              },
+              "plan_hash": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$(?![\\s\\S])"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "failure_code": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9_]{0,127}$(?![\\s\\S])"
+              }
+            }
+          },
+          "operation_id": {
+            "type": "string",
+            "format": "uuid",
+            "not": {
+              "const": "00000000-0000-0000-0000-000000000000"
+            }
+          },
+          "fence": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "Started"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "attempt"
+            ],
+            "properties": {
+              "attempt": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3
+              }
+            }
+          },
+          "operation_id": {
+            "type": "string",
+            "format": "uuid",
+            "not": {
+              "const": "00000000-0000-0000-0000-000000000000"
+            }
+          },
+          "fence": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "Progress"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "phase"
+            ],
+            "properties": {
+              "phase": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$(?![\\s\\S])"
+              }
+            }
+          },
+          "operation_id": {
+            "type": "string",
+            "format": "uuid",
+            "not": {
+              "const": "00000000-0000-0000-0000-000000000000"
+            }
+          },
+          "fence": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "Receipt"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "attempt",
+              "input_hash",
+              "plan_hash",
+              "receipt"
+            ],
+            "properties": {
+              "attempt": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3
+              },
+              "input_hash": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$(?![\\s\\S])"
+              },
+              "plan_hash": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$(?![\\s\\S])"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "receipt": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "disposition",
+                  "report",
+                  "error_code",
+                  "effect_count",
+                  "quiescent"
+                ],
+                "properties": {
+                  "disposition": {
+                    "enum": [
+                      "Succeeded",
+                      "Rejected",
+                      "Failed",
+                      "Cancelled"
+                    ]
+                  },
+                  "report": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "minLength": 0,
+                        "maxLength": 65536
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "error_code": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^[A-Z][A-Z0-9_]{0,127}$(?![\\s\\S])"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "effect_count": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "quiescent": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          },
+          "operation_id": {
+            "type": "string",
+            "format": "uuid",
+            "not": {
+              "const": "00000000-0000-0000-0000-000000000000"
+            }
+          },
+          "fence": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "Cancel"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "requested"
+            ],
+            "properties": {
+              "requested": {
+                "const": true
+              }
+            }
+          },
+          "operation_id": {
+            "type": "string",
+            "format": "uuid",
+            "not": {
+              "const": "00000000-0000-0000-0000-000000000000"
+            }
+          },
+          "fence": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "Stop"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "synthetic_shutdown"
+            ],
+            "properties": {
+              "synthetic_shutdown": {
+                "const": true
+              }
+            }
+          },
+          "operation_id": {
+            "type": "null"
+          },
+          "fence": {
+            "const": 0
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # TIA_Bridge 2
 
-Projekt nowej aplikacji Windows do integracji CODEX z Siemens TIA Portal. Stan 2026-10-25: **zaimplementowane offline B-01A–B-01C oraz B-02A — Core i trwała warstwa Host Storage SQLite/outbox/artifacts**. Działają modele, walidacja, serializacja, codec ścieżek, hashe, registry domyślnie deny i magazyn operacji na lokalnym NTFS. Host HTTP, scheduler, worker Siemens, adaptery i wykonanie 19 operacji jeszcze nie istnieją; przyjęcie operacji do SQLite nie oznacza jej wykonania ani autoryzacji TIA.
+Projekt nowej aplikacji Windows do integracji CODEX z Siemens TIA Portal. Stan 2026-10-25: **zaimplementowane offline B-01A–B-01C oraz B-02A–B — Core, trwały Host Storage i scheduler z nadzorowanym Fake Worker/IPC**. Działają modele, walidacja, serializacja, codec ścieżek, hashe, registry domyślnie deny i magazyn operacji na lokalnym NTFS. Host HTTP, worker Siemens, adaptery i rzeczywiste wykonanie 19 operacji jeszcze nie istnieją; przyjęcie operacji do SQLite nie oznacza jej wykonania ani autoryzacji TIA.
 
 Docelowy przepływ: **TIA → eksport do workspace → edycja CODEX → plan → zatwierdzone Apply → niezależna weryfikacja → kompilacja/symulacja → testy**. Pliki CODEX określają zamierzony stan. Rozbieżności z nieznanymi zmianami TIA wymagają rozstrzygnięcia; import nigdy nie stanowi samodzielnego dowodu zgodności.
 
@@ -30,10 +30,11 @@ Rekomendacja: host C#/.NET 10, trwałe operacje i SQLite na lokalnym NTFS, wykon
 | [11 — Snap7](docs/11_SNAP7_PLC_TESTING.md) | dodatkowy transport testów PLC, ograniczenia i kwalifikacja |
 | [12 — Workspace i Capabilities](docs/12_WORKSPACE_CAPABILITIES.md) | zaimplementowany format B-01B, ścieżki, hashe, registry i przykłady |
 | [13 — Trwały magazyn](docs/13_DURABLE_STORAGE.md) | B-02A: SQLite, migracje, idempotencja, journal, outbox i artefakty |
+| [14 — Scheduler i IPC](docs/14_SCHEDULER_IPC.md) | B-02B: scheduler, supervisor, Fake Worker, watchdog i quarantine |
 | [Instrukcja ChatGPT](Instrukcja_ChatGPT.md) | podział ról ChatGPT/CODEX, workflow zadań i reguły oceny wyników zgodne z AGENTS.md |
 | [Zmiany](Zmiany.md) | zapis prac projektowych |
 
-Wykonany zakres: [Core](src/TiaBridge.Core/README.md), [Host Storage B-02A](src/TiaBridge.Host/README.md), [kontrakty i OpenAPI](contracts/README.md), [pełna walidacja offline jednym poleceniem](tests/README.md) i [macierz pokrycia](tests/COVERAGE.md). B-01C obejmuje 100 deterministycznych modeli wejściowych; rzeczywiste plany są kryterium B-04A. B-02A zapisuje operacje, ale ich nie uruchamia. Nie ma IO Workspace, synchronizacji ani uprawnień sesji. B-02B i kolejne pakiety wymagają osobnego zlecenia. Przed integracją z Openness i X-01 obowiązuje pełna bramka B-02A–B-02D na fake workerze. [Plan](docs/08_IMPLEMENTATION_PLAN.md) wskazuje zależności i dowody wymagane przed Apply.
+Wykonany zakres: [Core](src/TiaBridge.Core/README.md), [Host Storage B-02A](src/TiaBridge.Host/README.md), [kontrakty i OpenAPI](contracts/README.md), [pełna walidacja offline jednym poleceniem](tests/README.md) i [macierz pokrycia](tests/COVERAGE.md). B-01C obejmuje 100 deterministycznych modeli wejściowych; rzeczywiste plany są kryterium B-04A. B-02A zapisuje operacje; [B-02B](docs/14_SCHEDULER_IPC.md) wykonuje wyłącznie jawne scenariusze syntetyczne w osobnym Fake Worker. Nie ma IO Workspace, synchronizacji ani uprawnień sesji. B-02C i kolejne pakiety wymagają osobnego zlecenia. Przed integracją z Openness i X-01 obowiązuje pełna bramka B-02A–B-02D na fake workerze. [Plan](docs/08_IMPLEMENTATION_PLAN.md) wskazuje zależności i dowody wymagane przed Apply.
 
 ## Granice i praca z repozytorium
 
