@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="src/TiaBridge.Core/TiaBridge.Core.csproj" />
+  <Project Path="src/TiaBridge.Ipc/TiaBridge.Ipc.csproj" />
+  <Project Path="src/TiaBridge.Client/TiaBridge.Client.csproj" />
+  <Project Path="src/TiaBridge.Host/TiaBridge.Host.csproj" />
+  <Project Path="src/TiaBridge.Worker.V19/TiaBridge.Worker.V19.csproj" />
+  <Project Path="tests/engineering/TiaBridge.V19.Qualification/TiaBridge.V19.Qualification.csproj" />
+</Solution>

@@ -58,6 +58,10 @@ Zamknięcie prac B-02D wymaga wykonania i jawnego raportu RT/NF, bez ukrywania F
 | X-01 LIMITED READ-ONLY GATE | PASS/FAIL/BLOCKED tylko według powyższych warunków; osobne zadanie i autoryzacja X-01 |
 | PRODUCTION QUALIFICATION | PASS/FAIL/NOT_RUN; pełna kwalifikacja późniejszych etapów, w tym B-10B/NF-11 i aktywne R-14 |
 
+### Docelowy HMI canonical model (zatwierdzone D-12; dokumentacyjnie, NOT_IMPLEMENTED)
+
+[ADR 0003](decisions/0003-hmi-canonical-model-and-native-artifacts.md) wymaga koncepcji kanonicznego modelu HMI przed pełnym Workspace HMI, logicznego podziału CANONICAL/SOURCE/NATIVE, zachowania niezmienionych eksportów Siemens w ExchangeUnit z SHA-256, niezależnych read-only kwalifikacji HMI **po X-01** oraz X-04 dla rzeczywistej struktury Unified. Oddzielne eksperymenty mają kwalifikować importy o zakresie replace/delete i nieznanych skutkach; V21 otrzyma osobny adapter i dowody per build. Brak implementacji i brak PASS. Nie rozszerza to X-01 ani nie zmienia głównej kolejności MVP PLC.
+
 ## Etap 3 — Discovery, eksport i mapowanie [MVP PLC / REQUIRED HMI]
 
 **Cel:** kwalifikowana read-only projekcja projektu. **Zależności:**1B,2A–2D, X-01. **Pakiety:**
@@ -185,3 +189,7 @@ Zamknięcie prac B-02D wymaga wykonania i jawnego raportu RT/NF, bez ukrywania F
 | OB-21–OB-24 | B-01A/B, B-03A/D, B-08A–C, B-11A/B |
 
 Każdy pakiet kończy się named-path diff, właściwymi testami i osobnym commitem; nie łączyć rozwoju adaptera z niezamówionym wdrożeniem do aktywnego projektu. Obecne zadanie tworzy jeden wspólny commit dokumentacyjno-projektowy zgodnie z poleceniem użytkownika.
+
+## Wykonanie X-01 read-only
+
+Eksperymentalny [worker V19](../src/TiaBridge.Worker.V19/README.md) korzysta z istniejącego trwałego silnika i osobnego net48/x64. [Raport X-01](X01_TIA_V19_QUALIFICATION.md) jest źródłem faktycznych wyników obu instancji, a [harness Engineering](../tests/engineering/README.md) jest opt-in. Kod konieczny do eksperymentu obejmuje bootstrap/exact binding/Attach/bounded metadata/Dispose; nie oznacza realizacji całego B-03A ani B-03B. X-01 nie rozszerza D-11 na produkcję/exFAT, nie realizuje NF-11 lub funkcji mutacji. Przejście do B-03A wymaga osobnego zadania; nic nie uruchamia się automatycznie.

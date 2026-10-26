@@ -1,0 +1,686 @@
+{
+  "report_version": "x01-read-only-qualification/1",
+  "date": "2026-10-26",
+  "baseline_commit": "eca8a079b04001c792c0669b991edfbeb6faaca6",
+  "scope": "Siemens V19 Update 3; exact two authorized instances; local NTFS; bounded read-only; no production qualification",
+  "evidence": {
+    "STA": {
+      "run_id": "98a2ac3a1f4945759947b509acf38630",
+      "sha256": "d3c4f93cf0793353041e0452a23d5559877ce47e846a0081cf97da4a55fd4ac4",
+      "status": "PASS",
+      "read_cycles": 40,
+      "project_file_metadata_unchanged": true
+    },
+    "MTA": {
+      "run_id": "c2327b77fd6d49128aa3bd3c17e343bd",
+      "sha256": "cfe00fa4622f6a34f4614fee426408ffd91c8fb00b6cb9875e7bd841215c2170",
+      "status": "PASS",
+      "read_cycles": 40,
+      "project_file_metadata_unchanged": true
+    }
+  },
+  "instances": [
+    {
+      "instance": "A",
+      "pid": 29068,
+      "start_ticks": 639285375184759749,
+      "project_path": "X:\\TESTY_TIA_Bridge\\T04_T05-000_Testowy\\T04_T05-000_Testowy.ap19",
+      "status": "PASS",
+      "native_devices": 2,
+      "bounded_nodes": 58,
+      "device_families": [
+        "UNKNOWN",
+        "UNKNOWN"
+      ],
+      "plc_software_nodes": 2,
+      "hmi_software_nodes": 2,
+      "modes": {
+        "STA": {
+          "status": "PASS",
+          "read_cycles": 20,
+          "metrics": {
+            "enumeration_ms": {
+              "samples": 20,
+              "p50_ms": 64.2307,
+              "p95_ms": 194.3673,
+              "p99_ms": null,
+              "maximum_ms": 338.72650000000004
+            },
+            "attach_ms": {
+              "samples": 20,
+              "p50_ms": 138.2169,
+              "p95_ms": 210.7341,
+              "p99_ms": null,
+              "maximum_ms": 219.97920000000002
+            },
+            "read_ms": {
+              "samples": 20,
+              "p50_ms": 1025.8533,
+              "p95_ms": 1351.6005,
+              "p99_ms": null,
+              "maximum_ms": 2233.9768
+            },
+            "dispose_ms": {
+              "samples": 20,
+              "p50_ms": 23.110300000000002,
+              "p95_ms": 43.800000000000004,
+              "p99_ms": null,
+              "maximum_ms": 97.2983
+            },
+            "cycle_ms": {
+              "samples": 20,
+              "p50_ms": 1262.4109,
+              "p95_ms": 1774.1334,
+              "p99_ms": null,
+              "maximum_ms": 2755.5829
+            },
+            "submit_ms": {
+              "samples": 20,
+              "p50_ms": 17.5397,
+              "p95_ms": 32.4166,
+              "p99_ms": null,
+              "maximum_ms": 931.5284
+            }
+          },
+          "owner_threads": [
+            9
+          ],
+          "callback_threads": [
+            9
+          ]
+        },
+        "MTA": {
+          "status": "PASS",
+          "read_cycles": 20,
+          "metrics": {
+            "enumeration_ms": {
+              "samples": 20,
+              "p50_ms": 65.8514,
+              "p95_ms": 83.70020000000001,
+              "p99_ms": null,
+              "maximum_ms": 157.8801
+            },
+            "attach_ms": {
+              "samples": 20,
+              "p50_ms": 130.16400000000002,
+              "p95_ms": 189.1423,
+              "p99_ms": null,
+              "maximum_ms": 287.9766
+            },
+            "read_ms": {
+              "samples": 20,
+              "p50_ms": 1042.2849,
+              "p95_ms": 1208.5257000000001,
+              "p99_ms": null,
+              "maximum_ms": 1220.9689
+            },
+            "dispose_ms": {
+              "samples": 20,
+              "p50_ms": 26.0409,
+              "p95_ms": 41.9316,
+              "p99_ms": null,
+              "maximum_ms": 43.767500000000005
+            },
+            "cycle_ms": {
+              "samples": 20,
+              "p50_ms": 1276.0149000000001,
+              "p95_ms": 1467.0591000000002,
+              "p99_ms": null,
+              "maximum_ms": 1500.3886
+            },
+            "submit_ms": {
+              "samples": 20,
+              "p50_ms": 20.0365,
+              "p95_ms": 32.4125,
+              "p99_ms": null,
+              "maximum_ms": 781.2056
+            }
+          },
+          "owner_threads": [
+            10
+          ],
+          "callback_threads": [
+            10
+          ]
+        }
+      }
+    },
+    {
+      "instance": "B",
+      "pid": 26064,
+      "start_ticks": 639284540722859503,
+      "project_path": "X:\\TESTY_TIA_Bridge\\T05_RecipeSim_V19_Testowy\\T05_RecipeSim_V19_Testowy.ap19",
+      "status": "PASS",
+      "native_devices": 2,
+      "bounded_nodes": 14,
+      "device_families": [
+        "HMI",
+        "PLC"
+      ],
+      "plc_software_nodes": 1,
+      "hmi_software_nodes": 1,
+      "modes": {
+        "STA": {
+          "status": "PASS",
+          "read_cycles": 20,
+          "metrics": {
+            "enumeration_ms": {
+              "samples": 20,
+              "p50_ms": 56.0948,
+              "p95_ms": 113.7384,
+              "p99_ms": null,
+              "maximum_ms": 125.5977
+            },
+            "attach_ms": {
+              "samples": 20,
+              "p50_ms": 126.57860000000001,
+              "p95_ms": 184.9725,
+              "p99_ms": null,
+              "maximum_ms": 575.9222
+            },
+            "read_ms": {
+              "samples": 20,
+              "p50_ms": 322.1232,
+              "p95_ms": 433.0226,
+              "p99_ms": null,
+              "maximum_ms": 853.8879000000001
+            },
+            "dispose_ms": {
+              "samples": 20,
+              "p50_ms": 20.7482,
+              "p95_ms": 32.5404,
+              "p99_ms": null,
+              "maximum_ms": 34.6156
+            },
+            "cycle_ms": {
+              "samples": 20,
+              "p50_ms": 546.026,
+              "p95_ms": 1001.0349,
+              "p99_ms": null,
+              "maximum_ms": 1054.2509
+            },
+            "submit_ms": {
+              "samples": 20,
+              "p50_ms": 18.3575,
+              "p95_ms": 46.8957,
+              "p99_ms": null,
+              "maximum_ms": 61.9897
+            }
+          },
+          "owner_threads": [
+            9
+          ],
+          "callback_threads": [
+            9
+          ]
+        },
+        "MTA": {
+          "status": "PASS",
+          "read_cycles": 20,
+          "metrics": {
+            "enumeration_ms": {
+              "samples": 20,
+              "p50_ms": 56.3091,
+              "p95_ms": 73.2716,
+              "p99_ms": null,
+              "maximum_ms": 144.5277
+            },
+            "attach_ms": {
+              "samples": 20,
+              "p50_ms": 131.2558,
+              "p95_ms": 148.8026,
+              "p99_ms": null,
+              "maximum_ms": 155.2944
+            },
+            "read_ms": {
+              "samples": 20,
+              "p50_ms": 304.4968,
+              "p95_ms": 371.4982,
+              "p99_ms": null,
+              "maximum_ms": 435.50230000000005
+            },
+            "dispose_ms": {
+              "samples": 20,
+              "p50_ms": 24.0258,
+              "p95_ms": 36.3113,
+              "p99_ms": null,
+              "maximum_ms": 37.637100000000004
+            },
+            "cycle_ms": {
+              "samples": 20,
+              "p50_ms": 521.2341,
+              "p95_ms": 632.6632,
+              "p99_ms": null,
+              "maximum_ms": 667.7754000000001
+            },
+            "submit_ms": {
+              "samples": 20,
+              "p50_ms": 17.1975,
+              "p95_ms": 36.7476,
+              "p99_ms": null,
+              "maximum_ms": 43.7342
+            }
+          },
+          "owner_threads": [
+            10
+          ],
+          "callback_threads": [
+            10
+          ]
+        }
+      }
+    }
+  ],
+  "fault_cases": [
+    {
+      "scenario": "queued-cancel",
+      "status": "PASS",
+      "operation_id": "2dc0f4fa-1c6d-4d5e-8059-796c61bfcd16",
+      "state": "SUCCEEDED",
+      "error": null,
+      "elapsed_ms": 10028.5107
+    },
+    {
+      "scenario": "running-cancel",
+      "status": "PASS",
+      "operation_id": "4f693d8e-bd9f-4a73-8222-ab7785969cdf",
+      "state": "SUCCEEDED",
+      "error": null,
+      "elapsed_ms": 7117.6836
+    },
+    {
+      "scenario": "late-result",
+      "status": "PASS",
+      "operation_id": "928e7c6f-8b67-46c7-bea1-be5005e2949e",
+      "state": "FAILED",
+      "error": "TIMEOUT",
+      "elapsed_ms": 16580.9891
+    },
+    {
+      "scenario": "old-epoch",
+      "status": "PASS",
+      "operation_id": "610d426c-d67f-496e-93ee-2e54bec90d43",
+      "state": "FAILED",
+      "error": "TIMEOUT",
+      "elapsed_ms": 13732.7018
+    },
+    {
+      "scenario": "pipe-loss",
+      "status": "PASS",
+      "operation_id": "33640c17-b97b-4bce-9d43-ff9a423f46f6",
+      "state": "FAILED",
+      "error": "WORKER_UNAVAILABLE",
+      "elapsed_ms": 5252.5269
+    },
+    {
+      "scenario": "parent-loss",
+      "status": "PASS",
+      "operation_id": "b9ca500e-d5cc-4b7a-86b7-fc43a7d7230d",
+      "state": "FAILED",
+      "error": "WORKER_UNAVAILABLE",
+      "elapsed_ms": 6482.4982
+    },
+    {
+      "scenario": "worker-exit",
+      "status": "PASS",
+      "operation_id": "1b5c0f0e-c27b-4679-9cce-c8fb725fe5e0",
+      "state": "FAILED",
+      "error": "WORKER_UNAVAILABLE",
+      "elapsed_ms": 4175.1694
+    }
+  ],
+  "engineering_scenarios": {
+    "passed": 87,
+    "failed": 0,
+    "skipped": 0,
+    "read_cycles": 80,
+    "fault_cases": 7,
+    "normal_cycle_timeouts": 0,
+    "expected_timeout_fault_cases": 2
+  },
+  "worker_preflight_tests": {
+    "passed": 4,
+    "failed": 0,
+    "skipped": 0
+  },
+  "http_metrics": {
+    "STA": {
+      "status_http_ms": {
+        "samples": 3272,
+        "p50_ms": 35.464,
+        "p95_ms": 79.4743,
+        "p99_ms": 170.3073,
+        "maximum_ms": 303.3434
+      },
+      "health_http_ms": {
+        "samples": 2168,
+        "p50_ms": 37.419,
+        "p95_ms": 72.2743,
+        "p99_ms": 112.286,
+        "maximum_ms": 219.0316
+      },
+      "result_http_ms": {
+        "samples": 271,
+        "p50_ms": 9.4462,
+        "p95_ms": 49.6783,
+        "p99_ms": 65.7104,
+        "maximum_ms": 73.3847
+      },
+      "events_http_ms": {
+        "samples": 271,
+        "p50_ms": 15.2934,
+        "p95_ms": 37.2112,
+        "p99_ms": 101.0603,
+        "maximum_ms": 209.2857
+      }
+    },
+    "MTA": {
+      "status_http_ms": {
+        "samples": 2136,
+        "p50_ms": 29.4998,
+        "p95_ms": 69.631,
+        "p99_ms": 112.529,
+        "maximum_ms": 184.8857
+      },
+      "health_http_ms": {
+        "samples": 2136,
+        "p50_ms": 38.6425,
+        "p95_ms": 74.2419,
+        "p99_ms": 123.2976,
+        "maximum_ms": 248.243
+      },
+      "result_http_ms": {
+        "samples": 267,
+        "p50_ms": 10.0116,
+        "p95_ms": 52.6973,
+        "p99_ms": 74.3289,
+        "maximum_ms": 120.1779
+      },
+      "events_http_ms": {
+        "samples": 267,
+        "p50_ms": 15.582,
+        "p95_ms": 35.3606,
+        "p99_ms": 53.4471,
+        "maximum_ms": 170.1716
+      }
+    }
+  },
+  "resources": {
+    "STA": {
+      "host_resources": {
+        "first": {
+          "pid": 40076,
+          "ram_bytes": 110575616,
+          "handles": 533,
+          "cpu_ms": 4015.625
+        },
+        "last": {
+          "pid": 40076,
+          "ram_bytes": 143310848,
+          "handles": 544,
+          "cpu_ms": 63687.5
+        },
+        "maximum_ram_bytes": 158191616,
+        "maximum_handles": 549
+      },
+      "worker_resources": {
+        "first": {
+          "pid": 87092,
+          "ram_bytes": 49922048,
+          "handles": 462,
+          "cpu_ms": 1984.375,
+          "startup_registration_ms": 1395.6256
+        },
+        "last": {
+          "pid": 87092,
+          "ram_bytes": 55934976,
+          "handles": 702,
+          "cpu_ms": 15281.25,
+          "startup_registration_ms": 1395.6256
+        },
+        "maximum_ram_bytes": 55934976,
+        "maximum_handles": 702
+      }
+    },
+    "MTA": {
+      "host_resources": {
+        "first": {
+          "pid": 27696,
+          "ram_bytes": 113897472,
+          "handles": 539,
+          "cpu_ms": 4312.5
+        },
+        "last": {
+          "pid": 27696,
+          "ram_bytes": 144506880,
+          "handles": 546,
+          "cpu_ms": 62687.5
+        },
+        "maximum_ram_bytes": 154062848,
+        "maximum_handles": 552
+      },
+      "worker_resources": {
+        "first": {
+          "pid": 17284,
+          "ram_bytes": 49311744,
+          "handles": 456,
+          "cpu_ms": 1453.125,
+          "startup_registration_ms": 996.5432
+        },
+        "last": {
+          "pid": 17284,
+          "ram_bytes": 55099392,
+          "handles": 602,
+          "cpu_ms": 11218.75,
+          "startup_registration_ms": 996.5432
+        },
+        "maximum_ram_bytes": 57806848,
+        "maximum_handles": 602
+      }
+    }
+  },
+  "machine": {
+    "cpu": [
+      {
+        "Name": "Intel(R) Xeon(R) CPU E3-1240 v5 @ 3.50GHz",
+        "NumberOfCores": 4,
+        "NumberOfLogicalProcessors": 8
+      }
+    ],
+    "physical_ram_bytes": 34288074752
+  },
+  "historical_attempts": [
+    {
+      "run_id": "d3bfd383509149b2b7526fa4895343d1",
+      "status": "FAIL",
+      "cause": "AP19 path guard; before any Attach; fixed and tested"
+    },
+    {
+      "run_id": "05ff7c9904694682b29492933d3e592a",
+      "status": "FAIL",
+      "cause": "Attach deadline 120s while access pending; never rewritten; worker later returned and exited"
+    },
+    {
+      "run_id": "1149d7208e604edabc4587b1e9b9912c",
+      "status": "FAIL",
+      "cause": "Real read/Dispose succeeded; coverage_refs were not artifact IDs; fixed/tested; original RUNNING recovered as FAILED without replay"
+    },
+    {
+      "run_id": "479a865b1d2c42fe9fdf4abb42b89e6f",
+      "status": "FAIL",
+      "successful_reads": 40,
+      "cause": "MTA reads passed; harness incorrectly required 202 on idempotent 200; fixed"
+    },
+    {
+      "run_id": "3c8e4b12d41a4f84bab7b80e6090a6f3",
+      "status": "FAIL",
+      "cause": "Harness sharing violation reading own audit; cleanup barrier fixed; no TIA process killed"
+    },
+    {
+      "run_id": "9a0c8e40f7b84a89a0ebc9cdf50f1ed4",
+      "status": "PASS",
+      "cause": "Before mixed-device-family correction; retained as supporting evidence, superseded by final build"
+    },
+    {
+      "run_id": "ebccfe25f59d4bf6bc805452436a8356",
+      "status": "FAIL",
+      "cause": "New EXE access pending beyond 120s; actual read/Dispose returned after manual authorization; original timeout retained"
+    }
+  ],
+  "recovery_old_incomplete_operation": {
+    "status": "PASS",
+    "operation_id": "81964ae8-f61c-4d49-98d2-ab429977ef0f",
+    "before": "RUNNING",
+    "after": "FAILED",
+    "host_recovery_to_ready_ms": 1016.3174000044819,
+    "cli": {
+      "status": {
+        "exit_code": 0,
+        "state": "FAILED"
+      },
+      "events": {
+        "exit_code": 0,
+        "state": "SUCCEEDED"
+      },
+      "result": {
+        "exit_code": 6,
+        "state": "FAILED"
+      }
+    },
+    "same_idempotent_submit": true,
+    "attempts_before": 1,
+    "attempts_after": 1
+  },
+  "limitations": [
+    "NF-03 exFAT historical FAIL remains; no exFAT qualification",
+    "NF-11 minimum eight hours NOT_RUN, mandatory B-10B/R-14",
+    "Worker handle growth observed; no conclusion of stable long-term resource release; all owned processes exited",
+    "Bounded inventory is PARTIAL; mixed native parents UNKNOWN, both software types preserved",
+    "Project file metadata and IsModified are limited evidence, not proof against internal Siemens writes",
+    "License entitlements not independently enumerated; actual permitted Attach is observed",
+    "No production/Runtime/physical PLC or mutation qualification"
+  ],
+  "offline_execution": {
+    "status": "FAIL",
+    "full_suite": {
+      "passed": 763,
+      "failed": 1,
+      "failed_tests": [
+        "TiaBridge.Host.Tests.ApiPerformanceTests.One_and_eight_clients_keep_status_and_workspace_responsive_during_real_worker_hang"
+      ],
+      "skipped": 0,
+      "deterministic_cases": 100,
+      "host_storage_cases": 64,
+      "scheduler_ipc_cases": 76,
+      "http_cli_cases": 38,
+      "resilience_cases": 48
+    },
+    "python": {
+      "total": 31,
+      "passed": 31,
+      "failed": 0,
+      "skipped": 0
+    },
+    "run_id": "a901583fdab74745bebadad476794a39",
+    "targeted_v19_tests": {
+      "passed": 25,
+      "failed": 0,
+      "skipped": 0
+    },
+    "unique_dotnet_cases_across_full_and_targeted": {
+      "passed": 772,
+      "failed": 1,
+      "skipped": 0,
+      "total": 773
+    },
+    "failure_detail": "NF-03 M:/exFAT edit p95 178.5496 ms > 100 ms; unqualified profile; not waived",
+    "build_release": "PASS",
+    "warnings": 0,
+    "errors": 0,
+    "documentation_audit": "PASS"
+  },
+  "runtime": "NOT_RUN",
+  "post_profile_guard_live_smoke": {
+    "run_id": "c8c0c733b6044aefb9b6a94c7dcfac8f",
+    "sha256": "c4dcb29f27148147070fb3094037c50667777bfd3966504a6509705de271831c",
+    "status": "PASS",
+    "read_cycles": 2,
+    "project_file_metadata_unchanged": true
+  },
+  "engineering_final_validation": {
+    "passed": 93,
+    "failed": 0,
+    "skipped": 0,
+    "composition": "80 alternating STA/MTA read cycles + 7 process fault cases + 4 worker preflight unittests + 2 post-guard live read cycles; historical failed trials listed separately"
+  },
+  "qualification": {
+    "offline": "FAIL",
+    "engineering": "PASS",
+    "engineering_scope": "Bounded V19 Update 3 read-only on verified local NTFS; does not claim full X-01 acceptance",
+    "runtime": "NOT_RUN",
+    "instance_a": "PASS",
+    "instance_b": "PASS",
+    "x01_overall": "FAIL",
+    "b03a_readiness": "NOT_READY",
+    "reason": "User acceptance criterion 11 requires offline regression PASS; full invocation still fails NF-03 exFAT. D-11 allows scoped NTFS experiments but does not turn a failed test into PASS. No unconditional X-01 completion or B-03A transition is declared."
+  },
+  "worker_exe_sha256": "35cf9004d5d284a0c6db8bd7bfa684a1364cdba07d3e77d5d0a251b6d7641125",
+  "changed_paths": [
+    "README.md",
+    "TiaBridge.Engineering.slnx",
+    "TiaBridge.slnx",
+    "Zmiany.md",
+    "contracts/README.md",
+    "contracts/ipc/v1.1/message.schema.json",
+    "docs/06_TIA_INTEGRATION.md",
+    "docs/08_IMPLEMENTATION_PLAN.md",
+    "docs/09_RISKS_AND_DECISIONS.md",
+    "docs/14_SCHEDULER_IPC.md",
+    "docs/X01_TIA_V19_QUALIFICATION.md",
+    "examples/ipc/v1.1/cancel.json",
+    "examples/ipc/v1.1/dispatch.json",
+    "examples/ipc/v1.1/heartbeat.json",
+    "examples/ipc/v1.1/hello.json",
+    "examples/ipc/v1.1/progress.json",
+    "examples/ipc/v1.1/ready.json",
+    "examples/ipc/v1.1/receipt.json",
+    "examples/ipc/v1.1/started.json",
+    "examples/ipc/v1.1/stop.json",
+    "scripts/README.md",
+    "scripts/audit_v19_environment.ps1",
+    "src/TiaBridge.Host/Api/HostApi.cs",
+    "src/TiaBridge.Host/Api/HostConfiguration.cs",
+    "src/TiaBridge.Host/README.md",
+    "src/TiaBridge.Host/Scheduling/ExecutionModels.cs",
+    "src/TiaBridge.Host/Scheduling/OperationScheduler.cs",
+    "src/TiaBridge.Host/Scheduling/V19InspectionProfile.cs",
+    "src/TiaBridge.Host/Supervision/WorkerSupervisor.cs",
+    "src/TiaBridge.Ipc/Compatibility.cs",
+    "src/TiaBridge.Ipc/PipePeer.cs",
+    "src/TiaBridge.Ipc/Protocol.cs",
+    "src/TiaBridge.Ipc/TiaBridge.Ipc.csproj",
+    "src/TiaBridge.Ipc/packages.lock.json",
+    "src/TiaBridge.Worker.V19/InventoryFamily.cs",
+    "src/TiaBridge.Worker.V19/Program.cs",
+    "src/TiaBridge.Worker.V19/README.md",
+    "src/TiaBridge.Worker.V19/TiaBridge.Worker.V19.csproj",
+    "src/TiaBridge.Worker.V19/VendorReader.cs",
+    "src/TiaBridge.Worker.V19/VendorResolver.cs",
+    "src/TiaBridge.Worker.V19/packages.lock.json",
+    "tests/README.md",
+    "tests/contracts/test_v19_ipc_contracts.py",
+    "tests/engineering/README.md",
+    "tests/engineering/TiaBridge.V19.Qualification/FaultMatrix.cs",
+    "tests/engineering/TiaBridge.V19.Qualification/Program.cs",
+    "tests/engineering/TiaBridge.V19.Qualification/TiaBridge.V19.Qualification.csproj",
+    "tests/engineering/TiaBridge.V19.Qualification/packages.lock.json",
+    "tests/engineering/test_worker_preflight.py",
+    "tests/engineering/x01-qualification.json",
+    "tests/integration/TiaBridge.Host.Tests/TiaBridge.Host.Tests.csproj",
+    "tests/integration/TiaBridge.Host.Tests/V19OfflineTests.cs",
+    "tests/integration/TiaBridge.Ipc.FrameworkProbe/Program.cs",
+    "tests/integration/TiaBridge.Ipc.FrameworkProbe/TiaBridge.Ipc.FrameworkProbe.csproj",
+    "tests/integration/TiaBridge.Ipc.FrameworkProbe/packages.lock.json",
+    "tests/integration/TiaBridge.StorageProbe/HttpResilienceProbe.cs"
+  ]
+}

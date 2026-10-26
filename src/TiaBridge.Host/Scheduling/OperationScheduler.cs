@@ -154,10 +154,11 @@ public sealed class OperationScheduler : IAsyncDisposable
                     }
                     // Materialize the immutable input before entering the dispatch transaction.
                     var input = store.Artifacts.Put(operation.Report.OperationId, new MemoryStream(operation.RequestJson));
-                    using (var template = store.Artifacts.OpenVerified(spec.SuccessReport.ArtifactId))
-                    {
-                        if (template.Descriptor != spec.SuccessReport || template.Descriptor.Size > Protocol.MaxReceiptBytes) throw new StorageException(ErrorCode.VERIFY_FAILED);
-                    }
+                    if (spec.SuccessReport is { } successTemplate)
+                        using (var template = store.Artifacts.OpenVerified(successTemplate.ArtifactId))
+                        {
+                            if (template.Descriptor != spec.SuccessReport || template.Descriptor.Size > Protocol.MaxReceiptBytes) throw new StorageException(ErrorCode.VERIFY_FAILED);
+                        }
                     int? timeoutSeconds = parameters.TryGetProperty("timeout_s", out var timeout) ? timeout.GetInt32() : null;
                     var budget = new ExecutionBudget(operation.Report.Method, timeoutSeconds, queueSeconds);
                     var binding = store.PrepareDispatch(Owner, pending.OperationId, worker.Epoch, spec, budget.ExecutionDeadline(clock.GetUtcNow()));
@@ -185,7 +186,11 @@ public sealed class OperationScheduler : IAsyncDisposable
     {
         var b = call.Binding; history[(b.OperationId.Value, b.Attempt)] = b;
         if (history.Count > 1000) throw new InvalidOperationException("Bounded scheduler session exhausted.");
-        var command = new Ipc.Dispatch(call.Request, new(call.Spec.SuccessReport.ArtifactId, call.Spec.SuccessReport.Sha256), call.Spec.Scenario, call.Spec.DelayMs, b.Attempt, b.InputHash, b.PlanHash, call.Spec.FailureCode.ToString());
+        if (call.Spec.V19Target is not null)
+        {
+            await Send(MessageKind.Dispatch, b.OperationId.Value, b.Fence, Protocol.Body(new InspectDispatch(call.Request, b.Attempt, b.InputHash, null)), ct); return;
+        }
+        var command = new Ipc.Dispatch(call.Request, new(call.Spec.SuccessReport!.ArtifactId, call.Spec.SuccessReport.Sha256), call.Spec.Scenario, call.Spec.DelayMs, b.Attempt, b.InputHash, b.PlanHash, call.Spec.FailureCode.ToString());
         await Send(MessageKind.Dispatch, b.OperationId.Value, b.Fence, Protocol.Body(command), ct);
         if (call.Spec.Scenario == FakeScenario.DuplicateDispatch) await Send(MessageKind.Dispatch, b.OperationId.Value, b.Fence, Protocol.Body(command), ct);
     }
@@ -246,9 +251,11 @@ public sealed class OperationScheduler : IAsyncDisposable
         store.RecordReceipt(Owner, binding, message, "QUIESCENT");
         if (receipt.Disposition == "Succeeded" && receipt.Report is { } reportJson && Encoding.UTF8.GetByteCount(reportJson) <= Protocol.MaxReceiptBytes)
         {
-            var template = ContractJson.ReadReport(Encoding.UTF8.GetBytes(reportJson));
+            var template = current.Spec.V19Target is { } target
+                ? V19InspectionProjection.Create(store, previousReport, target, reportJson)
+                : ContractJson.ReadReport(Encoding.UTF8.GetBytes(reportJson));
             if (template.Method != previousReport.Method || template.State != OperationState.SUCCEEDED) throw new ProtocolException();
-            store.Complete(Owner, binding, previousReport with { State = OperationState.SUCCEEDED, Outcome = OperationOutcome.CONFIRMED, Phase = "COMPLETED", Result = template.Result, ArtifactRefs = template.ArtifactRefs, CompletedAt = clock.GetUtcNow(), PollAfterMs = 0 });
+            store.Complete(Owner, binding, previousReport with { State = OperationState.SUCCEEDED, Outcome = OperationOutcome.CONFIRMED, Phase = "COMPLETED", Result = template.Result, ArtifactRefs = template.ArtifactRefs, SessionEpoch = template.SessionEpoch ?? previousReport.SessionEpoch, CompletedAt = clock.GetUtcNow(), PollAfterMs = 0 });
             var breaker = LoadBreaker(current.Spec); breaker.Success(); PersistBreaker(current.Spec, breaker);
         }
         else if (receipt.Disposition == "Cancelled" && receipt.EffectCount == 0)

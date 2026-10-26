@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "assessment_date": "2026-10-26",
+  "repository": "X:\\Projects\\TIA_Bridge",
+  "repository_filesystem": "NTFS",
+  "source_head": "e6b659708c6141ad89be4ea109a64a8e76109a3d",
+  "x01_implementation_commit": "9e8b7bfadb1f4e7b0fc3a793d01cbb82f54e5c07",
+  "worktree_at_start": "clean",
+  "offline_run_id": "f116dd23c7aa480995b5a69077f4db35",
+  "source_fingerprint_lf_sha256": "f4bd013d908d7f77a777f5741c77f402046cd9c8b459be07d13d795d9cb55ea7",
+  "profile": {
+    "workspace_filesystem": "NTFS",
+    "state_filesystem": "NTFS",
+    "os": "Windows 10.0.22000",
+    "dotnet_runtime": ".NET 10.0.13",
+    "cpu": "Intel Xeon E3-1240 v5, 4 cores / 8 logical processors",
+    "siemens_activation": false
+  },
+  "statuses": {
+    "build_release": "PASS",
+    "offline_test_execution": "FAIL",
+    "offline_current_ntfs_qualification": "FAIL",
+    "historical_exfat": "FAIL",
+    "x01_limited_d11": "PASS",
+    "x01_engineering": "PASS_HISTORICAL_93_OF_93_NOT_RERUN",
+    "runtime": "NOT_RUN",
+    "nf11": "NOT_RUN",
+    "worker_handle_risk": "UNKNOWN",
+    "b03a_readiness": "READY_BOUNDED_READ_ONLY_ONLY"
+  },
+  "test_results": {
+    "dotnet": { "passed": 772, "failed": 1, "skipped": 0, "total": 773 },
+    "python": { "passed": 31, "failed": 0, "skipped": 0, "total": 31 },
+    "failed_test": "TiaBridge.Host.Tests.ResiliencePerformanceTests.Five_minute_idle_resource_profile_is_measured_without_shortening_the_NF08_window",
+    "failed_assertion": { "metric": "idle_cpu_percent", "value": 1.028798887705612, "threshold": 1.0, "requirement": "NF-08" },
+    "generators_quality_format_diff": "PASS"
+  },
+  "limited_d11": {
+    "rt": { "RT-03": "PASS", "RT-05": "PASS", "RT-06": "PASS", "RT-15": "PASS", "RT-16": "PASS" },
+    "nf": { "NF-01": "PASS", "NF-02": "PASS", "NF-03": "PASS", "NF-04": "PASS", "NF-05": "PASS", "NF-06": "PASS", "NF-12": "PASS", "NF-14": "PASS", "NF-15": "PASS" },
+    "idle_seconds": 306.4101049,
+    "operations_completed": 1001,
+    "operations_duration_seconds": 479.2173962,
+    "critical_execution_or_isolation_defects": 0,
+    "scope_note": "D-11 is assessed separately from the general B-02 reporter. The sole test failure is the NF-08 CPU threshold, which is outside D-11's required NF set; the measured idle duration satisfies D-11."
+  },
+  "nf03_ntfs": {
+    "repository_workspace_on_x_ntfs": true,
+    "without_worker_samples": 100,
+    "without_worker_p95_ms": 4.5592,
+    "during_fake_hang_samples": 100,
+    "sample_size_bytes": 1048576,
+    "interval_ms": 100,
+    "during_fake_hang_p95_ms": 6.5635,
+    "during_fake_hang_p99_ms": 87.0439,
+    "during_fake_hang_maximum_ms": 163.6967,
+    "refused_samples": 0
+  },
+  "worker_handle_observation": {
+    "sta_start": 462,
+    "sta_end": 702,
+    "mta_start": 456,
+    "mta_end": 602,
+    "dispose_and_owned_process_exit": "PASS",
+    "leak_cause": "UNRESOLVED"
+  },
+  "evidence_sha256": {
+    "offline_run_json": "7929037e3cb55e4a85dfc0b5f7fd6a0c1c34d6d7e33bb38f2471c93715513c7b",
+    "resilience_run_json": "fd56072bb5b2cba8352aa1ca274136bd31f5bff242c8a6c709678f3b5736e0d7",
+    "host_trx": "6672688ba2bce568c09c8dd143713a4ae975462fa7394c71a184d0f73c2d554b",
+    "idle_300s_json": "a33a204d6a56ba6fc8217f938ec78b25b8d7c77208e9e750c733320eded9bef0",
+    "operations_1001_json": "2c74dcd9d29663f4ad6e0e41c77463ba911cfd238f38d176dba752a22fdc8c53",
+    "workspace_replace_json": "f72397adc78a6bf9f334a29648c80fe503ee17c7db71a60dbc61dfdfd77c06e5",
+    "http_readers_recovery_json": "373b6709519d4b7350fb5c60a5ec2e3448368891c347690ae5ea3def76afb5b6"
+  },
+  "limits": [
+    "NF-11 minimum eight-hour soak not run and remains mandatory in B-10B/R-14.",
+    "Historical exFAT NF-03 remains FAIL; NTFS evidence does not qualify exFAT.",
+    "Engineering result is historical evidence; no Engineering test was run in this task.",
+    "No Runtime or production stability qualification.",
+    "The generic resilience reporter retains its conservative NOT_READY result for the full profile; no reporter or threshold was changed."
+  ]
+}
