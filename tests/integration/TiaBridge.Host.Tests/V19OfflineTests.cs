@@ -48,11 +48,41 @@ public class V19OfflineTests
         var entry = new TiaBridge.Core.Capabilities.CapabilityEntryV2(key, true, true, "1.0", V19DiscoveryProfile.Id,
             TiaBridge.Host.Scheduling.V19InspectionProfile.DiscoveryReadScope, [], new TiaBridge.Core.Workspace.Coverage([new(TiaBridge.Core.Workspace.CoverageDimension.STRUCTURE, TiaBridge.Core.Workspace.CoverageState.COMPLETE)]), [qualification]);
         var registry = new TiaBridge.Core.Capabilities.CapabilityRegistry(new TiaBridge.Core.Capabilities.CapabilityConfigurationV2("2.0", "synthetic-v2", [entry]));
+        var signer = System.Security.Cryptography.ECDsa.Create(System.Security.Cryptography.ECCurve.NamedCurves.nistP256);
+        byte[] publicKey = signer.ExportSubjectPublicKeyInfo();
+        string artifactContent = "synthetic qualification sample";
+        string artifactHash = Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(artifactContent)));
+        var evidence = new TiaBridge.Core.Capabilities.QualificationEvidence(qualification, 1,
+            TiaBridge.Core.Capabilities.QualificationEvidenceKind.OFFLINE_TEST, "synthetic test fixture", "unit-test signer",
+            tiaBuild, "tia-bridge.worker.v19", workerBuild, workerBuild, TiaBridge.Core.Operations.OperationMethod.ProjectInspect,
+            TiaBridge.Core.Capabilities.OperationScope.PROJECT, null, "project", "v19.discovery.v1",
+            TiaBridge.Host.Scheduling.V19InspectionProfile.DiscoveryReadScope,
+            [new TiaBridge.Core.Workspace.CoverageItem(TiaBridge.Core.Workspace.CoverageDimension.STRUCTURE, TiaBridge.Core.Workspace.CoverageState.COMPLETE)],
+            TiaBridge.Core.Capabilities.QualificationResult.PASS, "synthetic-run-1", target.ProjectKey, null,
+            [new("sample.txt", artifactHash)], DateTimeOffset.UtcNow);
+        var evidenceOptions = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower,
+            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter(allowIntegerValues: false) }
+        };
+        byte[] payload = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(evidence, evidenceOptions);
+        byte[] signature = signer.SignData(payload, System.Security.Cryptography.HashAlgorithmName.SHA256);
+        string evidenceRoot = Path.Combine(files.Root, "qualification-evidence");
+        Directory.CreateDirectory(Path.Combine(evidenceRoot, qualification));
+        File.WriteAllText(Path.Combine(evidenceRoot, qualification, "sample.txt"), artifactContent);
+        File.WriteAllBytes(Path.Combine(evidenceRoot, qualification + ".signed.json"), System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(
+            new TiaBridge.Host.Scheduling.SignedQualificationEnvelope("synthetic", Convert.ToBase64String(payload), Convert.ToBase64String(signature)), evidenceOptions));
+        config = config with { QualificationTrust = new(["synthetic=" + Convert.ToBase64String(publicKey)]) };
+        var provider = new TiaBridge.Host.Scheduling.QualificationEvidenceProvider(config);
         TiaBridge.Host.Scheduling.V19InspectionProfile Profile(string? tia = null, string? worker = null, bool withEvidence = true, TiaBridge.Core.Capabilities.CapabilityRegistry? selected = null) =>
-            new(config, selected ?? registry, withEvidence ? new HashSet<string>([qualification], StringComparer.Ordinal) : null,
+            new(config, selected ?? registry,
+                withEvidence ? provider.Assess : _ => TiaBridge.Host.Scheduling.QualificationEvidenceDecision.Denied("SYNTHETIC_DENIAL"),
                 () => tia ?? tiaBuild, () => worker ?? workerBuild);
 
-        Assert.NotNull(Profile().Resolve(operation));
+        var qualifiedProfile = Profile();
+        var admitted = qualifiedProfile.Resolve(operation);
+        Assert.NotNull(admitted);
+        Assert.True(File.Exists(Path.Combine(files.Root, "qualification-decisions.jsonl")));
         Assert.Null(Profile(tia: "unknown").Resolve(operation));
         Assert.Null(Profile(worker: "1.0+unknown").Resolve(operation));
         Assert.Null(Profile(withEvidence: false).Resolve(operation));
@@ -60,6 +90,31 @@ public class V19OfflineTests
         Assert.Null(Profile(selected: incomplete).Resolve(operation));
         var v1 = new TiaBridge.Core.Capabilities.CapabilityRegistry(new TiaBridge.Core.Capabilities.CapabilityConfiguration("1.0", "synthetic-v1", []));
         Assert.Null(Profile(selected: v1).Resolve(operation));
+        Assert.True(qualifiedProfile.Revalidate(operation, admitted!));
+        string artifactPath = Path.Combine(evidenceRoot, qualification, "sample.txt");
+        File.AppendAllText(artifactPath, "tampered");
+        Assert.Null(qualifiedProfile.Resolve(operation));
+        Assert.False(qualifiedProfile.Revalidate(operation, admitted!));
+        File.WriteAllText(artifactPath, artifactContent);
+        string signedPath = Path.Combine(evidenceRoot, qualification + ".signed.json");
+        var signedEnvelope = System.Text.Json.JsonSerializer.Deserialize<TiaBridge.Host.Scheduling.SignedQualificationEnvelope>(File.ReadAllBytes(signedPath), evidenceOptions)!;
+        byte[] changedSignature = Convert.FromBase64String(signedEnvelope.SignatureBase64); changedSignature[0] ^= 1;
+        File.WriteAllBytes(signedPath, System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(signedEnvelope with
+        { SignatureBase64 = Convert.ToBase64String(changedSignature) }, evidenceOptions));
+        Assert.Null(qualifiedProfile.Resolve(operation));
+        Assert.Equal("NO_TRUSTED_SIGNERS", new TiaBridge.Host.Scheduling.QualificationEvidenceProvider(config with { QualificationTrust = null })
+            .Assess(new(qualification, tiaBuild, "tia-bridge.worker.v19", workerBuild, workerBuild,
+                TiaBridge.Core.Operations.OperationMethod.ProjectInspect, TiaBridge.Core.Capabilities.OperationScope.PROJECT, null, "project",
+                "v19.discovery.v1", TiaBridge.Host.Scheduling.V19InspectionProfile.DiscoveryReadScope,
+                [TiaBridge.Core.Workspace.CoverageDimension.STRUCTURE], target.ProjectKey, null)).Reason);
+        var requirement = new TiaBridge.Core.Capabilities.QualificationRequirement(qualification, tiaBuild, "tia-bridge.worker.v19",
+            workerBuild, workerBuild, TiaBridge.Core.Operations.OperationMethod.ProjectInspect, TiaBridge.Core.Capabilities.OperationScope.PROJECT,
+            null, "project", "v19.discovery.v1", TiaBridge.Host.Scheduling.V19InspectionProfile.DiscoveryReadScope,
+            [TiaBridge.Core.Workspace.CoverageDimension.STRUCTURE], target.ProjectKey, null);
+        Assert.Equal("EVIDENCE_STORE_UNAVAILABLE", new TiaBridge.Host.Scheduling.QualificationEvidenceProvider(config with
+        { StatePath = Path.Combine(files.Root, "missing-store") }).Assess(requirement).Reason);
+        Assert.Equal(TiaBridge.Core.Capabilities.QualificationEvidenceDenial.NOT_FOUND,
+            TiaBridge.Core.Capabilities.QualificationEvidencePolicy.Assess(requirement with { EvidenceId = "unknown-id" }, []).Denial);
     }
     [Theory]
     [InlineData("PLC", "Siemens.Engineering.SW.PlcSoftware", "hardware")]

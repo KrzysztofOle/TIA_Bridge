@@ -106,6 +106,13 @@ public sealed class OperationScheduler : IAsyncDisposable
                     }
                     if (current.RetryAt is { } retryAt && now >= retryAt && now < current.Binding.Deadline && !current.TimedOut && !report.CancelRequested)
                     {
+                        var retryOperation = store.Read(current.Binding.OperationId);
+                        if (!profile.Revalidate(retryOperation, current.Spec))
+                        {
+                            store.Complete(Owner, current.Binding, store.Failure(retryOperation.Report, false, ErrorCode.UNSUPPORTED, "QUALIFICATION_CHANGED_BEFORE_RETRY"));
+                            active = null;
+                            return;
+                        }
                         var next = store.PrepareDispatch(Owner, current.Binding.OperationId, worker.Epoch, current.Spec, current.Binding.Deadline, current.Binding.Attempt + 1);
                         if (next is not null) { active = current with { Binding = next, RetryAt = null }; await Dispatch(active, ct); }
                     }
@@ -161,6 +168,7 @@ public sealed class OperationScheduler : IAsyncDisposable
                         }
                     int? timeoutSeconds = parameters.TryGetProperty("timeout_s", out var timeout) ? timeout.GetInt32() : null;
                     var budget = new ExecutionBudget(operation.Report.Method, timeoutSeconds, queueSeconds);
+                    if (!profile.Revalidate(operation, spec)) { FailQueued(operation, ErrorCode.UNSUPPORTED); continue; }
                     var binding = store.PrepareDispatch(Owner, pending.OperationId, worker.Epoch, spec, budget.ExecutionDeadline(clock.GetUtcNow()));
                     if (binding is not null)
                     {
@@ -184,6 +192,13 @@ public sealed class OperationScheduler : IAsyncDisposable
     }
     private async Task Dispatch(Active call, CancellationToken ct)
     {
+        var currentOperation = store.Read(call.Binding.OperationId);
+        if (!profile.Revalidate(currentOperation, call.Spec))
+        {
+            store.Complete(Owner, call.Binding, store.Failure(currentOperation.Report, call.Binding.Mutation, ErrorCode.UNSUPPORTED, "QUALIFICATION_CHANGED_BEFORE_DISPATCH"));
+            active = null;
+            return;
+        }
         var b = call.Binding; history[(b.OperationId.Value, b.Attempt)] = b;
         if (history.Count > 1000) throw new InvalidOperationException("Bounded scheduler session exhausted.");
         if (call.Spec.V19Target is not null)

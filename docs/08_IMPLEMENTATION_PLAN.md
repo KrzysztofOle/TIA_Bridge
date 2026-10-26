@@ -68,7 +68,7 @@ Zamknięcie prac B-02D wymaga wykonania i jawnego raportu RT/NF, bez ukrywania F
 
 | ID | Zadanie / moduły | Kryterium commita |
 |---|---|---|
-| B-03A / MVP | `Worker.V19` bounded Discovery/Inventory, Core DTO, Host projection, exact DLL loader, handshake | profile Device/DeviceItem ograniczone limitami; PID/start/project binding, IsModified, jawne rodziny/relacje/coverage; PROJECT-scoped `project.inspect` z osobną kwalifikacją DeviceFamily; brak stabilnego ID pozostaje jawny; Engineering kwalifikacja nowych artefaktów osobno |
+| B-03A / MVP | `Worker.V19` bounded Discovery/Inventory, Core DTO, Host projection, exact DLL loader, handshake | profile Device/DeviceItem ograniczone limitami; PID/start/project binding, IsModified, jawne rodziny/relacje/coverage; PROJECT-scoped `project.inspect` z osobną kwalifikacją DeviceFamily; brak stabilnego ID pozostaje jawny; E1 dodaje offline trusted-evidence provider. Real enrollment wymaga operatorowej polityki kluczy, ACL i revocation opisanej w [dokumencie 17](17_TRUSTED_QUALIFICATION_EVIDENCE.md); Engineering qualification nowych artefaktów pozostaje osobna. |
 | B-03B / MVP | `Core/Workspace`, `Worker.V19/Plc/Export`, manifest+staging | FC SCL native XML/generated source z hierarchy, hashami, Unsupported rows; brak overwrite W |
 | B-03C / REQUIRED | matrix DB/UDT/FB/OB/IDB/tag tables/groups | golden export fixtures i coverage per kind; brak reklamy importu na podstawie export |
 | B-03D / REQUIRED | `Worker.V19/HmiUnified,HmiClassic`, typed model | scripts/tags i read-only screen/event mapping z error coverage, native YAML zachowany; rodziny rozdzielone |

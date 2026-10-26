@@ -1,5 +1,9 @@
 # 15 — Lokalne HTTP API i CLI B-02C
 
+## Trusted qualification evidence
+
+V19 `project.inspect` korzysta również z Hostowego providera opisanego w [dokumencie 17](17_TRUSTED_QUALIFICATION_EVIDENCE.md). Opcjonalne `qualification_trust.trusted_signer_keys` pochodzą z operatorskiej konfiguracji startowej; HTTP/CLI nie wybiera ścieżki dowodów ani kluczy, a `evidence_id` nie jest autoryzacją ani wynikiem kwalifikacji. Konfiguracje domyślne/przykładowe nie mają anchorów. Brak klucza, podpisu, artefaktu lub dokładnego dopasowania projektu/builda/scope odmawia dispatch. Host zapisuje decyzje i ponownie sprawdza snapshot przed dispatch oraz wysłaniem IPC.
+
 Stan 2026-10-25: działający proces Host ASP.NET Core Minimal API i klient CLI, na istniejących [Storage](13_DURABLE_STORAGE.md), [schedulerze/Fake Worker/IPC](14_SCHEDULER_IPC.md) i [kontraktach v1](05_CODEX_INTERFACE.md). Bez Siemens, MCP lub pełnego harnessu B-02D. Dostępność endpointu i synthetic SUCCEEDED nie potwierdzają Engineering, Runtime lub SYNCED.
 
 ## Proces i konfiguracja

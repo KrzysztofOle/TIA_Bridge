@@ -23,21 +23,24 @@ internal sealed class V19InspectionProfile : IExecutionProfile
     private const string AdapterId = "tia-bridge.worker.v19";
     private readonly HostConfiguration configuration;
     private readonly CapabilityRegistry registry;
-    private readonly IReadOnlySet<string>? verifiedQualifications;
+    private readonly Func<QualificationRequirement, QualificationEvidenceDecision> assessEvidence;
+    private readonly string decisionJournal;
+    private readonly HashSet<string> recordedDecisions = new(StringComparer.Ordinal);
     private readonly Func<string?> tiaBuild;
     private readonly Func<string?> workerBuild;
 
     internal V19InspectionProfile(HostConfiguration configuration)
-        : this(configuration, LoadRegistry(configuration.StatePath), null, GetInstalledTiaBuild,
+        : this(configuration, LoadRegistry(configuration.StatePath), new QualificationEvidenceProvider(configuration).Assess, GetInstalledTiaBuild,
         () => GetWorkerBuild(configuration.V19WorkerExe))
     { }
 
     internal V19InspectionProfile(HostConfiguration configuration, CapabilityRegistry registry,
-        IReadOnlySet<string>? verifiedQualifications, Func<string?> tiaBuild, Func<string?> workerBuild)
+        Func<QualificationRequirement, QualificationEvidenceDecision> assessEvidence, Func<string?> tiaBuild, Func<string?> workerBuild)
     {
         this.configuration = configuration;
         this.registry = registry;
-        this.verifiedQualifications = verifiedQualifications;
+        this.assessEvidence = assessEvidence;
+        decisionJournal = Path.Combine(Path.GetFullPath(configuration.StatePath), "qualification-decisions.jsonl");
         this.tiaBuild = tiaBuild;
         this.workerBuild = workerBuild;
     }
@@ -111,10 +114,60 @@ internal sealed class V19InspectionProfile : IExecutionProfile
         var key = new CapabilityKeyV2(OperationScope.PROJECT, tia, AdapterId, worker, null, "project", V19DiscoveryProfile.Id, null, OperationMethod.ProjectInspect);
         var query = new CapabilityQueryV2(key, registry.RegistryVersion, "1.0", V19DiscoveryProfile.Id,
             DiscoveryReadScope, [], [CoverageDimension.STRUCTURE]);
-        if (!registry.Assess(query, verifiedQualifications).CapabilityConfirmed) return null;
+        var ids = registry.RequiredQualificationsFor(query);
+        if (ids.Count == 0) { _ = RecordDecision(operation, "", "NO_REGISTRY_QUALIFICATION", ""); return null; }
+        var verified = new HashSet<string>(StringComparer.Ordinal);
+        var decisionHashes = new List<string>();
+        foreach (string id in ids)
+        {
+            var requirement = new QualificationRequirement(id, tia, AdapterId, worker, worker,
+                OperationMethod.ProjectInspect, OperationScope.PROJECT, null, "project", V19DiscoveryProfile.Id,
+                DiscoveryReadScope, [CoverageDimension.STRUCTURE], target.ProjectKey, null);
+            var decision = assessEvidence(requirement);
+            if (!RecordDecision(operation, id, decision.Reason, decision.SnapshotHash) || !decision.Available) return null;
+            verified.Add(id); decisionHashes.Add(decision.SnapshotHash);
+        }
+        if (!registry.Assess(query, verified).CapabilityConfirmed)
+        { _ = RecordDecision(operation, "", "CAPABILITY_REGISTRY_DENIED", ""); return null; }
         var binding = new CapabilityBinding(OperationScope.PROJECT, registry.RegistryVersion, registry.CapabilitySetHash, V19DiscoveryProfile.Id);
+        if (!RecordDecision(operation, string.Join(",", ids), "QUALIFIED", string.Join(";", decisionHashes))) return null;
         return new ExecutionSpec("v19:" + target.Pid + ":" + target.StartTicks, "v19.project.discovery.v1", false, null,
-            V19Target: target, CapabilityBinding: binding);
+            V19Target: target, CapabilityBinding: binding,
+            QualificationDecisionHash: Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join("\n", decisionHashes.Order(StringComparer.Ordinal))))));
+    }
+
+    internal bool Revalidate(StoredOperation operation, ExecutionSpec admitted)
+    {
+        var current = Resolve(operation);
+        return current is not null && current.PortalKey == admitted.PortalKey && current.Capability == admitted.Capability
+            && current.V19Target == admitted.V19Target && current.CapabilityBinding == admitted.CapabilityBinding
+            && current.QualificationDecisionHash == admitted.QualificationDecisionHash;
+    }
+
+    private bool RecordDecision(StoredOperation operation, string evidenceIds, string reason, string snapshotHash)
+    {
+        string key = operation.Report.OperationId + "|" + evidenceIds + "|" + reason + "|" + snapshotHash;
+        if (recordedDecisions.Contains(key)) return true;
+        try
+        {
+            for (string? current = decisionJournal; current is not null; current = Path.GetDirectoryName(current))
+                if ((File.Exists(current) || Directory.Exists(current)) && (File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0) return false;
+            byte[] line = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new
+            {
+                operation_id = operation.Report.OperationId.ToString(),
+                evidence_ids = evidenceIds,
+                reason,
+                snapshot_hash = snapshotHash,
+                recorded_at_utc = DateTimeOffset.UtcNow
+            }, Protocol.Json) + "\n");
+            using var stream = new FileStream(decisionJournal, FileMode.Append, FileAccess.Write, FileShare.Read);
+            stream.Write(line); stream.Flush(true);
+            if (recordedDecisions.Count >= 10000) recordedDecisions.Clear();
+            recordedDecisions.Add(key);
+            return true;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        { return false; }
     }
 }
 

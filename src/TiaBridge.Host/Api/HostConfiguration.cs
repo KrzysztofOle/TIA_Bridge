@@ -11,10 +11,11 @@ using TiaBridge.Ipc;
 namespace TiaBridge.Host.Api;
 
 public sealed record FakeApiProfile(string Method, FakeScenario Scenario, int DelayMs, bool QualifiedEffectFreeRead, JsonElement SuccessReport);
+public sealed record QualificationTrustConfiguration(string[] TrustedSignerKeys);
 public sealed record HostConfiguration(string SchemaVersion, string StatePath, string RepositoryRoot, string[] RegisteredProjects,
     string? FakeWorkerDll = null, FakeApiProfile[]? FakeProfiles = null, bool EnableSyntheticMutations = false,
     int RequestsPerSecond = 2048, int SubmitsPerSecond = 256, int MaxInFlight = 64,
-    string? V19WorkerExe = null, V19Settings? V19 = null)
+    string? V19WorkerExe = null, V19Settings? V19 = null, QualificationTrustConfiguration? QualificationTrust = null)
 {
     internal static readonly JsonSerializerOptions Json = new()
     {
@@ -32,6 +33,9 @@ public sealed record HostConfiguration(string SchemaVersion, string StatePath, s
         var config = JsonSerializer.Deserialize<HostConfiguration>(bytes, Json) ?? throw new ArgumentException("Invalid Host configuration.");
         if (config.SchemaVersion != "1.0" || config.RegisteredProjects is null || config.RegisteredProjects.Length > 1000 || config.RequestsPerSecond is < 1 or > 2048 || config.SubmitsPerSecond is < 1 or > 256 || config.MaxInFlight is < 1 or > 64) throw new ArgumentException("Invalid Host configuration.");
         config = config with { StatePath = Environment.ExpandEnvironmentVariables(config.StatePath), RepositoryRoot = Path.GetFullPath(config.RepositoryRoot), FakeWorkerDll = config.FakeWorkerDll is null ? null : Path.GetFullPath(config.FakeWorkerDll) };
+        if (config.QualificationTrust?.TrustedSignerKeys is { } signers
+            && (signers.Length > 32 || signers.Any(s => string.IsNullOrWhiteSpace(s) || s.Length > 4096)
+                || signers.Distinct(StringComparer.Ordinal).Count() != signers.Length)) throw new ArgumentException("Invalid qualification trust anchors.");
         _ = StorageLocation.Validate(config.StatePath, config.RepositoryRoot);
         foreach (string project in config.RegisteredProjects) _ = new ProjectKey(UuidIdentity.ParseValue(project));
         var methods = new HashSet<OperationMethod>();

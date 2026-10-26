@@ -109,6 +109,14 @@ public sealed class CapabilityRegistry
         if (!qualified) return Denied(CapabilityDenial.QUALIFICATION_REQUIRED);
         return new(true, true, true, true, CapabilityDenial.NONE);
     }
+
+    /// <summary>Returns IDs required by the exact v2 key. IDs are selectors, never proof of authenticity.</summary>
+    public IReadOnlyList<string> RequiredQualificationsFor(CapabilityQueryV2 query)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        if (configurationV2 is null || query.RegistryVersion != RegistryVersion) return Array.Empty<string>();
+        return configurationV2.Entries.SingleOrDefault(e => e.Key == query.Key)?.RequiredQualifications ?? Array.Empty<string>();
+    }
 }
 
 public static class CapabilityJson
