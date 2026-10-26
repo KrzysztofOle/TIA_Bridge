@@ -1,11 +1,98 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-26 — końcowa kwalifikacja X-01 na X:/NTFS
+
+**Wejście:** aktywny checkout `X:\Projects\TIA_Bridge`; przed zmianą czysty `main`, `HEAD=origin/main=e6b659708c6141ad89be4ea109a64a8e76109a3d`; implementacja X-01 `9e8b7bfadb1f4e7b0fc3a793d01cbb82f54e5c07`. `Get-Volume` potwierdził X: jako lokalny Fixed/NTFS. State oraz Workspace w pomiarach również wskazały NTFS. Nie otwierano TIA ani projektów.
+
+**Pełny runner:** odizolowany QA Python uruchomił `scripts/validate_offline.py` z aktualnego checkoutu. Run `f116dd23c7aa480995b5a69077f4db35`, fingerprint LF źródeł `f4bd013d908d7f77a777f5741c77f402046cd9c8b459be07d13d795d9cb55ea7`. Locked restore/build PASS; Build Release 0 warning/error. .NET 772 PASS / 1 FAIL / 0 SKIP z 773; Python 31/31 PASS; generatory, audyt jakości, format i diff PASS. Jedyny FAIL: pięciominutowy idle NF-08 zmierzył CPU 1,0287988877% przy istniejącym progu 1,0%. Próg i test nie zmieniano. NF-03 workspace/repo X:/NTFS: 100 kontrolnych próbek bez workera p95 4,5592 ms; 100 paced 1 MiB samples podczas Fake Hang p95 6,5635 ms, p99 87,0439 ms; refused=0. Historyczny exFAT FAIL zachowano.
+
+**Oddzielne oceny:** aktualna pełna kwalifikacja offline NTFS = FAIL; limited D-11 = PASS według jawnego zakresu 07/08: RT-03/05/06/15/16 i NF-01/02/03/04/05/06/12/14/15 PASS, idle 306,410 s oraz 1001 operacji PASS. NF-08 CPU failure pozostaje widoczny jako pełny profil, ale NF-08 nie należy do zestawu NF ograniczonej D-11; nie wykryto krytycznego błędu wykonania/izolacji. Istniejący ogólny reporter zachował `x01_readiness=NOT_READY`, bo konserwatywnie propaguje dowolny FAIL testu oraz nadal ma historyczną regułę agregacji NF-11. Reporter/thresholds nie modyfikowano; osobna ocena uzasadnia D-11 z jego zatwierdzonym zakresem. Engineering 93/93 PASS jest wcześniejszym dowodem, nie był powtarzany. Runtime NOT_RUN, NF-11 NOT_RUN, produkcyjna kwalifikacja nieukończona.
+
+**Zasoby i rekomendacja:** historyczny Worker V19 miał STA handles 462→702 i MTA 456→602. Dispose i zakończenie własnych procesów przeszły, lecz przyczyna wzrostu pozostaje nierozstrzygnięta. Status ryzyka `UNKNOWN`; nie deklarujemy naprawy ani zamknięcia R-14. Rekomendacja B-03A `READY` wyłącznie dla ograniczonego, obserwowanego read-only; surowy/ciągły zakres i produkcja nie są gotowe. Dodano propozycję osobnego pomiaru cykli i kryteriów przed rozszerzeniem reuse Workera. Nie rozpoczęto B-03A.
+
+**Dowody:** nowy, oddzielny raport [NTFS requalification](tests/resilience/X01_NTFS_REQUALIFICATION_2026-10-26.md) i JSON (źródłowy SHA, profil, statusy oraz hashe lokalnych surowych artefaktów); historyczne qualification snapshots pozostają niezmienione. Bieżące `.tia-bridge/offline` oraz `.tia-bridge/resilience` przed uruchomieniem skopiowano do ignorowanego archiwum `pre-run-5b99356133a24fe5a84ccf893fcb9bfe`; runner pracował z osobnym UUID. Brak surowych logów, danych projektu, DLL lub credentiali w Git.
+
+**Ocena instrukcji i decyzji:** porównano sekcja po sekcji AGENTS: zakres/stan, hierarchia, niezmienne granice, autoryzacja/testy, dyscyplina zmian, Conventional Commits i dane nieufne; oraz Instrukcja_ChatGPT: stan/role, hierarchia, workflow, standard zadania, bezpieczeństwo, bramki, dowody i zamknięcie. Pozostawiono oba dokumenty bez zmian: to raport wyniku istniejących kryteriów, nie zmiana workflow, autoryzacji, architektury, kontraktu ani progu. ADR 0001/0002, 07/08/09/16 pozostają semantycznie bez zmian; dopisano wyłącznie nowy odrębny wynik i linki, zachowując historyczne raporty. Nierozstrzygnięte kwestie handle growth pozostają jawnie UNKNOWN; nie są sprzecznością architektury/bezpieczeństwa wymagającą decyzji przed ograniczonym B-03A.
+
+**Walidacja po dokumentacji:** pełny runner powyżej poprzedzał dodanie raportu i edycje dokumentów. Po zmianach wykonano lokalny JSON parse, test dokumentacyjnej zgodności D-11, `py -3 scripts/audit_quality.py`, diff/link review; wyniki zapisano po walidacji. Brak nowych testów Engineering, TIA/Runtime, zmian produkcyjnego Workera, testów progów i NF-11.
+
+```text
+REPOSITORY: X:\Projects\TIA_Bridge
+FILESYSTEM: NTFS
+BUILD RELEASE: PASS
+OFFLINE CURRENT NTFS: FAIL (1 NF-08 idle CPU threshold)
+HISTORICAL exFAT: FAIL
+X-01 LIMITED D-11: PASS
+X-01 ENGINEERING: PASS (93 historical; not rerun)
+NF-11: NOT_RUN
+WORKER HANDLE RISK: UNKNOWN
+B-03A READINESS: READY (bounded read-only only)
+```
+
 ## 2026-10-26 — D-12 / ADR 0003: kanoniczny model HMI i granica artefaktów Siemens
 
 Zatwierdzono dokumentacyjnie sześć reguł HMI: niezależny kanoniczny model, nienaruszalne NATIVE w ExchangeUnit, zakaz zastępowania nieznanych pól z częściowego odczytu, precyzyjne capabilities, kwalifikacja ryzykownego importu i rozwój na podstawie dowodów. Zmieniono wyłącznie ADR 0003, 03/04/06/08/09, README i ten rejestr. D-11, PLC MVP, X-01, istniejące kontrakty, kod, testy i historyczne dowody bez zmian.
 
 Ocena instrukcji sekcja po sekcji: AGENTS.md (zakres/role/granice/autoryzacja/testy/dyscyplina/kontrakty) i Instrukcja_ChatGPT.md (stan/role/hierarchia/workflow/zadania/bezpieczeństwo/ocena wyników) nie wymagają modyfikacji: nowy ADR konkretyzuje już wymagane deny-by-default, coverage, izolację vendor i zakaz nieuprawnionej rekonstrukcji, bez nowych uprawnień i bez zmiany ich semantyki. ADR 0001/0002, dokument 12 i contracts/v1 zachowane. Ryzyka częściowego HMI i częściowego importu są już ujęte w R-04/R-02, bez dublowania. Nie wykonywano testów TIA, Engineering/Runtime; audyt skryptem lokalnym pozostaje NOT_RUN (brak repo/terminala lokalnego).
 
+## 2026-10-26 — weryfikacja klonu X: i audyt odwołań
+
+**Stan repozytorium:** checkout `X:\Projects\TIA_Bridge`; przed fetch i po nim HEAD `9e8b7bfadb1f4e7b0fc3a793d01cbb82f54e5c07`, `origin/main` ten sam SHA; `main` śledzi `origin/main`, różnica 0/0. Remote fetch/push: `git@github.com:KrzysztofOle/TIA_Bridge.git`, ten sam projekt co zadany URL HTTPS. `git fetch origin` zakończył się bez aktualizacji; brak lokalnych commitów do wysłania, zmian wejściowych, dodatkowych gałęzi/worktree, konfliktów i stanów operacji Git. Submoduły nie są używane; Git LFS jest zainstalowany, ale repo nie ma plików LFS.
+
+**Wolumin X:** `X:` = NTFS, Fixed, partycja Basic nr 3 fizycznego dysku Micron 1100 SATA 256 GB; nie jest mapowaniem SMB ani urządzeniem USB/wymiennym. Wolumin online/healthy, ok. 163 GB wolne w chwili kontroli. ACL katalogu repo ma właściciela bieżącego użytkownika; tymczasowy zapis, `os.replace` w tym samym woluminie i odczyt kontrolny PASS, pliki próbne usunięto. `fsutil fsinfo volumeinfo X:` zwrócił odmowę dostępu; typ NTFS potwierdzono niezależnie przez `Get-Volume`.
+
+**Audyt repozytorium:** aktywne opisy starej lokalizacji w `README.md`, `Instrukcja_ChatGPT.md`, `src/TiaBridge.Host/README.md`, `docs/03_ARCHITECTURE.md`, `docs/09_RISKS_AND_DECISIONS.md`, `docs/16_RESILIENCE_RECOVERY.md`, `docs/02_REQUIREMENTS.md` i `tests/README.md` uogólniono, usuwając założenie, że repo/workspace nadal leży na M:/exFAT. Ścieżki do trwałego state na NTFS pozostają poza repo.
+
+| Pozostawione odwołanie | Kategoria | Powód |
+|---|---|---|
+| `docs/10_EVIDENCE_AND_QUALITY.md`, wcześniejsze wpisy `Zmiany.md`, `docs/X01_TIA_V19_QUALIFICATION.md`, historyczny `tests/engineering/x01-qualification.json` | C — historyczne dane | Opisują checkout, pomiary, konfigurację M:/exFAT i dowody z czasu wykonania; nie wolno ich przepisywać jako bieżącego środowiska. |
+| `tests/integration/TiaBridge.Host.Tests/MigrationAndPolicyTests.cs` — syntetyczny `M:\\_Moje_Programy\\TIA_Bridge\\state` | C — fixture testowy | Ujemny przypadek testuje odmowę niezatwierdzonej lokalizacji; nie wskazuje aktywnego workspace ani magazynu. |
+| VS Code `globalStorage/storage.json` i `workspaceStorage` zawierają X: jako bieżący workspace oraz M: jako wcześniejszy wpis | E — lokalna historia IDE | Nie jest to konfiguracja uruchomieniowa projektu. Nie zmieniano ustawień użytkownika ani historii VS Code. `settings.json`, tasks/launch, dostępne zmienne środowiskowe, usługi i zadania planowane nie ujawniły aktywnej konfiguracji TIA_Bridge ze starą ścieżką. |
+| `bin/`, `obj/`, `.vs/`, `.tia-bridge/` | D — generowane/lokalne | Pominięte w ręcznym audycie edycyjnym; nowe buildy i dowody pozostały ignorowane. Nie są wymagane czyszczenie ani odtwarzanie konfiguracji. |
+
+W aktywnych instrukcjach nie pozostało pełne odwołanie `M:\\_Moje_Programy\\TIA_Bridge`. Żadnych danych historycznych, testowych TIA, SQLite, instalacji Siemens ani DLL nie przenoszono. Nie znaleziono innych aktywnych bezwzględnych ścieżek do starego repo. Stare wpisy M: w historii workspace VS Code można usunąć ręcznie z listy ostatnich folderów, jeśli użytkownik nie chce ich zachować.
+
+**Kontrola architektury i instrukcji:** `docs/03_ARCHITECTURE.md`, `docs/04_SYNCHRONIZATION.md`, `docs/07_TEST_STRATEGY.md`, `docs/09_RISKS_AND_DECISIONS.md` i raport X-01 sprawdzono pod kątem separacji repo/state/workspace, profili NTFS/exFAT oraz granic read-only. D-11, progi, architektura, worker i historyczny X-01 nie uległy zmianie.
+
+| Dokument | Ocena spójności |
+|---|---|
+| AGENTS: Zakres i stan; role i hierarchia | Nowy checkout jest celem, stary checkout pozostał wyłącznie materiałem historycznym; brak kopiowania danych. Zasady spójne, bez zmian. |
+| AGENTS: Niezmienne granice; Autoryzacja i testy | Uruchomiono wyłącznie OFFLINE na Fake i syntetycznych danych; TIA/Engineering/Runtime bez zmian. Granice zachowane. |
+| AGENTS: Dyscyplina zmian; standard commitów | Zmiany ograniczone do dokumentacji i wpisu audytowego; zakres Git sprawdzony, obowiązuje Conventional Commit po angielsku. |
+| AGENTS: Dane nieufne i stabilność kontraktów | Kontrakty i parsery niezmienione. |
+| Instrukcja_ChatGPT §1 — cel i stan | Nagłówek lokalizacji zmieniono na katalog bieżącego checkoutu; nie przypina instrukcji do litery dysku. |
+| Instrukcja_ChatGPT §2–5 — odpowiedzialność, źródła, workflow i zadania | Bez zmian semantycznych; hierarchia oraz workflow pozostają zgodne z AGENTS. |
+| Instrukcja_ChatGPT §6–8 — architektura, pakiety, autoryzacja | Granice Core/Worker i uprawnienia Siemens bez zmian; trwałe dane opisano niezależnie od M:. |
+| Instrukcja_ChatGPT §9–12 — raporty, sekwencja, styl i kontrola spójności | Kryteria statusów zachowano; ten wpis dokumentuje ocenę wpływu i wyniki. |
+
+**Weryfikacja:** .NET SDK 10.0.402 i Python 3.12.2 dostępne. Locked restore oraz Build Release PASS (0 warnings/errors). OFFLINE: 773/773 testów .NET PASS (235 Host, 538 Core), 31/31 testów Python PASS; generatory PASS; `audit_quality.py` PASS; NF-03 `repository-replace-control` na X:/NTFS PASS: 100 próbek 1 MiB bez worker (p95 6,1634 ms) i 100 podczas Fake Hang (p95 4,4434 ms), bez odmów. Idle-300s test PASS; nie zmienia to statusu historycznych testów X-01/D-11 ani nie jest kwalifikacją Engineering/Runtime. Początkowy `dotnet format` wykazał wyłącznie CRLF wygenerowane przez globalne `core.autocrlf=true`, sprzeczne z `.editorconfig` LF. Dla tego klonu ustawiono lokalnie `core.autocrlf=false`, odtworzono z indexu niezmienione pliki C# i ujednolicono LF w zmienionych dokumentach; ponowny `dotnet format whitespace --verify-no-changes` oraz `git diff --check` PASS. Pełny runner zgłosił FAIL na kroku formatowania przed korektą lokalnego checkoutu; nie zmieniono progów ani źródeł C#.
+
+**Ocena wpływu:** zaktualizowano tylko opisy lokalizacji i statusu profilu exFAT. Architektura, synchronizacja, autoryzacja, test strategy, ADR, D-11 i historyczne evidence bez zmian. PASS dotyczy wyłącznie opisanych testów OFFLINE na X:/NTFS; Engineering i Runtime pozostają NOT_RUN.
+
+## 2026-10-26 — X-01: izolowany Siemens V19 read-only
+
+Stan wejściowy: czysty main/origin main `eca8a079b04001c792c0669b991edfbeb6faaca6`. Osobne jawne zadanie użytkownika autoryzuje odczyt dwóch otwartych projektów testowych V19 pod X:\TESTY_TIA_Bridge. D-11 ogranicza profil do lokalnego NTFS; nie zmieniono historycznych QUALIFICATION/qualification.json lub ograniczonej bramki. NF-03 exFAT FAIL, NF-11 NOT_RUN/B-10B i RUNTIME NOT_RUN pozostają odrębne.
+
+- Dodano Worker.V19 net48/x64, resolver czterech dokładnych assembly z chronionej instalacji Siemens, exact PID/start/SID/AP19 binding, jednego właściciela STA/MTA, audit przed wywołaniami i bounded metadata/inventory. Nie dodano żadnego mutatora ani wywołania TiaPortalProcess.Dispose. Zwolnienie własnego TiaPortal po Attach nie zamyka TIA.
+- Ten sam Host/Core/API/CLI/SQLite/outbox/scheduler obsługuje realny odczyt. Wspólne IPC ma wariant net48 i jawne 1.1 z immutable input artifact, bez Fake success template. Brak downgrade, retry native call i automatycznego sukcesu po timeout/late/old epoch. Realne metadane i częściowe Coverage są zweryfikowanymi artefaktami; brak eksportera lub pełnego modelu PLC/HMI jest jawny.
+- Naprawiono również klasyfikację mieszanego native Device: zamiast nadpisywać PLC przez ostatnio odwiedzony HMI, rodzic ma UNKNOWN, a oba typy software pozostają w bounded inventory. Syntetyczna regresja obejmuje kolejność oraz nieznane typy. Naprawiono wykryte błędy guardu AP19 (separator końcowy po ValidateRoot) i coverage_refs (referencje muszą wskazywać trwałe artefakty, nie opisy). Dodano 25 regresji offline oraz niezależną walidację dziewięciu komunikatów IPC 1.1. Core i kontrakty publicznych 19 metod nie zmieniły się. Framework reference assemblies pobrano standardowym NuGet, bez instalacji systemowej; nie zmieniano grup lub zabezpieczeń Siemens.
+- Osobny harness Engineering używa rzeczywistych procesów Host/CLI/V19 oraz istniejących barier StorageProbe dla utraty IPC/rodzica, starego epoch, late response i cancel. Naprawiono jego oczekiwanie 202 przy idempotentnym HTTP 200 oraz współdzielenie audit file podczas kontrolowanego odczytu. Cleanup zwalnia wyłącznie własne bariery; nie zabija TIA ani nie zakłada przerwania vendor call.
+- Użytkownik wybrał B — samodzielną obsługę dialogu Siemens. Nie stosowano Computer Use lub globalnej whitelisty. Pierwszy Attach z timeoutem pozostaje FAILED w historii; późniejsze powodzenie nie zmienia pierwotnego wyniku. [Raport X-01](docs/X01_TIA_V19_QUALIFICATION.md) zawiera osobne dowody obu instancji, próby nieudane, pomiary i końcowy zakres kwalifikacji. Surowe logi/projekty/vendor DLL/discovery/tokeny i DB pozostają poza Git.
+
+Wyniki końcowe X-01: oba projekty mają rzeczywiste Attach/read/Dispose PASS; 80 cykli STA/MTA + 7 scenariuszy awarii + 4 testy startup/loader + 2 odczyty po końcowym guardzie = 93 przypadki Engineering PASS. Metadane plików i IsModified przed/po bez zmian. Własne procesy kończą się, portale pozostają otwarte. Zarejestrowano wzrost uchwytów workera (STA 462→702, MTA 456→602); R-14/8 h soak nie został zamknięty. Runtime NOT_RUN.
+
+Build Release offline/Engineering: PASS, 0 warning/error. Pełny validate_offline.py run a901583fdab74745bebadad476794a39: 763/764 .NET PASS, 1 FAIL (NF-03 M:/exFAT edit p95 178,5496 ms), 31/31 Python PASS; wymagane RT PASS. Po końcowych zmianach 25/25 V19OfflineTests PASS, w tym 9 przypadków nieobecnych we wcześniejszym pełnym buildzie. Unikalnie 772 PASS / 1 FAIL / 0 SKIP z 773 .NET; nie udajemy pojedynczego pełnego uruchomienia 773. Ponowne Python/audit/format/diff PASS. Historyczne snapshoty B-02D/D-11 niezmienione. Pełny OFFLINE i X-01 OVERALL: FAIL z powodu kryterium pełnej regresji; ENGINEERING w ograniczonym NTFS: PASS, B-03A READINESS: NOT_READY. Jawny zakres częściowy jest dozwolony przez zadanie użytkownika; nie zadeklarowano pełnego X-01 PASS ani nie rozpoczęto B-03A.
+
+Ocena wpływu instrukcji i semantyki — obie instrukcje pozostawiono bez zmian:
+
+| Sekcje | Ocena i uzasadnienie |
+|---|---|
+| AGENTS: Zakres i stan; Instrukcja §1–2 | Historyczny stan odniesienia nie jest deklaracją bieżącej implementacji; aktualny stan i granice X-01 zapisano w README/raporcie. Nie zmieniono podziału ról. |
+| AGENTS: Role/hierarchia; Instrukcja §3–5 | Wykonano jedno jawnie zlecone X-01 po zatwierdzonej D-11; nie rozszerzano architektury ani autoryzacji. |
+| AGENTS: Niezmienne granice; Instrukcja §6–7 | Vendor tylko net48/x64, jeden owner, wersjonowane DTO, trwały intent i nieblokujące API zachowano; cały B-03A nie jest ogłoszony jako wykonany. |
+| AGENTS: Autoryzacja i testy; Instrukcja §8–10 | Read-only i osobne Engineering/Runtime, UNKNOWN/quarantine, default deny, brak replay, brak PLC/download pozostały obowiązkowe. GUI obsługiwał użytkownik zgodnie z B. |
+| AGENTS: Dyscyplina/Conventional Commits; Instrukcja §11–12 | Nowe skrypty i live lane mają instrukcje; audyt/linki/format/diff i named-path staging są wymagane; raport zawiera ograniczenia zamiast pozornych PASS. |
+| AGENTS: Dane nieufne; ADR 0002 i specyfikacje 03/04/05 | Zachowano rozmiary/głębokość, HMAC/epoch/fence i tożsamość Core; 1.1 jest jawnym rozszerzeniem wewnętrznego IPC. Brak zmian lifecycle, synchronizacji, grantów lub definicji SYNCED. |
 
 ## 2026-10-26 — D-11: ograniczona bramka X-01 read-only i pełna kwalifikacja
 
