@@ -7,7 +7,7 @@ Stan projektu: 2026-10-24/25. Decyzja projektowa nie jest dowodem wdrożenia ani
 | ID | Decyzja i status | Powód / alternatywa / konsekwencja |
 |---|---|---|
 | D-01 | przyjęta projektowo: host .NET10 + worker net48/x64 V19 | kompatybilność Siemens oddzielona od nowoczesnego API; Python host możliwy, lecz zwiększa packaging; X-01 przed implementation support claim |
-| D-02 | przyjęta: trwałe operation IDs i SQLite na lokalnym NTFS | niewystarczający synchroniczny subprocess; samo MCP/CLI nie daje durability; M: exFAT jest workspace repo, nie stan operacji/sekrety |
+| D-02 | przyjęta: trwałe operation IDs i SQLite na lokalnym NTFS | niewystarczający synchroniczny subprocess; samo MCP/CLI nie daje durability; exFAT może być workspace repo, nie stan operacji/sekrety |
 | D-03 | przyjęta: HTTP loopback + CLI, MCP OPTIONAL | jeden silnik i diagnostyka; MCP Tasks nie wymagane; klient nie blokuje domyślnie tool call |
 | D-04 | przyjęta: W priorytet planu, S wejściem importu, B wyłącznie po verify | swoboda CODEX, brak utraty późniejszych edycji; odrzucony import-on-save i automatyczny force overwrite |
 | D-05 | przyjęta: quarantine po niepewnej mutacji, brak automatycznego replay/rollback | fence nie dociera do Siemens; exactly-once niemożliwe do obiecania; automatyzujemy diagnozę, nie nieznany efekt |
@@ -30,7 +30,7 @@ Stan projektu: 2026-10-24/25. Decyzja projektowa nie jest dowodem wdrożenia ani
 | R-05 High | CLR proxies po import/restart mają inną tożsamość, OB-12 | B-03A/05A: epoch/re-resolve/owner/inventory; bez opierania identity na Equals |
 | R-06 High | unknown XML/YAML lub języki utracone przy source import | X-03/B-05B: golden round-trip i protected fields; brak coverage blokuje SYNCED |
 | R-07 High | aktywny dirty T05 ma FAILED/UNKNOWN; jego recovery jest poza zadaniem | B-00A/11B: tylko dowody; nowa app nie adoptuje sesji ani nie naprawia projektu automatycznie |
-| R-08 High | target repo na exFAT: inne ACL/rename/durability | B-02A/03B: NTFS state/spool/secrets, M: tylko W; brak blind replace edytowanych plików |
+| R-08 High | workspace na exFAT: inne ACL/rename/durability | B-02A/03B: NTFS state/spool/secrets, workspace na exFAT tylko dla W; brak blind replace edytowanych plików |
 | R-09 High | Archive temp na C:, destination space niewystarczający | B-04B: actual storage failure preserved; jeden backup sesji, bez redirect TEMP/auto cleanup |
 | R-10 High | licencje Advanced/WinCC/clients/provisioning niezweryfikowane | X-05/X-06: legal availability/licensing state jawnie sprawdzone bez kluczy w logu; inaczej BLOCKED |
 | R-11 High | TLS/UMC blokują lokalny web runtime (świeży błąd SSL) | X-06/B-09A: poprawny trust i testowa tożsamość; żadnego ignoreHTTPSErrors jako domyślnego obejścia |
@@ -83,3 +83,9 @@ R-14 pozostaje aktywne: pełny 8 h soak NF-11 jest NOT_RUN i obowiązkowy w B-10
 Według deklaracji użytkownika folder `X:\TESTY_TIA_Bridge` zawiera dwa projekty TIA Portal V19 dedykowane przyszłym testom. Użytkownik dopuścił ich modyfikację, uszkodzenie lub utratę w odrębnie zlecanych eksperymentach. Nie jest to obecne polecenie otwarcia, kopiowania, modyfikacji lub usunięcia tych projektów. W tym zadaniu nie uzyskiwano do nich dostępu; typ filesystemu X: pozostaje NIEZWERYFIKOWANY i musi zostać sprawdzony przed operacjami objętymi kwalifikacją NTFS. Nie zakłada się ani nie wykonuje automatycznego przenoszenia danych.
 
 Folder testowy nie dowodzi izolacji PLC/HMI. Dostęp do projektów i zgoda na ich przyszłe zmiany nie uprawniają do fizycznego downloadu lub sterowania sprzętem. Pierwszy X-01 pozostaje read-only, wymaga osobnego zadania i autoryzacji oraz świeżej tożsamości i weryfikacji środowiska. Późniejsze mutacje wymagają osobnego zakresu, capabilities i wszystkich właściwych bramek. Fizyczny download pozostaje domyślnie wyłączony.
+
+## Obserwacje X-01 read-only
+
+[Raport nowego workera V19](X01_TIA_V19_QUALIFICATION.md) zawiera rzeczywiste dowody dwóch instancji, apartment, exact binding i utraty własnych procesów. Nie zastępuje historycznej D-11 ani nie zamyka R-14: krótki przebieg wykazał wzrost liczby uchwytów w długowiecznym procesie workera, mimo prawidłowych Dispose i końca wszystkich własnych procesów po przebiegu. Nie rozstrzygnięto, jaka część to odroczone zwalnianie GC/vendor, a jaka trwała retencja; pełny soak/qualification pozostaje B-10B. Nie wprowadzono wymuszonego GC, zabijania TIA lub rozszerzenia uprawnień w celu poprawienia pomiaru.
+
+Ponowna offline kwalifikacja aktualnego checkoutu na X:/NTFS znajduje się w [raporcie 2026-10-26](../tests/resilience/X01_NTFS_REQUALIFICATION_2026-10-26.md). NF-03 bieżącego Workspace NTFS ma PASS, historyczny exFAT FAIL pozostaje, a pełny offline run ma FAIL z powodu NF-08 idle CPU 1,0288% > 1,0%. Ograniczona D-11 otrzymała osobny PASS w zakresie RT/NF, 306 s idle i 1001 operacji; NF-11 pozostaje NOT_RUN. To nie zamyka R-14: Worker V19 nadal ma niewyjaśniony wzrost handles. Rekomendacja READY dotyczy wyłącznie przygotowania ograniczonego B-03A read-only z monitoringiem i zatrzymaniem przy dalszym wzroście; nie jest zgodą do wykonania pakietu ani produkcyjną kwalifikacją.
