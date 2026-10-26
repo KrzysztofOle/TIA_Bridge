@@ -68,3 +68,11 @@ NF-03 exFAT pozostaje FAIL: kontrolne replace bez workera p95 205,5911 ms; pozyt
 - Potwierdzenie zakresu i izolacji: folder testowy ani zgoda na przyszłą utratę projektów nie dowodzą izolacji PLC/HMI. Późniejsze mutacje wymagają osobnego zadania i bramek; fizyczny download pozostaje domyślnie wyłączony.
 
 [Kontrola dokumentacyjna](../README.md#kontrola-dokumentacji) sprawdza hashe i zgodność oceny z istniejącymi dowodami, bez nowych pomiarów i bez uruchamiania Host lub Siemens. Brak wymaganego dowodu w nowej ocenie daje BLOCKED, negatywny wynik w wybranym profilu daje FAIL.
+
+## Ocena końcowa po przeniesieniu repozytorium na X:/NTFS — 2026-10-26
+
+Pełną ponowną kwalifikację checkoutu `e6b659708c6141ad89be4ea109a64a8e76109a3d` wykonano runnerem offline; szczegóły, progi, fingerprint źródeł oraz hashe artefaktów zawiera [osobny raport NTFS](X01_NTFS_REQUALIFICATION_2026-10-26.md) i jego [JSON](x01-ntfs-requalification-2026-10-26.json). Historyczne źródła B-02D, ocena oraz exFAT FAIL powyżej pozostają niezmienione.
+
+Pełny profil bieżący ma FAIL: 772/773 testów .NET PASS; jedyny FAIL to idle CPU NF-08 = 1,0288% przy progu 1,0%. Python 31/31, Build Release, generatory, audyt jakości, format i diff przeszły. Oddzielna ograniczona bramka D-11 ma PASS według jej jawnego zestawu: wymagane RT i NF na NTFS PASS, idle trwał 306,41 s, a krótki przebieg zakończył 1001 operacji. Nie przenosi to FAIL NF-08 do PASS ani nie zmienia `NF-11: NOT_RUN`. Ogólny reporter pozostawia swój konserwatywny `x01_readiness=NOT_READY`; nie został zmodyfikowany.
+
+Engineering 93/93 PASS pozostaje wcześniejszym dowodem, nie nowym uruchomieniem. B-03A rekomendowany jako READY wyłącznie dla ograniczonej pracy read-only. Wzrost uchwytów Worker V19 nadal ma przyczynę UNKNOWN; nie ogłasza się naprawy i nie zamyka R-14.

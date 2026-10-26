@@ -10,9 +10,13 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" PrivateAssets="all" />
     <ProjectReference Include="../../../src/TiaBridge.Host/TiaBridge.Host.csproj" />
     <ProjectReference Include="../TiaBridge.StorageProbe/TiaBridge.StorageProbe.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../TiaBridge.Ipc.FrameworkProbe/TiaBridge.Ipc.FrameworkProbe.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
     <ProjectReference Include="../../../src/TiaBridge.FakeWorker/TiaBridge.FakeWorker.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../../../src/TiaBridge.Cli/TiaBridge.Cli.csproj" ReferenceOutputAssembly="false" />
     <Content Include="../../../examples/contracts/v1/*.json" Link="Fixtures/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../examples/ipc/v1/*.json" Link="IpcFixtures/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../../src/TiaBridge.Worker.V19/InventoryFamily.cs" Link="SyntheticInventory/InventoryFamily.cs" />
   </ItemGroup>
 </Project>

@@ -31,8 +31,11 @@ public static class HostApi
         using var databaseLifetime = store.KeepDatabaseOpen();
         using var metadataReaders = store.OpenMetadataReaders();
         foreach (string project in config.RegisteredProjects) store.RegisterProject(new(UuidIdentity.ParseValue(project)));
-        var profile = new ConfiguredFakeProfile(config, store);
-        IWorkerSupervisor supervisor = config.FakeWorkerDll is null ? new DisabledSupervisor() : new FakeWorkerSupervisor(config.FakeWorkerDll, location.RootPath);
+        var fakeProfile = new ConfiguredFakeProfile(config, store);
+        IExecutionProfile profile = config.V19 is null ? fakeProfile : new V19InspectionProfile(config);
+        bool Supports(OperationMethod method) => config.V19 is null ? fakeProfile.Supports(method) : method == OperationMethod.ProjectInspect;
+        IWorkerSupervisor supervisor = config.V19 is not null ? new V19WorkerSupervisor(config.V19WorkerExe!, location.RootPath, config.V19)
+            : config.FakeWorkerDll is null ? new DisabledSupervisor() : new FakeWorkerSupervisor(config.FakeWorkerDll, location.RootPath);
         await using var scheduler = new OperationScheduler(store, hooks?.Supervisor?.Invoke(supervisor) ?? supervisor, hooks?.Profile?.Invoke(profile) ?? profile);
         byte[] secret = RandomNumberGenerator.GetBytes(32); string token = Convert.ToBase64String(secret); byte[] tokenHash = SHA256.HashData(Encoding.ASCII.GetBytes(token));
         string principal = DiscoveryFile.CurrentSid; Guid instance = Guid.NewGuid(); string discoveryPath = Path.Combine(location.RootPath, "api", "host.json");
@@ -81,7 +84,7 @@ public static class HostApi
                 var metadata = store.AcceptMetadata(principal, bytes, Health(store, scheduler, request.Parameters is DiagnosticsHealthParameters health ? health.ProjectKey : request.Identity.Project));
                 return Bytes(ContractJson.WriteReport(metadata.Operation.Report));
             }
-            var admission = store.AcceptSupported(principal, bytes, profile.Supports);
+            var admission = store.AcceptSupported(principal, bytes, Supports);
             if (admission.AlreadyAccepted) return Bytes(ContractJson.WriteReport(admission.Operation.Report));
             var r = admission.Operation.Report;
             var acceptance = new Acceptance(r.OperationId, OperationState.ACCEPTED, 1000, "/v1/operations/" + r.OperationId, "/v1/operations/" + r.OperationId + "/result", r.AcceptedAt!.Value);

@@ -43,7 +43,7 @@ internal static class HttpResilienceProbe
             if (!visited.TryAdd(point, true)) return;
             if (mode == "crash." + point) { Mark(point); Environment.Exit(86); }
             bool admissionBarrier = point == "profile" && mode is "crash.dispatch-intent" or "crash.dispatch-sent" or "crash.receipt-received" or "crash.WorkerReceiptCommitted" or "crash.result-before" or "crash.result-after" or "crash.ArtifactPublished";
-            if (mode != "barrier." + point && !(mode == "artifact" && point == "receipt-received") && !(mode == "stale" && point == "dispatch-sent") && !admissionBarrier) return;
+            if (mode != "barrier." + point && !(mode == "pipe-loss" && point == "dispatch-sent") && !(mode == "artifact" && point == "receipt-received") && !(mode == "stale" && point == "dispatch-sent") && !admissionBarrier) return;
             Mark(point); var timer = Stopwatch.StartNew();
             while (!File.Exists(Path.Combine(root, point + ".release")))
             { if (timer.Elapsed > TimeSpan.FromSeconds(40)) throw new IOException("Test barrier was not released."); Thread.Sleep(5); }
@@ -76,7 +76,7 @@ internal static class HttpResilienceProbe
             {
                 var store = new SqliteOperationStore(StorageLocation.Open(control.Root, Directory.GetCurrentDirectory()));
                 var proof = store.Artifacts.Put(operation.Report.OperationId, new MemoryStream("synthetic proof"u8.ToArray()));
-                var bytes = Protocol.ReadArtifact(control.Root, new(spec.SuccessReport.ArtifactId, spec.SuccessReport.Sha256), Protocol.MaxReceiptBytes);
+                var bytes = Protocol.ReadArtifact(control.Root, new(spec.SuccessReport!.ArtifactId, spec.SuccessReport.Sha256), Protocol.MaxReceiptBytes);
                 var report = System.Text.Json.Nodes.JsonNode.Parse(bytes)!;
                 report["artifact_refs"] = JsonSerializer.SerializeToNode(new[] { new { artifact_id = proof.ArtifactId, sha256 = proof.Sha256 } });
                 var template = store.Artifacts.Put(operation.Report.OperationId, new MemoryStream(JsonSerializer.SerializeToUtf8Bytes(report)));
@@ -143,7 +143,11 @@ internal static class HttpResilienceProbe
         {
             if (kind == MessageKind.Dispatch) control.Hit("dispatch-intent");
             await inner.SendAsync(kind, operationId, fence, body, ct);
-            if (kind == MessageKind.Dispatch) control.Hit("dispatch-sent");
+            if (kind == MessageKind.Dispatch)
+            {
+                control.Hit("dispatch-sent");
+                if (control.Mode == "pipe-loss" && inner is WorkerConnection owned) await owned.DisconnectTransportAsync();
+            }
         }
         public async ValueTask DisposeAsync()
         {

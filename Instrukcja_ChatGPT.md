@@ -2,7 +2,7 @@
 
 > **Przeznaczenie:** zasady współpracy ChatGPT z użytkownikiem i agentem CODEX przy rozwoju `TIA_Bridge 2`.
 >
-> **Repozytorium:** `M:\_Moje_Programy\TIA_Bridge`.
+> **Repozytorium:** katalog główny bieżącego checkoutu.
 >
 > **Relacja instrukcji:** [AGENTS.md](AGENTS.md) określa zasady wykonawcze obowiązujące CODEX. Ten dokument określa zasady analizy, planowania, przygotowywania zadań i oceniania wyników. Dokumenty są komplementarne, nie konkurencyjne; nie zastępują dokumentacji technicznej.
 
@@ -86,7 +86,7 @@ Nie zlecaj rozbudowanych polskich opisów, prefiksu `# TIA_Bridge`, podkreślani
 
 - **Brak blokowania CODEX:** obowiązkowe nieblokujące przyjęcie operacji z utrwaleniem intentu i `operation_id` przed potwierdzeniem przyjęcia, dostępność health/status przy zawieszonym workerze i zachowanie zaakceptowanych zleceń oraz historii po restarcie hosta. Health/status nie wywołują TIA inline; API/CLI/MCP domyślnie nie oczekują na zakończenie Siemens. Identyczny klucz i kanoniczne żądanie zwracają tę samą operację; idempotencja nie pozwala ponawiać mutacji o nieznanym wyniku. Mierzalne progi i szczegółowe scenariusze pozostają w [wymaganiach](docs/02_REQUIREMENTS.md), [testach](docs/07_TEST_STRATEGY.md) i [backlogu](docs/08_IMPLEMENTATION_PLAN.md).
 - **Izolacja procesu Siemens:** Host/Core bez vendor DLL; worker `TiaBridge.Worker.V19` (.NET Framework 4.8, x64), host .NET 10. Nie przenosić proxy TIA przez granicę procesów.
-- **Trwałość:** journal, outbox, idempotencja i stany operacji; SQLite, sekrety i spool na lokalnym NTFS, nie na dysku `M:`/exFAT.
+- **Trwałość:** journal, outbox, idempotencja i stany operacji; SQLite, sekrety i spool na lokalnym NTFS, poza repozytorium i poza exFAT.
 - **Współbieżność:** serializacja wywołań vendor w obrębie właściciela sesji; brak równoległych konfliktujących zapisów do projektu.
 - **Timeout nie jest anulowaniem:** po niepewnym zapisie `RECONCILIATION_REQUIRED`, kwarantanna i niezależne uzgodnienie stanu; bez automatycznego ponowienia importu.
 - **Priorytet CODEX:** workspace `W` wyraża zamierzony stan, ale nie daje bezwarunkowego prawa nadpisywania obcych zmian projektu `P`.

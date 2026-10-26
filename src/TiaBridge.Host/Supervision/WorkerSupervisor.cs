@@ -28,15 +28,31 @@ public interface IWorkerSupervisor
 /// <summary>Starts only the explicitly configured Fake Worker. No process discovery or Siemens activation.</summary>
 public sealed class FakeWorkerSupervisor(string workerDll, string artifactRoot, TimeProvider? time = null) : IWorkerSupervisor
 {
+    public Task<IWorkerConnection> StartAsync(CancellationToken ct) => new ProcessWorkerSupervisor(workerDll, artifactRoot, time, null).StartAsync(ct);
+}
+public sealed class V19WorkerSupervisor(string workerExe, string artifactRoot, V19Settings settings, TimeProvider? time = null) : IWorkerSupervisor
+{
+    public Task<IWorkerConnection> StartAsync(CancellationToken ct) => new ProcessWorkerSupervisor(workerExe, artifactRoot, time, settings).StartAsync(ct);
+}
+internal sealed class ProcessWorkerSupervisor(string workerDll, string artifactRoot, TimeProvider? time, V19Settings? settings) : IWorkerSupervisor
+{
     public async Task<IWorkerConnection> StartAsync(CancellationToken ct)
     {
-        if (!OperatingSystem.IsWindows() || Path.GetFileName(workerDll) != "TiaBridge.FakeWorker.dll" || !File.Exists(workerDll)) throw new ArgumentException("Explicit built Fake Worker required.");
+        bool native = settings is not null;
+        if (!OperatingSystem.IsWindows() || Path.GetFileName(workerDll) != (native ? "TiaBridge.Worker.V19.exe" : "TiaBridge.FakeWorker.dll") || !File.Exists(workerDll)) throw new ArgumentException("Explicit built worker required.");
+        string expectedBuild = "1.0";
+        if (native)
+        {
+            Storage.StorageLocation.CheckChain(workerDll);
+            using var image = File.OpenRead(workerDll);
+            expectedBuild += "+" + Convert.ToHexStringLower(SHA256.HashData(image));
+        }
         var clock = time ?? TimeProvider.System;
         string name = "tia-bridge2-" + Guid.NewGuid().ToString("N"); Guid epoch = Guid.NewGuid(), nonce = Guid.NewGuid(); byte[] secret = RandomNumberGenerator.GetBytes(32);
         var pipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly | PipeOptions.FirstPipeInstance);
         using var current = Process.GetCurrentProcess();
-        var start = new ProcessStartInfo("dotnet") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
-        start.ArgumentList.Add(Path.GetFullPath(workerDll));
+        var start = new ProcessStartInfo(native ? Path.GetFullPath(workerDll) : "dotnet") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
+        if (!native) start.ArgumentList.Add(Path.GetFullPath(workerDll));
         Process? process = null; FramedConnection? framed = null; Task stdout = Task.CompletedTask, stderr = Task.CompletedTask;
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct); deadline.CancelAfter(TimeSpan.FromSeconds(10));
         try
@@ -45,16 +61,17 @@ public sealed class FakeWorkerSupervisor(string workerDll, string artifactRoot, 
             stdout = Drain(process.StandardOutput); stderr = Drain(process.StandardError);
             long ticks = process.StartTime.ToUniversalTime().Ticks;
             var bootstrap = new Bootstrap(name, Convert.ToBase64String(secret), epoch, nonce, current.Id, current.StartTime.ToUniversalTime().Ticks, artifactRoot);
-            await process.StandardInput.WriteLineAsync(JsonSerializer.Serialize(bootstrap, Protocol.Json).AsMemory(), deadline.Token); process.StandardInput.Close();
+            string setup = native ? JsonSerializer.Serialize(new V19Bootstrap(bootstrap, settings!), Protocol.Json) : JsonSerializer.Serialize(bootstrap, Protocol.Json);
+            await process.StandardInput.WriteLineAsync(setup.AsMemory(), deadline.Token); process.StandardInput.Close();
             var connected = pipe.WaitForConnectionAsync(deadline.Token);
             var exited = process.WaitForExitAsync(deadline.Token);
             if (await Task.WhenAny(connected, exited) == exited) { await exited; throw new IOException("Own worker exited before handshake."); }
             await connected; PipePeer.Verify(pipe, process.Id, server: true);
-            framed = new FramedConnection(pipe, secret, epoch);
+            framed = new FramedConnection(pipe, secret, epoch, native ? "1.1" : "1.0");
             var hello = await framed.ReadAsync(deadline.Token); var identity = Protocol.Read<Hello>(hello.Body);
-            if (hello.Kind != MessageKind.Hello || hello.OperationId is not null || hello.Fence != 0 || identity.Pid != process.Id || identity.StartTicks != ticks || identity.Nonce != nonce || identity.WorkerId != "tia-bridge.fake" || identity.Build != "1.0") throw new ProtocolException();
+            if (hello.Kind != MessageKind.Hello || hello.OperationId is not null || hello.Fence != 0 || identity.Pid != process.Id || identity.StartTicks != ticks || identity.Nonce != nonce || identity.WorkerId != (native ? "tia-bridge.v19.read-only" : "tia-bridge.fake") || identity.Build != expectedBuild) throw new ProtocolException();
             await framed.SendAsync(MessageKind.Ready, null, 0, Protocol.Body(new { accepted = true }), deadline.Token);
-            return new WorkerConnection(process, framed, epoch, ticks, identity.WorkerId, clock, [stdout, stderr]);
+            return new WorkerConnection(process, framed, epoch, ticks, identity.WorkerId, clock, [stdout, stderr], !native);
         }
         catch
         {
@@ -81,6 +98,7 @@ internal sealed class WorkerConnection : IWorkerConnection
     private readonly Channel<WireMessage> inbox = Channel.CreateBounded<WireMessage>(64);
     private readonly Task reader;
     private readonly Task[] outputDrains;
+    private readonly bool synthetic;
     private long heartbeatTicks, progressTicks;
     private int connected = 1;
     public Guid Epoch { get; }
@@ -91,9 +109,9 @@ internal sealed class WorkerConnection : IWorkerConnection
     public bool Connected => Volatile.Read(ref connected) == 1;
     public DateTimeOffset LastHeartbeat => new(Interlocked.Read(ref heartbeatTicks), TimeSpan.Zero);
     public DateTimeOffset? LastProgress => Interlocked.Read(ref progressTicks) is var ticks && ticks > 0 ? new DateTimeOffset(ticks, TimeSpan.Zero) : null;
-    internal WorkerConnection(Process process, FramedConnection framed, Guid epoch, long ticks, string workerId, TimeProvider clock, Task[] outputDrains)
+    internal WorkerConnection(Process process, FramedConnection framed, Guid epoch, long ticks, string workerId, TimeProvider clock, Task[] outputDrains, bool synthetic)
     {
-        this.process = process; this.framed = framed; this.clock = clock; this.outputDrains = outputDrains; Epoch = epoch; Pid = process.Id; StartTicks = ticks; WorkerId = workerId;
+        this.process = process; this.framed = framed; this.clock = clock; this.outputDrains = outputDrains; this.synthetic = synthetic; Epoch = epoch; Pid = process.Id; StartTicks = ticks; WorkerId = workerId;
         heartbeatTicks = clock.GetUtcNow().UtcTicks;
         reader = ReadLoop();
     }
@@ -119,16 +137,18 @@ internal sealed class WorkerConnection : IWorkerConnection
     }
     public bool TryRead(out WireMessage message) => inbox.Reader.TryRead(out message!);
     public Task SendAsync(MessageKind kind, Guid? operationId, long fence, JsonElement body, CancellationToken ct) => framed.SendAsync(kind, operationId, fence, body, ct);
+    // Internal composition seam for process fault tests. No public endpoint or process termination.
+    internal async Task DisconnectTransportAsync() { await framed.DisposeAsync(); await reader; }
     public async ValueTask DisposeAsync()
     {
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(1));
-        try { if (Connected) await framed.SendAsync(MessageKind.Stop, null, 0, Protocol.Body(new { synthetic_shutdown = true }), deadline.Token); }
+        try { if (Connected) await framed.SendAsync(MessageKind.Stop, null, 0, Protocol.Body(new StopBody(synthetic)), deadline.Token); }
         catch (Exception e) when (e is IOException or OperationCanceledException or ObjectDisposedException) { }
         stop.Cancel(); await framed.DisposeAsync(); await reader;
         // Closing IPC lets this synthetic child cancel its own fake delay. Never kill TIA or infer vendor quiescence.
         using var wait = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         try { await process.WaitForExitAsync(wait.Token); await Task.WhenAll(outputDrains); }
-        catch (OperationCanceledException) { throw new IOException("Own Fake Worker shutdown unconfirmed."); }
+        catch (OperationCanceledException) { throw new IOException("Own worker shutdown unconfirmed."); }
         finally { process.Dispose(); stop.Dispose(); }
     }
 }
