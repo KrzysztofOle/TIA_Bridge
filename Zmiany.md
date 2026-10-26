@@ -36,6 +36,10 @@ B-03A READINESS: READY (bounded read-only only)
 - Zachowano wszystkie reguły bezpieczeństwa, D-11, historyczne wyniki X-01 i treść ADR 0003. `AGENTS.md`, kod, Worker, kontrakty, testy i dane kwalifikacyjne bez zmian.
 - Sprawdzono odnośniki lokalne w zmienionych dokumentach. `scripts/audit_quality.py` oraz testy lokalne/Siemens: NOT_RUN (operacje wyłącznie przez GitHub).
 
+## 2026-10-26 — synchronizacja podsumowania X-01 po scaleniu PR
+
+Po scaleniu PR #1/#2 doprecyzowano README.md do zgodności z raportem NTFS: pełny offline NTFS FAIL (NF-08), historyczny exFAT NF-03 FAIL, D-11 LIMITED GATE PASS, Engineering 93/93 PASS, NF-11 NOT_RUN, ryzyko handles UNKNOWN i B-03A READY wyłącznie dla ograniczonego read-only. Nie zmieniano testów, progów, historycznych raportów ani danych kwalifikacyjnych.
+
 ## 2026-10-26 — D-12 / ADR 0003: kanoniczny model HMI i granica artefaktów Siemens
 
 Zatwierdzono dokumentacyjnie sześć reguł HMI: niezależny kanoniczny model, nienaruszalne NATIVE w ExchangeUnit, zakaz zastępowania nieznanych pól z częściowego odczytu, precyzyjne capabilities, kwalifikacja ryzykownego importu i rozwój na podstawie dowodów. Zmieniono wyłącznie ADR 0003, 03/04/06/08/09, README i ten rejestr. D-11, PLC MVP, X-01, istniejące kontrakty, kod, testy i historyczne dowody bez zmian.
