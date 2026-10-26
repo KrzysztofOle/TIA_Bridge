@@ -40,7 +40,9 @@ Rekomendacja: host C#/.NET 10, trwałe operacje i SQLite na lokalnym NTFS, wykon
 
 Wykonany zakres: [Core](src/TiaBridge.Core/README.md), [Host Storage B-02A](src/TiaBridge.Host/README.md), [kontrakty i OpenAPI](contracts/README.md), [pełna walidacja offline jednym poleceniem](tests/README.md) i [macierz pokrycia](tests/COVERAGE.md). B-01C obejmuje 100 deterministycznych modeli wejściowych; rzeczywiste plany są kryterium B-04A. B-02A zapisuje operacje; [B-02B](docs/14_SCHEDULER_IPC.md) wykonuje wyłącznie jawne scenariusze syntetyczne w osobnym Fake Worker. Nie ma IO Workspace, synchronizacji ani uprawnień sesji. [B-02C](docs/15_HTTP_API_CLI.md) udostępnia ten sam silnik przez zabezpieczone API i CLI. B-02D wykonał testy syntetyczne; kolejne pakiety wymagają osobnego zlecenia. Przed integracją z Openness i X-01 obowiązuje pozytywna [ograniczona bramka B-02A–D](docs/07_TEST_STRATEGY.md#ograniczona-bramka-x-01-read-only) na fake workerze; pełny NF-11 jest osobnym warunkiem B-10B. [Plan](docs/08_IMPLEMENTATION_PLAN.md) wskazuje zależności i dowody wymagane przed Apply.
 
-Zatwierdzona polityka modelu HMI i oryginalnych artefaktów Siemens: [ADR 0003 — HMI canonical model and native artifact boundaries](docs/decisions/0003-hmi-canonical-model-and-native-artifacts.md) (D-12; decyzja, nie implementacja).\n\n## Granice i praca z repozytorium
+Zatwierdzona polityka modelu HMI i oryginalnych artefaktów Siemens: [ADR 0003 — HMI canonical model and native artifact boundaries](docs/decisions/0003-hmi-canonical-model-and-native-artifacts.md) (D-12; decyzja, nie implementacja).
+
+## Granice i praca z repozytorium
 
 Nie ma automatycznego importu po zapisie pliku. Domyślny profil jest read-only; zatwierdzone, ograniczone uprawnienie sesji testowej może obejmować wiele kroków. Usuwanie, fizyczny download i rzeczywista maszyna wymagają osobnej autoryzacji. Kopia Git nie zastępuje archiwum Siemens.
 

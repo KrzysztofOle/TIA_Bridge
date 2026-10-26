@@ -18,7 +18,9 @@ Stan projektu: 2026-10-24/25. Decyzja projektowa nie jest dowodem wdrożenia ani
 | D-10 | odroczona: użycie Transaction jako gwarancji rollbacku | API istnieje, zakres import/compile/Save niepotwierdzony; X-02; MVP saga i reconciliation |
 | D-11 | zatwierdzona przez użytkownika 2026-10-26: oddzielna ograniczona bramka X-01 read-only na lokalnym NTFS | [warunki 07](07_TEST_STRATEGY.md#ograniczona-bramka-x-01-read-only) obejmują wymagane RT/NF Fake, recovery, idle ≥5 min i ≥1000 operacji; NF-11 ≥8 h pozostaje obowiązkowy w B-10B/R-14, NOT_RUN przed X-01 nie staje się PASS; NF-03 exFAT FAIL zachowany, bez dopuszczenia exFAT lub gotowości produkcyjnej |
 
-| D-12 | **zatwierdzona przez użytkownika 2026-10-26**: kanoniczny model HMI, nienaruszalne NATIVE, zakaz regenerowania z częściowego odczytu, dokładne capabilities, odrębna kwalifikacja ryzykownego importu, rozwój wyłącznie z dowodów | [ADR 0003](decisions/0003-hmi-canonical-model-and-native-artifacts.md); bez implementacji, bez nowych kwalifikacji Siemens, bez zmian D-11, X-01 i PLC MVP |\n\n## Rejestr ryzyk
+| D-12 | **zatwierdzona przez użytkownika 2026-10-26**: kanoniczny model HMI, nienaruszalne NATIVE, zakaz regenerowania z częściowego odczytu, dokładne capabilities, odrębna kwalifikacja ryzykownego importu, rozwój wyłącznie z dowodów | [ADR 0003](decisions/0003-hmi-canonical-model-and-native-artifacts.md); bez implementacji, bez nowych kwalifikacji Siemens, bez zmian D-11, X-01 i PLC MVP |
+
+## Rejestr ryzyk
 
 | ID / ważność | Ryzyko i dowód/niepewność | Ograniczenie / właściciel przyszłego pakietu / kryterium zamknięcia |
 |---|---|---|

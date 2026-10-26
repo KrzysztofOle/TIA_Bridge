@@ -58,7 +58,11 @@ Zamknięcie prac B-02D wymaga wykonania i jawnego raportu RT/NF, bez ukrywania F
 | X-01 LIMITED READ-ONLY GATE | PASS/FAIL/BLOCKED tylko według powyższych warunków; osobne zadanie i autoryzacja X-01 |
 | PRODUCTION QUALIFICATION | PASS/FAIL/NOT_RUN; pełna kwalifikacja późniejszych etapów, w tym B-10B/NF-11 i aktywne R-14 |
 
-### Docelowy HMI canonical model (zatwierdzone D-12; dokumentacyjnie, NOT_IMPLEMENTED)\n\n[ADR 0003](decisions/0003-hmi-canonical-model-and-native-artifacts.md) wymaga koncepcji kanonicznego modelu HMI przed pełnym Workspace HMI, logicznego podziału CANONICAL/SOURCE/NATIVE, zachowania niezmienionych eksportów Siemens w ExchangeUnit z SHA-256, niezależnych read-only kwalifikacji HMI **po X-01** oraz X-04 dla rzeczywistej struktury Unified. Oddzielne eksperymenty mają kwalifikować importy o zakresie replace/delete i nieznanych skutkach; V21 otrzyma osobny adapter i dowody per build. Brak implementacji i brak PASS. Nie rozszerza to X-01 ani nie zmienia głównej kolejności MVP PLC.\n\n## Etap 3 — Discovery, eksport i mapowanie [MVP PLC / REQUIRED HMI]
+### Docelowy HMI canonical model (zatwierdzone D-12; dokumentacyjnie, NOT_IMPLEMENTED)
+
+[ADR 0003](decisions/0003-hmi-canonical-model-and-native-artifacts.md) wymaga koncepcji kanonicznego modelu HMI przed pełnym Workspace HMI, logicznego podziału CANONICAL/SOURCE/NATIVE, zachowania niezmienionych eksportów Siemens w ExchangeUnit z SHA-256, niezależnych read-only kwalifikacji HMI **po X-01** oraz X-04 dla rzeczywistej struktury Unified. Oddzielne eksperymenty mają kwalifikować importy o zakresie replace/delete i nieznanych skutkach; V21 otrzyma osobny adapter i dowody per build. Brak implementacji i brak PASS. Nie rozszerza to X-01 ani nie zmienia głównej kolejności MVP PLC.
+
+## Etap 3 — Discovery, eksport i mapowanie [MVP PLC / REQUIRED HMI]
 
 **Cel:** kwalifikowana read-only projekcja projektu. **Zależności:**1B,2A–2D, X-01. **Pakiety:**
 
