@@ -29,6 +29,13 @@ WORKER HANDLE RISK: UNKNOWN
 B-03A READINESS: READY (bounded read-only only)
 ```
 
+## 2026-10-26 — przenośna Instrukcja_ChatGPT i zgodność z ADR 0003
+
+- Skrócono `Instrukcja_ChatGPT.md` z 17 477 do 7,795 znaków Unicode (łącznie ze spacjami i nowymi liniami; limit 8 000: PASS). Usunięto zależność od lokalnej ścieżki i opisy dawnych stanów jako bieżących.
+- Zmieniono warunkowe odniesienie HMI na zatwierdzony ADR 0003 / D-12; wyjaśniono, że ogólne warunki `SYNCED` określa dokument 04, także dla stanu osiągniętego bez Apply; wymagane uprawnienie TIA wskazano osobno od planu lub grantu.
+- Zachowano wszystkie reguły bezpieczeństwa, D-11, historyczne wyniki X-01 i treść ADR 0003. `AGENTS.md`, kod, Worker, kontrakty, testy i dane kwalifikacyjne bez zmian.
+- Sprawdzono odnośniki lokalne w zmienionych dokumentach. `scripts/audit_quality.py` oraz testy lokalne/Siemens: NOT_RUN (operacje wyłącznie przez GitHub).
+
 ## 2026-10-26 — D-12 / ADR 0003: kanoniczny model HMI i granica artefaktów Siemens
 
 Zatwierdzono dokumentacyjnie sześć reguł HMI: niezależny kanoniczny model, nienaruszalne NATIVE w ExchangeUnit, zakaz zastępowania nieznanych pól z częściowego odczytu, precyzyjne capabilities, kwalifikacja ryzykownego importu i rozwój na podstawie dowodów. Zmieniono wyłącznie ADR 0003, 03/04/06/08/09, README i ten rejestr. D-11, PLC MVP, X-01, istniejące kontrakty, kod, testy i historyczne dowody bez zmian.
