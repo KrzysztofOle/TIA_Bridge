@@ -19,8 +19,8 @@
 - ADR 0001/0002: CODEX edytuje pliki Workspace; Bridge obsługuje discovery/export/plan/Apply/verify. Core/Host bez Siemens DLL/proxy. Host .NET 10 i osobny worker V19 .NET Framework 4.8 x64 z wersjonowanym IPC/DTO. Kolejne wersje TIA wymagają osobnej kwalifikacji.
 - Host asynchronicznie utrwala intent, operation_id, idempotencję i historię przed potwierdzeniem przyjęcia; zlecenia trwają po restarcie. Health/status nie wywołują TIA inline, nawet przy hang. Jeden owner serializuje vendor calls; identyczny key/request nie powoduje drugiego efektu.
 - Rozróżniaj P (TIA w pamięci), D (dysk), W (pliki CODEX), S (frozen import), B (potwierdzony baseline), C (compile), E (symulacja), T (test). Export nie nadpisuje W; zakaz import-on-save/Git-change. Plan wiąże B/P/S, expected W, scope, zależności i capability; drift blokuje mutację.
-- `SYNCED` wymaga Apply S, zaakceptowanej kompilacji, ochrony zależności, Save, niezależnego native readbacku całej grupy, receipt i CAS promocji B. W zmienione po S pozostaje MODIFIED. Hash/tekst/compile nie dowodzą struktury HMI.
-- HMI: zachowaj natywne artefakty i nieznane pola; capability kwalifikuj per operacja/typ/wersja/coverage. Brak publicznego odczytu ogranicza import lub SYNCED. Po przyjęciu ADR HMI stosuj jego wersjonowane CANONICAL/SOURCE/NATIVE, bez projektowania nowego formatu w tym zadaniu.
+- Warunki `SYNCED` definiuje [dokument 04](docs/04_SYNCHRONIZATION.md); po Apply wymagają zaakceptowanej kompilacji, ochrony zależności, Save, niezależnego readbacku grupy, receipt i CAS promocji B. Początkowy lub uzgodniony stan może spełnić definicję bez Apply. W zmienione po S pozostaje MODIFIED. Hash/tekst/compile nie dowodzą struktury HMI.
+- HMI: zachowaj natywne artefakty i nieznane pola; capability kwalifikuj per operacja/typ/wersja/coverage. Brak publicznego odczytu ogranicza import lub SYNCED. Zatwierdzony [ADR 0003](docs/decisions/0003-hmi-canonical-model-and-native-artifacts.md) / D-12 określa CANONICAL/SOURCE/NATIVE; stosuj go bez projektowania nowego formatu w tym zadaniu.
 
 ## 5. Zadanie CODEX
 Polecenie musi zawierać:
@@ -41,7 +41,7 @@ Polecenie musi zawierać:
 - Nie przepisuj historycznych wyników. Brak dowodu → BLOCKED, negatywny test → FAIL; status SYNCED ocenia się osobno.
 
 ## 7. Bezpieczeństwo i recovery
-- Badania domyślnie read-only; `deny-by-default`. Zgoda na kod ≠ prawa TIA. Project write wymaga zatwierdzonego planu lub istniejącego ograniczonego grantu testowego, świeżej tożsamości odbiorcy, preconditions, kwalifikowanej capability i zweryfikowanego backupu przed pierwszą mutacją.
+- Badania domyślnie read-only; `deny-by-default`. Zgoda na kod ≠ prawa TIA. Project write wymaga indywidualnie zatwierdzonego planu albo zakresu istniejącego ograniczonego grantu testowego oraz właściwego uprawnienia TIA dla tej operacji. Sprawdź świeżą tożsamość odbiorcy, preconditions, capability i zweryfikowany backup przed pierwszą mutacją.
 - Fizyczny PLC/HMI download domyślnie zabroniony. RUN/STOP, transfer HMI, symulacja i OPC write wymagają osobnego grantu i dowodów izolacji/trasowania; SIM/localhost/IP nie wystarczają. OPC TEST/SECURE bez cichego fallbacku. Nie naruszaj cudzych sesji ani nie ujawniaj sekretów/danych klienta w Git.
 - Timeout, worker death i lease expiry nie dowodzą końca Siemens call. Niepewny efekt → UNKNOWN/RECONCILIATION_REQUIRED, trwała quarantine, odczyt stanu, nowy plan i decyzja. Bez auto replay/rollback/reimportu/Save. Idempotencja nie gwarantuje exactly-once.
 - SQLite/WAL/journal/outbox/artifacts i operacje safe replace wymagają lokalnego kwalifikowanego NTFS poza repo. NTFS PASS nie kwalifikuje exFAT/UNC; zakaz delete+copy i obejść ACL. Computer Use według bramki zgody AGENTS.
