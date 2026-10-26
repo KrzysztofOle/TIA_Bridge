@@ -132,9 +132,21 @@ def configure_console_utf8():
             reconfigure(encoding="utf-8", errors="strict")
 
 
+def load_reporter(root):
+    spec = importlib.util.spec_from_file_location("report_resilience", root / "scripts/report_resilience.py")
+    reporter = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(reporter)
+    return reporter
+
+
 def main():
+    global OUTPUT
     configure_console_utf8()
-    OUTPUT.mkdir(parents=True, exist_ok=True)
+    run_id = uuid.uuid4().hex
+    run_folder = ROOT / ".tia-bridge/resilience" / run_id
+    run_folder.mkdir(parents=True, exist_ok=False)
+    OUTPUT = run_folder / "validation"
+    OUTPUT.mkdir()
     report = {"schema_version": "1.0", "scope": "B-01A-C/B-02A-D OFFLINE", "status": "FAIL", "started_at": datetime.now(timezone.utc).isoformat(), "steps": [], "engineering": "NOT_RUN", "runtime": "NOT_RUN"}
     try:
         for dependency in ["jsonschema", "openapi_spec_validator"]:
@@ -144,11 +156,11 @@ def main():
         # An empty local feed and existing global cache keep restore offline. No package install or audit HTTP.
         feed = OUTPUT / "empty-feed"
         feed.mkdir(exist_ok=True)
-        test_results = OUTPUT / "test-results" / uuid.uuid4().hex
-        os.environ["TIA_BRIDGE_RESILIENCE_RUN_ID"] = test_results.name
-        spec = importlib.util.spec_from_file_location("report_resilience", ROOT / "scripts/report_resilience.py")
-        resilience_report = importlib.util.module_from_spec(spec); spec.loader.exec_module(resilience_report)
-        resilience_report.capture_environment(ROOT, test_results.name)
+        test_results = run_folder / "test-results"
+        os.environ["TIA_BRIDGE_RESILIENCE_RUN_ID"] = run_id
+        resilience_report = load_reporter(ROOT)
+        resilience_report.capture_environment(ROOT, run_id)
+        resilience_report.performance_evidence.write_new_json(OUTPUT / "run-metadata.json", {"run_id": run_id, "started_at": report["started_at"], "git_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), "python": sys.version, "scope": report["scope"]})
         steps = [
             ("01-restore", ["dotnet", "restore", "TiaBridge.slnx", "--locked-mode", "--source", str(feed), "-p:NuGetAudit=false"]),
             ("02-build", ["dotnet", "build", "TiaBridge.slnx", "-c", "Release", "--no-restore"]),
@@ -156,7 +168,7 @@ def main():
             ("04-json-schema-openapi", [sys.executable, "-B", "-m", "unittest", "discover", "-s", "tests/contracts", "-p", "test_*.py", "-v"]),
             ("05-contract-generator", [sys.executable, "-B", "scripts/generate_contracts.py"]),
             ("06-test-vectors", [sys.executable, "-B", "scripts/generate_test_vectors.py"]),
-            ("07-documentation", [sys.executable, "-B", "scripts/audit_quality.py", "--report", ".tia-bridge/offline/quality.json"]),
+            ("07-documentation", [sys.executable, "-B", "scripts/audit_quality.py", "--report", str(OUTPUT / "quality.json")]),
             ("08-format", ["dotnet", "format", "whitespace", "TiaBridge.slnx", "--no-restore", "--verify-no-changes"]),
             ("09-diff", ["git", "diff", "--check"]),
         ]
@@ -171,7 +183,7 @@ def main():
                     raise ValueError("Missing Python test execution summary.")
                 total = int(found.group(1)); failed = sum(int(n) for n in re.findall(r"(?:failures|errors)=(\d+)", result.stdout)); skipped = sum(int(n) for n in re.findall(r"skipped=(\d+)", result.stdout))
                 report["python"] = {"total": total, "passed": total - failed - skipped, "failed": failed, "skipped": skipped}
-        qualification = resilience_report.qualification(ROOT, test_results.name, report["started_at"])
+        qualification = resilience_report.qualification(ROOT, run_id, report["started_at"])
         test_execution_ok = all(step["exit_code"] == 0 for step in report["steps"]) and report["dotnet"]["failed"] == 0 and report["python"]["skipped"] == 0
         if not test_execution_ok:
             qualification["gate"] = "FAIL"; qualification["x01_readiness"] = "NOT_READY"
@@ -179,17 +191,23 @@ def main():
                 qualification["limited_x01_technical_readiness"] = "NOT_READY_UNTIL_FAILED_TESTS_RESOLVED"
             qualification["gate_blockers"].append("A .NET or Python test failed/skipped; passing RT subsets cannot hide this execution failure.")
         qualification["test_results"] = {"dotnet": report["dotnet"], "python": report["python"]}
-        (ROOT / ".tia-bridge/resilience/run.json").write_text(json.dumps(qualification, indent=2) + "\n", encoding="utf-8")
+        resilience_report.performance_evidence.write_new_json(OUTPUT / "resilience.json", qualification)
         report["resilience_gate"] = qualification["gate"]; report["x01_readiness"] = qualification["x01_readiness"]
         report["test_execution_status"] = "PASS" if test_execution_ok else "FAIL"
         report["status"] = "FAIL" if qualification["gate"] == "FAIL" else "PASS"
         if report["status"] == "FAIL":
-            report["failure"] = "Resilience qualification failed; see .tia-bridge/resilience/run.json. Passing test execution does not hide NF failures."
+            report["failure"] = "Resilience qualification failed; see this run's validation/resilience.json. Passing test execution does not hide NF failures."
     except (OSError, ValueError, ET.ParseError, subprocess.SubprocessError, KeyError, TypeError) as error:
         report["failure"] = str(error)
         print("OFFLINE: FAIL - " + str(error), flush=True)
     finally:
-        (OUTPUT / "run.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        report.update(run_id=run_id, ended_at=datetime.now(timezone.utc).isoformat())
+        with (OUTPUT / "run.json").open("x", encoding="utf-8") as stream:
+            json.dump(report, stream, indent=2); stream.write("\n")
+        evidence_spec = importlib.util.spec_from_file_location("performance_evidence", ROOT / "scripts/performance_evidence.py")
+        evidence = importlib.util.module_from_spec(evidence_spec); evidence_spec.loader.exec_module(evidence)
+        evidence.seal_run(run_folder, run_id)
+    print("RUN ID: " + run_id + "; EVIDENCE: " + str(run_folder), flush=True)
     print("OFFLINE: " + report["status"] + "; ENGINEERING: NOT_RUN; RUNTIME: NOT_RUN", flush=True)
     return 0 if report["status"] == "PASS" else 1
 

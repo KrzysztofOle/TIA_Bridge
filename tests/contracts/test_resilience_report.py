@@ -61,7 +61,7 @@ class ResilienceReportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="tia-bridge-resilience-report-") as directory:
             root = Path(directory)
             fixture(root)
-            result = module.qualification(root, RUN, START)
+            result = module.qualification(root, RUN, START, allow_legacy=True)
             self.assertEqual("BLOCKED", result["gate"])
             self.assertEqual("NOT_READY", result["x01_readiness"])
             self.assertEqual("NOT_RUN", result["nf"]["NF-11"]["status"])
@@ -71,7 +71,7 @@ class ResilienceReportTests(unittest.TestCase):
             value["data"]["soak_seconds"] = 28801
             value["data"]["duration_is_not_eight_hour_soak"] = True
             path.write_text(json.dumps(value), encoding="utf-8")
-            self.assertEqual("NOT_RUN", module.qualification(root, RUN, START)["nf"]["NF-11"]["status"])
+            self.assertEqual("NOT_RUN", module.qualification(root, RUN, START, allow_legacy=True)["nf"]["NF-11"]["status"])
 
     def test_repository_replace_failure_is_not_hidden_by_successful_ntfs_tests(self):
         with tempfile.TemporaryDirectory(prefix="tia-bridge-resilience-report-") as directory:
@@ -81,7 +81,7 @@ class ResilienceReportTests(unittest.TestCase):
             value = json.loads(path.read_text(encoding="utf-8"))
             value["data"] = {"with_worker": {"success": False}, "without_worker": {"success": False}}
             path.write_text(json.dumps(value), encoding="utf-8")
-            result = module.qualification(root, RUN, START)
+            result = module.qualification(root, RUN, START, allow_legacy=True)
             self.assertEqual("FAIL", result["gate"])
             self.assertEqual("FAIL", result["nf"]["NF-03"]["status"])
             self.assertEqual("NOT_READY", result["x01_readiness"])
@@ -95,7 +95,7 @@ class ResilienceReportTests(unittest.TestCase):
             value["status"] = "FAIL"
             value["data"]["cpu_percent_normalized_all_logical_processors"] = 3.7
             path.write_text(json.dumps(value), encoding="utf-8")
-            result = module.qualification(root, RUN, START)
+            result = module.qualification(root, RUN, START, allow_legacy=True)
             self.assertEqual("FAIL", result["gate"])
             self.assertEqual("FAIL", result["nf"]["NF-08"]["measured_idle_status"])
             self.assertEqual("FAIL", next(row for row in result["scenarios"] if row["id"] == "idle-300s")["status"])

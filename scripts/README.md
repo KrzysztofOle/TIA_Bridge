@@ -2,6 +2,14 @@
 
 Place repository maintenance and development scripts here. Scripts must not connect to or modify a TIA Portal project unless the command and its safeguards are explicit, documented, and separately reviewed.
 
+## D-11 preparation — próbki i read-only preflight
+
+[performance_evidence.py](performance_evidence.py) wymaga wyłącznie Python 3.12/std library. Waliduje pełne próbki 1.1, niezmienne manifesty i SHA oraz odtwarzalność percentyli, bez uruchamiania RT/NF. Używają go reporter i runner; `allow_legacy=True` służy tylko jawnemu odczytowi archiwalnych agregatów z INSUFFICIENT, bez nowej kwalifikacji PASS. Nowe raporty runnera są w `.tia-bridge/resilience/<run-id>/validation/`, TRX w `test-results/`, próbki w `performance/`; na końcu powstaje `evidence-manifest.json`. Stare wspólne ścieżki opisane w historii B-01/B-02 poniżej pozostają archiwalne i nie są nadpisywane.
+
+[d11_preflight.ps1](d11_preflight.ps1) wymaga Windows PowerShell 5.1+, CIM/.NET, Git i .NET CLI, bez nowych pakietów lub elevacji. Przykład: `powershell -NoProfile -File scripts/d11_preflight.ps1 -OutputDirectory X:\Projects\TIA_Bridge\.tia-bridge\preparation\d11-20261026`. Odczytuje metadata procesów Git/Siemens i usług, 5 obserwacji Git z pauzami 2 s, NTFS/reparse, CPU/RAM/dyski/AV i runtime; zapisuje nowy UUID JSON przez CreateNew w podanym własnym katalogu `.tia-bridge`. Redaguje typowe credentiale command line; surowego raportu nie commitować. Nie wykonuje Attach, odczytu projektu, start/stop procesów, zmiany konfiguracji ani RT/NF. Obecność fsmonitor/edytora/usługi nie jest sama w sobie FAIL; główny Portal jest raportowany oddzielnie. Brak danych oznacza ograniczenie obserwacji, a nie zgadywanie stanu.
+
+Instrukcja profilu i formatu: [resilience README](../tests/resilience/README.md), wynik przygotowania: [raport](../tests/resilience/D11_PREPARATION_2026-10-26.md).
+
 ## Kontrola pakietu projektowego
 
 `audit_quality.py` jest lokalnym walidatorem dokumentacji i projektowych kontraktów, nie implementacją Bridge. Nie ładuje vendor DLL, nie łączy się z TIA/OPC/HTTP i nie wykonuje kodu znalezionego w dokumentach.

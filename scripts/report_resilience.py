@@ -5,17 +5,22 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import importlib.util
+
+_spec = importlib.util.spec_from_file_location("performance_evidence", Path(__file__).with_name("performance_evidence.py"))
+performance_evidence = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(performance_evidence)
 
 
 def capture_environment(root: Path, run_id: str):
     command = r"""$ErrorActionPreference='Stop'; $cpu=Get-CimInstance Win32_Processor | Select-Object Name,NumberOfCores,NumberOfLogicalProcessors; $ram=(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory; $av=try { @(Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntiVirusProduct | Select-Object displayName,productState) } catch { @('NOT_RUN: SecurityCenter2 unavailable') }; [ordered]@{cpu=@($cpu);physical_ram_bytes=$ram;antivirus=$av} | ConvertTo-Json -Depth 5 -Compress"""
     process = subprocess.run(["powershell", "-NoProfile", "-Command", command], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30, check=True)
     value = json.loads(process.stdout) | {"run_id": run_id, "captured_at": datetime.now(timezone.utc).isoformat()}
-    folder = root / ".tia-bridge/resilience"; folder.mkdir(parents=True, exist_ok=True)
-    (folder / ("environment-" + run_id + ".json")).write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
+    folder = root / ".tia-bridge/resilience" / run_id / "validation"
+    performance_evidence.write_new_json(folder / "environment.json", value)
 
 
-def qualification(root: Path, run_id: str, started_at: str):
+def qualification(root: Path, run_id: str, started_at: str, *, allow_legacy=False):
     if not re.fullmatch(r"[0-9a-f]{32}", run_id):
         raise ValueError("Invalid resilience run ID.")
     matrix = json.loads((root / "tests/resilience/matrix.json").read_text(encoding="utf-8"))
@@ -34,7 +39,29 @@ def qualification(root: Path, run_id: str, started_at: str):
     if idle.get("duration_s", 0) < 300:
         raise ValueError("NF-08 idle window was not completed.")
     idle_ok = records["idle-300s"]["status"] == "PASS" and idle["cpu_percent_normalized_all_logical_processors"] < 1 and idle["host_max_ram_mib"] <= 200 and idle["worker_max_ram_mib"] <= 250
-    perf = json.loads((root / ".tia-bridge/b02c/performance.json").read_text(encoding="utf-8"))
+    sample_state = "INSUFFICIENT"
+    if allow_legacy and not (folder / "performance").exists():
+        perf = json.loads((root / ".tia-bridge/b02c/performance.json").read_text(encoding="utf-8"))
+    else:
+        bundles = {name: performance_evidence.load_bundle(root, run_id, name, started_at) for name in performance_evidence.PROFILES}
+        if any(item["status"] == "INSUFFICIENT" for item in bundles.values()):
+            raise ValueError("Full sample evidence is insufficient for a new qualification.")
+        builds = [item["bundle"] for item in bundles.values()]
+        run_metadata_path = folder / "validation/run-metadata.json"
+        run_metadata = performance_evidence.read_json(run_metadata_path)
+        if run_metadata.get("run_id") != run_id or run_metadata.get("git_sha") != builds[0]["git_sha"] or performance_evidence.timestamp(run_metadata.get("started_at")) != performance_evidence.timestamp(started_at):
+            raise ValueError("Performance evidence does not belong to runner metadata.")
+        if any((b["git_sha"], b["binaries_sha256"], b["sources_sha256"]) != (builds[0]["git_sha"], builds[0]["binaries_sha256"], builds[0]["sources_sha256"]) for b in builds[1:]):
+            raise ValueError("Performance evidence mixes builds/sources.")
+        for scenario, field, metric_id in [("workspace-replace", "save_replace_1mib", "nf03-ntfs-save-replace"), ("repository-replace-control", "without_worker", "nf03-repository-without-worker"), ("repository-replace-control", "with_worker", "nf03-repository-with-worker")]:
+            measured = next(m for m in bundles[scenario]["bundle"]["metrics"] if m["id"] == metric_id)
+            recorded = records[scenario]["data"][field]
+            if measured["distribution"] != (recorded if scenario == "workspace-replace" else recorded["distribution"]):
+                raise ValueError("Scenario aggregates differ from full samples.")
+            if scenario == "repository-replace-control" and (recorded["refused_samples"] != measured["refused_samples"] or recorded["success"] != (measured["status"] == "PASS")):
+                raise ValueError("Scenario SLO differs from full samples.")
+        perf = bundles["api-performance"]["bundle"]["summary"]
+        sample_state = "FAIL" if any(b["status"] == "FAIL" for b in bundles.values()) else "PASS"
     if datetime.fromisoformat(perf["observed_at"]) < minimum:
         raise ValueError("Stale B-02C performance evidence.")
     soak = records["operations-1001"]["data"]
@@ -55,8 +82,9 @@ def qualification(root: Path, run_id: str, started_at: str):
     nf["NF-02"]["status"] = "PASS" if perf["submit_eight_clients"]["p95_ms"] <= 250 and perf["submit_eight_clients"]["p99_ms"] <= 500 else "FAIL"
     nf["NF-05"]["status"] = "PASS" if readers.get("startup_history", {}).get("p95_ms", 5001) <= 5000 and readers.get("safe_read_after_recovery_ms", 30001) <= 30000 else "FAIL"
     repo_replace = records["repository-replace-control"]["data"]
-    repo_ok = repo_replace["with_worker"]["success"] and repo_replace["without_worker"]["success"] and perf["edit_one_mib"]["p95_ms"] <= 100
-    nf["NF-03"] = {"status": "PASS" if repo_ok else "FAIL", "ntfs_save_replace_status": "PASS", "repository_volume_control": repo_replace,
+    ntfs_ok = records["workspace-replace"]["status"] == "PASS"
+    repo_ok = ntfs_ok and repo_replace["with_worker"]["success"] and repo_replace["without_worker"]["success"] and perf["edit_one_mib"]["p95_ms"] <= 100
+    nf["NF-03"] = {"status": "PASS" if repo_ok else "FAIL", "ntfs_save_replace_status": "PASS" if ntfs_ok else "FAIL", "repository_volume_control": repo_replace,
                    "scope": "100 paced 1 MiB save/replace samples on local NTFS; repository volume replace is independently tested without/with worker. No unsafe fallback or retry."}
     gate = "FAIL" if not repo_ok else "PASS" if full_soak else "BLOCKED"
     blockers = [] if full_soak else ["NF-11 eight-hour soak is NOT_RUN by explicit user decision and belongs to B-10B/R-14. AGENTS.md refers to required tests in document 07, whose eight-hour profile is not explicitly excluded from X-01. Gate clarification proposal awaits approval; no waiver is inferred."]
@@ -66,7 +94,15 @@ def qualification(root: Path, run_id: str, started_at: str):
     if failed_scenarios or any(value["status"] == "FAIL" for value in nf.values()):
         gate = "FAIL"
         blockers.append("Failed scenarios or NF thresholds remain visible; no blanket qualification PASS.")
-    environment = json.loads((root / ".tia-bridge/resilience" / ("environment-" + run_id + ".json")).read_text(encoding="utf-8"))
+    if sample_state == "INSUFFICIENT":
+        if gate != "FAIL": gate = "BLOCKED"
+        blockers.append("Historical aggregate format: full sample evidence INSUFFICIENT for a new qualification.")
+    elif sample_state == "FAIL":
+        gate = "FAIL"
+        blockers.append("Performance sample evidence retains a failed test or SLO.")
+    environment_path = folder / "validation/environment.json"
+    if allow_legacy and not environment_path.exists(): environment_path = root / ".tia-bridge/resilience" / ("environment-" + run_id + ".json")
+    environment = json.loads(environment_path.read_text(encoding="utf-8"))
     if environment.get("run_id") != run_id:
         raise ValueError("Environment does not belong to this run.")
     sources = {}
@@ -75,12 +111,12 @@ def qualification(root: Path, run_id: str, started_at: str):
             if path.is_file() and not {"bin", "obj", "__pycache__"}.intersection(path.parts) and path.suffix in {".cs", ".csproj", ".py", ".sql", ".json"} and path.name != "qualification.json":
                 sources[path.relative_to(root).as_posix()] = hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
     source_hash = hashlib.sha256(json.dumps(sources, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-    return {"schema_version": "1.0", "run_id": run_id, "environment": environment, "generated_at": datetime.now(timezone.utc).isoformat(),
+    return {"schema_version": "1.1", "run_id": run_id, "sample_evidence_status": sample_state, "environment": environment, "generated_at": datetime.now(timezone.utc).isoformat(),
             "versions": {"api_schema": "1.0", "ipc_protocol": "1.0", "fake_build": "1.0", "sqlite_schema": 3, "source_fingerprint_lf_sha256": source_hash, "source_file_count": len(sources)},
             "scope": "B-02D synthetic offline qualification; no Siemens activation or TIA state verification",
             "gate": gate, "x01_readiness": "READY" if gate == "PASS" else "NOT_READY",
             "gate_blockers": blockers,
-            "limited_x01_technical_readiness": "TECHNICALLY_READY_ON_NTFS_PENDING_FORMAL_GATE_DECISION" if idle_ok and all(rt[k]["status"] == "PASS" for k in matrix["required_rt"]) and all(nf[k]["status"] == "PASS" for k in ["NF-01", "NF-02", "NF-05"]) else "NOT_READY",
+            "limited_x01_technical_readiness": "TECHNICALLY_READY_ON_NTFS_PENDING_FORMAL_GATE_DECISION" if sample_state == "PASS" and idle_ok and all(rt[k]["status"] == "PASS" for k in matrix["required_rt"]) and all(nf[k]["status"] == "PASS" for k in ["NF-01", "NF-02", "NF-05"]) else "NOT_READY",
             "production_stability_qualification": "NOT_RUN",
             "required_rt": matrix["required_rt"], "rt": rt, "nf": nf, "environment_not_run": matrix["not_run_environment_cases"],
             "measurements": {"b02c": perf, "http_readers_recovery": records["http-readers-recovery"]["data"], "idle": idle, "workspace_replace": records["workspace-replace"]["data"], "repository_replace": repo_replace, "queue_capacity": records["queue-capacity"]["data"]},

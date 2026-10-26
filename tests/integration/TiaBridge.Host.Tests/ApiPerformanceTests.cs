@@ -27,7 +27,12 @@ public class ApiPerformanceTests
     [Fact]
     public async Task One_and_eight_clients_keep_status_and_workspace_responsive_during_real_worker_hang()
     {
-        await using var f = new ApiFixture(); await f.Start(FakeScenario.Hang); using var client = f.Client(); var id = await f.Submit(client, ApiFixture.Request(timeout: 120));
+        await using var f = new ApiFixture();
+        using var performance = new PerformanceEvidence(f, "api-performance", nameof(One_and_eight_clients_keep_status_and_workspace_responsive_during_real_worker_hang));
+        var admissions = new ConcurrentBag<double>(); var edits = new List<double>();
+        performance.Register("nf02-submit-eight", () => admissions, 64, 250, 500, f.Files.Root);
+        performance.Register("nf03-inplace-repository", () => edits, 100, 100, null, f.Files.Repository);
+        await f.Start(FakeScenario.Hang); using var client = f.Client(); var id = await f.Submit(client, ApiFixture.Request(timeout: 120));
         await f.Until(client, id, r => r.Phase == "EXECUTING");
         async Task<double[]> StatusSamples(int parallel)
         {
@@ -44,7 +49,6 @@ public class ApiPerformanceTests
         // Warm schema/HTTP pools before the measured profile, retaining every measured sample thereafter.
         using (var warm = f.Raw()) for (int i = 0; i < 8; i++) { using var response = await warm.GetAsync("/v1/operations/" + id); _ = await response.Content.ReadAsByteArrayAsync(); }
         double[] single = await StatusSamples(1); await Task.Delay(1100); double[] eight = await StatusSamples(8);
-        var admissions = new ConcurrentBag<double>();
         using (var http = f.Raw())
             await Task.WhenAll(Enumerable.Range(0, 8).Select(async clientIndex =>
             {
@@ -59,7 +63,7 @@ public class ApiPerformanceTests
         string workspace = Path.Combine(parent, Guid.NewGuid().ToString("N")); Directory.CreateDirectory(workspace);
         if (!Path.GetFullPath(workspace).StartsWith(parent + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Unsafe synthetic workspace.");
         string editable = Path.Combine(workspace, "editable.scl"), temporary = Path.Combine(workspace, "editable.tmp");
-        byte[] payload = Enumerable.Repeat((byte)0x41, 1024 * 1024).ToArray(); var edits = new List<double>();
+        byte[] payload = Enumerable.Repeat((byte)0x41, 1024 * 1024).ToArray();
         try
         {
             for (int i = 0; i < 100; i++)
@@ -70,8 +74,7 @@ public class ApiPerformanceTests
             }
         }
         finally { if (File.Exists(temporary)) File.Delete(temporary); if (File.Exists(editable)) File.Delete(editable); Directory.Delete(workspace, recursive: false); }
-        string reportPath = Path.Combine(f.Files.Repository, ".tia-bridge", "b02c", "performance.json");
-        File.WriteAllText(reportPath, JsonSerializer.Serialize(new
+        performance.Summary = new
         {
             schema_version = "1.0",
             observed_at = DateTimeOffset.UtcNow,
@@ -87,12 +90,13 @@ public class ApiPerformanceTests
             status_eight_clients = Distribution(eight),
             submit_eight_clients = Distribution(admissions),
             edit_one_mib = Distribution(edits)
-        }, new JsonSerializerOptions { WriteIndented = true }));
+        };
         Assert.True(Percentile(single, .95) <= 100, "NF-01 single p95: " + Percentile(single, .95));
         Assert.True(Percentile(eight, .95) <= 100, "NF-01 eight p95: " + Percentile(eight, .95));
         Assert.True(Percentile(single, .99) <= 250); Assert.True(Percentile(eight, .99) <= 250);
         Assert.True(Percentile(admissions, .95) <= 250, "NF-02 submit p95: " + Percentile(admissions, .95)); Assert.True(Percentile(admissions, .99) <= 500);
         Assert.True(Percentile(edits, .95) <= 100, "NF-03 edit p95: " + Percentile(edits, .95));
+        performance.Pass();
     }
     [Fact]
     public async Task Queue_is_bounded_at_one_thousand_and_duplicate_health_and_status_still_work()

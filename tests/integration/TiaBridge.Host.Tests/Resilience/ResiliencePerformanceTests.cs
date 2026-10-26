@@ -22,11 +22,15 @@ public class ResiliencePerformanceTests
     public async Task Independent_workspace_save_and_replace_remains_available_during_a_hung_worker()
     {
         using var evidence = new ResilienceEvidence("workspace-replace", "NF-03", "RT-01");
-        await using var f = new ApiFixture(); await f.Start(FakeScenario.Hang); using var client = f.Client(); var id = await f.Submit(client, ApiFixture.Request(timeout: 120)); await f.Until(client, id, r => r.Phase == "EXECUTING");
+        await using var f = new ApiFixture();
+        using var performance = new PerformanceEvidence(f, "workspace-replace", nameof(Independent_workspace_save_and_replace_remains_available_during_a_hung_worker));
+        var samples = new List<double>();
+        performance.Register("nf03-ntfs-save-replace", () => samples, 100, 100, null, f.Files.Root);
+        await f.Start(FakeScenario.Hang); using var client = f.Client(); var id = await f.Submit(client, ApiFixture.Request(timeout: 120)); await f.Until(client, id, r => r.Phase == "EXECUTING");
         string parent = Path.GetFullPath(Path.Combine(f.Files.Root, "workspaces")); Directory.CreateDirectory(parent);
         string root = Path.GetFullPath(Path.Combine(parent, Guid.NewGuid().ToString("N"))); Assert.StartsWith(parent + Path.DirectorySeparatorChar, root, StringComparison.OrdinalIgnoreCase); Directory.CreateDirectory(root);
         string target = Path.Combine(root, "editable.scl"), temporary = Path.Combine(root, "editable.tmp");
-        byte[] bytes = Enumerable.Repeat((byte)0x41, 1024 * 1024).ToArray(); var samples = new List<double>();
+        byte[] bytes = Enumerable.Repeat((byte)0x41, 1024 * 1024).ToArray();
         try
         {
             File.WriteAllBytes(target, bytes);
@@ -36,7 +40,7 @@ public class ResiliencePerformanceTests
                 Assert.Equal(System.Security.Cryptography.SHA256.HashData(bytes), System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(target))); await Task.Delay(100);
             }
             var distribution = Distribution(samples); evidence.Data["save_replace_1mib"] = distribution; evidence.Data["filesystem"] = new DriveInfo(Path.GetPathRoot(root)!).DriveFormat; evidence.Data["interval_ms"] = 100;
-            Assert.True(distribution["p95_ms"] <= 100, "NF-03 replace p95: " + distribution["p95_ms"]); evidence.Pass();
+            Assert.True(distribution["p95_ms"] <= 100, "NF-03 replace p95: " + distribution["p95_ms"]); evidence.Pass(); performance.Pass();
         }
         finally { if (File.Exists(temporary)) File.Delete(temporary); if (File.Exists(target)) File.Delete(target); Directory.Delete(root, recursive: false); }
     }
@@ -45,6 +49,7 @@ public class ResiliencePerformanceTests
     {
         using var evidence = new ResilienceEvidence("repository-replace-control", "NF-03", "RT-01");
         await using var f = new ApiFixture();
+        using var performance = new PerformanceEvidence(f, "repository-replace-control", nameof(Repository_volume_replace_is_compared_with_and_without_a_worker_without_unsafe_fallback));
         string parent = Path.GetFullPath(Path.Combine(f.Files.Repository, ".tia-bridge", "resilience", "workspaces")); Directory.CreateDirectory(parent);
         string root = Path.Combine(parent, Guid.NewGuid().ToString("N")); Assert.StartsWith(parent + Path.DirectorySeparatorChar, Path.GetFullPath(root), StringComparison.OrdinalIgnoreCase); Directory.CreateDirectory(root);
         string target = Path.Combine(root, "owned-target.txt"), temporary = Path.Combine(root, "owned-source.tmp");
@@ -53,6 +58,7 @@ public class ResiliencePerformanceTests
         {
             byte[] original = Enumerable.Repeat((byte)0x41, 1024 * 1024).ToArray(), replacement = Enumerable.Repeat((byte)0x42, 1024 * 1024).ToArray();
             var times = new List<double>(); var errors = new List<int>();
+            performance.Register("nf03-repository-" + label, () => times, 100, 100, null, root, () => errors.Count);
             for (int i = 0; i < 100; i++)
             {
                 string sampleTarget = Path.Combine(root, label + "-target-" + i + ".txt"), sampleTemporary = Path.Combine(root, label + "-source-" + i + ".tmp");
@@ -70,7 +76,7 @@ public class ResiliencePerformanceTests
             var baseline = await Probe("without-worker"); await f.Start(FakeScenario.Hang); using var client = f.Client(); var id = await f.Submit(client, ApiFixture.Request(timeout: 120)); await f.Until(client, id, r => r.Phase == "EXECUTING"); var during = await Probe("with-worker");
             evidence.Data["filesystem"] = new DriveInfo(Path.GetPathRoot(root)!).DriveFormat;
             evidence.Data["without_worker"] = baseline; evidence.Data["with_worker"] = during;
-            evidence.Data["original_preserved_on_refusal"] = true; evidence.Data["sample_bytes"] = 1024 * 1024; evidence.Data["interval_ms"] = 100; evidence.Pass();
+            evidence.Data["original_preserved_on_refusal"] = true; evidence.Data["sample_bytes"] = 1024 * 1024; evidence.Data["interval_ms"] = 100; evidence.Pass(); performance.Pass();
         }
         finally { foreach (string owned in ownedPaths) if (File.Exists(owned)) File.Delete(owned); Directory.Delete(root, recursive: false); }
     }

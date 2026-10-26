@@ -4,6 +4,16 @@ Harness używa istniejącego projektu Host.Tests i StorageProbe, rzeczywistych p
 
 Decyzja D-11 (2026-10-26): [odrębna ocena ograniczonej bramki X-01](X01_LIMITED_GATE.md), [JSON decyzji](x01-limited-gate.json). Historyczne QUALIFICATION.md i qualification.json pozostają niezmienione, włącznie z OFFLINE/GATE FAIL, NF-03 exFAT FAIL i NF-11 NOT_RUN. Aktualna ograniczona bramka NTFS ma PASS na podstawie wskazanych dowodów; nie oznacza produkcji, kwalifikacji exFAT ani zgody na uruchomienie X-01. NF-11 ≥8 h pozostaje obowiązkowy w B-10B/R-14.
 
+## Dowody NF-02/NF-03 od formatu 1.1
+
+Nowe przebiegi używają wyłącznie `.tia-bridge/resilience/<run-id>/`: `performance/<test>.json` zawiera pełne próbki, ich ID, ms/wall_clock, N, odtwarzalne agregaty/SLO, UTC, Git SHA/dirty, SHA źródeł i binariów, runtime, filesystem i hash konfiguracji. Osobny `<test>.manifest.json` wiąże bajty przez SHA-256. Kolejność ID oznacza snapshot kolekcji; przy ośmiu klientach nie jest chronologią zakończeń żądań. Wszystkie wartości, także najwolniejsze i częściowe po wyjątku, pozostają zachowane. Progi, stoper, warm-up, interwały i N pozostają bez zmian. Status ciała testu w artefakcie uzupełnia pełny wynik TRX, obejmujący również teardown.
+
+`validation/` zawiera metadata, środowisko, logi kroków, `run.json`, `resilience.json` i quality; `test-results/` zawiera TRX. Runner tworzy nowy UUID/root, a na końcu także przy FAIL zapisuje `evidence-manifest.json` z pełnym spisem plików i hashami. Zapisy dowodów używają create-new; powtórzenie ID nie nadpisuje danych. Nie tworzy się nowego wspólnego `b02c/performance.json`, `offline/run.json` ani `resilience/run.json`. Dawne pliki pozostają niezmienione.
+
+[Walidator](../../scripts/performance_evidence.py) odrzuca brak/duplikaty, złe liczby i jednostki, NaN/Infinity/ujemne czasy, niezgodne percentyle/statusy, run/build/hash i uszkodzony JSON. Reporter porównuje też agregaty scenariuszy z pełnymi próbkami i nie pobiera współdzielonego performance.json. Historyczny format bez próbek jest dostępny wyłącznie przez jawne `qualification(..., allow_legacy=True)` do analizy archiwalnej: `sample_evidence_status=INSUFFICIENT`, bez nowego gate PASS. Odczyt nie uzupełnia starych dowodów. Pełne próbki z FAIL pozostają FAIL, a częściowe są INSUFFICIENT. `NF-03.ntfs_save_replace_status` odzwierciedla teraz wynik właściwego testu zamiast stałej PASS; jego asercje nie zmieniły się.
+
+Przygotowanie i aktualny preflight: [raport D-11 preparation](D11_PREPARATION_2026-10-26.md). Jego testy celowane nie są nową kwalifikacją D-11. Semantyka zatwierdzonej ograniczonej bramki i historyczna konserwatywna agregacja NF-08/NF-11 reportera pozostają rozdzielone jak w dokumencie 16.
+
 ## Uruchomienie
 
 Wymagania i jednorazowy cache: [tests/README.md](../README.md). Windows, .NET SDK/ASP.NET Core 10, Windows PowerShell do odczytu CPU/RAM/AV oraz QA Python z przypiętymi zależnościami. Nie instalujemy Siemens, nowych pakietów ani kont testowych.

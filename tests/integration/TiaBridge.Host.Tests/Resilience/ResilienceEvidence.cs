@@ -10,6 +10,7 @@ namespace TiaBridge.Host.Tests;
 internal sealed class ResilienceEvidence(string scenario, params string[] requirements) : IDisposable
 {
     private static readonly string RunId = Guid.TryParseExact(Environment.GetEnvironmentVariable("TIA_BRIDGE_RESILIENCE_RUN_ID"), "N", out var id) ? id.ToString("N") : Guid.NewGuid().ToString("N");
+    internal static string CurrentRunId => RunId;
     private readonly Stopwatch timer = Stopwatch.StartNew();
     private readonly DateTimeOffset started = DateTimeOffset.UtcNow;
     private bool passed;
@@ -21,7 +22,7 @@ internal sealed class ResilienceEvidence(string scenario, params string[] requir
         while (!File.Exists(Path.Combine(root, "TiaBridge.slnx"))) root = Directory.GetParent(root)!.FullName;
         string output = Path.Combine(root, ".tia-bridge", "resilience", RunId); Directory.CreateDirectory(output);
         if (scenario.Any(c => !char.IsAsciiLetterOrDigit(c) && c is not ('-' or '_' or '.'))) throw new ArgumentException("Unsafe evidence ID.");
-        File.WriteAllText(Path.Combine(output, scenario + ".json"), JsonSerializer.Serialize(new
+        PerformanceEvidence.WriteNew(Path.Combine(output, scenario + ".json"), JsonSerializer.SerializeToUtf8Bytes(new
         { schema_version = "1.0", run_id = RunId, scenario, requirements, status = passed ? "PASS" : "FAIL", started_at = started, elapsed_ms = timer.Elapsed.TotalMilliseconds, data = Data }, new JsonSerializerOptions { WriteIndented = true }));
     }
     internal static async Task<JsonElement> Marker(ApiFixture f, string name)

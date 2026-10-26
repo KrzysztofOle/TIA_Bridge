@@ -1,10 +1,12 @@
 """Runner must fail closed on missing/skipped tests, dependencies or failed tools."""
 import importlib.util
+import json
 import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import shutil
 import unittest
 from unittest.mock import patch
 from types import SimpleNamespace
@@ -16,6 +18,31 @@ spec.loader.exec_module(runner)
 
 
 class OfflineRunnerTests(unittest.TestCase):
+    def test_orchestration_keeps_runs_separate_and_seals_failed_results_without_executing_tests(self):
+        # Every execution seam is mocked: this does not launch the full profile, processes or restore/build.
+        evidence_spec = importlib.util.spec_from_file_location("performance_evidence", ROOT / "scripts/performance_evidence.py")
+        evidence = importlib.util.module_from_spec(evidence_spec); evidence_spec.loader.exec_module(evidence)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); (root / "scripts").mkdir()
+            shutil.copyfile(ROOT / "scripts/performance_evidence.py", root / "scripts/performance_evidence.py")
+            shared = root / ".tia-bridge/resilience/run.json"; shared.parent.mkdir(parents=True); shared.write_bytes(b"historical unchanged")
+            fake_reporter = SimpleNamespace(performance_evidence=evidence, capture_environment=lambda *args: None,
+                qualification=lambda *args: dict(gate="FAIL", x01_readiness="NOT_READY", gate_blockers=[], limited_x01_technical_readiness="NOT_READY"))
+            def fake_step(name, command, steps, **kwargs):
+                steps.append(dict(name=name, exit_code=0, elapsed_s=0))
+                return SimpleNamespace(returncode=0, stdout="Ran 1 tests\nOK\n")
+            first_output = None
+            with patch.object(runner, "ROOT", root), patch.object(runner, "OUTPUT", root / "unused"), patch.object(runner, "load_reporter", return_value=fake_reporter), patch.object(runner, "check_core_boundary", return_value={"status": "PASS"}), patch.object(runner, "check_trx", return_value=dict(passed=1, failed=0, failed_tests=[])), patch.object(runner, "run_step", side_effect=fake_step), patch.object(runner.subprocess, "check_output", return_value="a" * 40), patch("builtins.print"), patch.dict(os.environ):
+                for _ in range(2):
+                    self.assertEqual(1, runner.main())
+                    result = json.loads((runner.OUTPUT / "run.json").read_text())
+                    self.assertEqual("FAIL", result["status"])
+                    evidence.verify_run(runner.OUTPUT.parent, result["run_id"])
+                    self.assertEqual(b"historical unchanged", shared.read_bytes())
+                    if first_output is None: first_output = runner.OUTPUT
+                    else: self.assertNotEqual(first_output, runner.OUTPUT)
+                self.assertTrue((first_output / "run.json").is_file())
+
     def test_core_static_dependency_boundary(self):
         self.assertEqual("PASS", runner.check_core_boundary()["status"])
 
