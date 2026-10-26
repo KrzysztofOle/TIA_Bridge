@@ -1,8 +1,8 @@
 # TIA_Bridge 2
 
-Projekt nowej aplikacji Windows do integracji CODEX z Siemens TIA Portal. Stan 2026-10-25: **zaimplementowane offline B-01A–B-01C oraz B-02A–C — Core, trwały silnik Fake, lokalne HTTP API i CLI**. Działają modele, walidacja, serializacja, codec ścieżek, hashe, registry domyślnie deny i magazyn operacji na lokalnym NTFS. Działają lokalny Host HTTP i CLI; worker Siemens, adaptery i rzeczywiste wykonanie operacji TIA jeszcze nie istnieją; przyjęcie operacji do SQLite nie oznacza jej wykonania ani autoryzacji TIA.
+Projekt nowej aplikacji Windows do integracji CODEX z Siemens TIA Portal. Stan 2026-10-26: **zaimplementowane offline B-01A–B-01C oraz B-02A–C — Core, trwały silnik Fake, lokalne HTTP API i CLI**. Działają modele, walidacja, serializacja, codec ścieżek, hashe, registry domyślnie deny i magazyn operacji na lokalnym NTFS. Działają lokalny Host HTTP i CLI oraz eksperymentalny [worker Siemens V19 read-only](src/TiaBridge.Worker.V19/README.md); przyjęcie operacji do SQLite nie oznacza jej wykonania ani autoryzacji TIA.
 
-B-02D dostarczył [harness odporności i raport bramki](docs/16_RESILIENCE_RECOVERY.md), z pełnym przepływem na Fake, kontrolowanymi crash/restart i pomiarami. Decyzja D-11 z 2026-10-26 rozdziela pełną kwalifikację offline badanego profilu (FAIL, NF-03 exFAT) od [ograniczonej bramki X-01 read-only](tests/resilience/X01_LIMITED_GATE.md) (PASS wyłącznie w udokumentowanym profilu lokalnego NTFS). Historyczne wyniki pozostają niezmienione. NF-11 ≥8 h nadal NOT_RUN/B-10B; produkcja, ENGINEERING i RUNTIME: NOT_RUN. X-01 wymaga osobnego zadania i autoryzacji; Siemens nie został uruchomiony.
+B-02D dostarczył [harness odporności i raport bramki](docs/16_RESILIENCE_RECOVERY.md), z pełnym przepływem na Fake, kontrolowanymi crash/restart i pomiarami. Decyzja D-11 z 2026-10-26 rozdziela pełną kwalifikację offline badanego profilu (FAIL, NF-03 exFAT) od [ograniczonej bramki X-01 read-only](tests/resilience/X01_LIMITED_GATE.md) (PASS wyłącznie w udokumentowanym profilu lokalnego NTFS). Historyczne wyniki pozostają niezmienione. NF-11 ≥8 h nadal NOT_RUN/B-10B; produkcja i RUNTIME: NOT_RUN. Osobno autoryzowany X-01 uruchomił rzeczywisty izolowany net48/x64 i odczyt obu projektów; [raport kwalifikacji](docs/X01_TIA_V19_QUALIFICATION.md) podaje zakres, wyniki i ograniczenia Engineering. Nie wykonuje się mutacji Siemens.
 
 Docelowy przepływ: **TIA → eksport do workspace → edycja CODEX → plan → zatwierdzone Apply → niezależna weryfikacja → kompilacja/symulacja → testy**. Pliki CODEX określają zamierzony stan. Rozbieżności z nieznanymi zmianami TIA wymagają rozstrzygnięcia; import nigdy nie stanowi samodzielnego dowodu zgodności.
 
@@ -46,10 +46,16 @@ Zatwierdzona polityka modelu HMI i oryginalnych artefaktów Siemens: [ADR 0003 �
 
 Nie ma automatycznego importu po zapisie pliku. Domyślny profil jest read-only; zatwierdzone, ograniczone uprawnienie sesji testowej może obejmować wiele kroków. Usuwanie, fizyczny download i rzeczywista maszyna wymagają osobnej autoryzacji. Kopia Git nie zastępuje archiwum Siemens.
 
-Repozytorium znajduje się obecnie na M: (exFAT). Trwała baza operacji, sekrety i spool wykonawcy mają docelowo znajdować się na lokalnym NTFS poza repo; na exFAT nie opieramy gwarancji ACL ani odporności na utratę zasilania. Nazwy `SYNCED`, `Compile PASS` i `Runtime PASS` opisują niezależne fakty.
+Repozytorium kodu jest odrębne od trwałej bazy operacji, sekretów i spool wykonawcy, które muszą znajdować się poza repo na lokalnym NTFS. Nie opieramy gwarancji ACL ani odporności na utratę zasilania na exFAT. Nazwy `SYNCED`, `Compile PASS` i `Runtime PASS` opisują niezależne fakty.
 
 Kontrola dokumentacji: `py -3 scripts/audit_quality.py`. Wymaga Python 3.12 i `jsonschema`; nie łączy się z Siemens. [Instrukcja](scripts/README.md), [zasady agentów](AGENTS.md).
 
 ## Materiały wejściowe
 
 Pierwotne opracowania [architecture](docs/architecture.md), [sync-model](docs/sync-model.md), [formats](docs/formats.md), [safety](docs/safety.md), [roadmap](docs/roadmap.md) i ADR 0001 zachowano i powiązano z aktualnymi specyfikacjami. [ADR 0002](docs/decisions/0002-async-host-and-versioned-worker.md) doprecyzowuje autonomię w zatwierdzonej sesji.
+
+## X-01 — ograniczona integracja rzeczywista
+
+Osobne [rozwiązanie Engineering](TiaBridge.Engineering.slnx) buduje worker net48/x64 z PublicAPI V19 z Program Files, bez kopiowania vendor DLL. Standardowy build/test offline nie wymaga Siemens. [Jawny harness live](tests/engineering/README.md) wykorzystuje istniejący Host, API, CLI, SQLite, scheduler i IPC 1.1; dopuszcza wyłącznie exact binding i `project.inspect`, bounded inventory oraz Detach. Pozostałe operacje TIA pozostają UNSUPPORTED. Nie ma eksportera, importu, Save, Compile, Download lub Runtime. PASS tego eksperymentu nie oznacza kwalifikacji produkcyjnej ani całego B-03A.
+
+Końcowy X-01: oba projekty read-only i testy izolacji Engineering przeszły; pełna regresja zachowuje jeden historyczny FAIL NF-03 na exFAT. Zgodnie z [raportem](docs/X01_TIA_V19_QUALIFICATION.md) nie ogłoszono pełnego X-01 PASS, a B-03A pozostaje NOT_READY do rozstrzygnięcia warunku pełnej regresji. NF-11/R-14 i produkcja pozostają niezakwalifikowane.
