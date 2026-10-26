@@ -1,0 +1,271 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "capability-registry v2",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "2.0"
+    },
+    "registry_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "object",
+            "properties": {
+              "tia_version": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "adapter_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "adapter_build": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "device_family": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "PLC",
+                      "HMI_UNIFIED",
+                      "HMI_CLASSIC"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "object_kind": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "language": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "project.inspect",
+                  "project.export",
+                  "project.status",
+                  "files.changes",
+                  "sync.plan",
+                  "sync.apply",
+                  "sync.verify",
+                  "compile.plc",
+                  "compile.hmi",
+                  "simulation.prepare",
+                  "simulation.start",
+                  "simulation.stop",
+                  "test.plc",
+                  "test.hmi",
+                  "operation.status",
+                  "operation.result",
+                  "operation.events",
+                  "operation.cancel",
+                  "diagnostics.health"
+                ]
+              },
+              "scope": {
+                "type": "string",
+                "enum": [
+                  "PROJECT",
+                  "DEVICE",
+                  "OBJECT"
+                ]
+              },
+              "profile": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "tia_version",
+              "adapter_id",
+              "adapter_build",
+              "device_family",
+              "object_kind",
+              "language",
+              "operation",
+              "scope",
+              "profile"
+            ],
+            "allOf": [
+              {
+                "if": {
+                  "properties": { "scope": { "const": "PROJECT" } },
+                  "required": ["scope"]
+                },
+                "then": { "properties": { "device_family": { "type": "null" } } },
+                "else": { "properties": { "device_family": { "type": "string", "enum": ["PLC", "HMI_UNIFIED", "HMI_CLASSIC"] } } }
+              }
+            ],
+            "additionalProperties": false
+          },
+          "contract_designed": {
+            "type": "boolean"
+          },
+          "adapter_implemented": {
+            "type": "boolean"
+          },
+          "normalizer_version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "comparison_profile": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "read_scope": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "minItems": 0,
+            "maxItems": 10000
+          },
+          "write_scope": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "minItems": 0,
+            "maxItems": 10000
+          },
+          "coverage": {
+            "type": "object",
+            "properties": {
+              "dimensions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "dimension": {
+                      "type": "string",
+                      "enum": [
+                        "CONTENT",
+                        "CONFIG",
+                        "API",
+                        "STRUCTURE",
+                        "DEPENDENCIES",
+                        "INVENTORY"
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "COMPLETE",
+                        "PARTIAL",
+                        "UNSUPPORTED",
+                        "UNKNOWN"
+                      ]
+                    },
+                    "reason": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 32768
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "dimension",
+                    "state",
+                    "reason"
+                  ],
+                  "additionalProperties": false
+                },
+                "minItems": 0,
+                "maxItems": 10000
+              }
+            },
+            "required": [
+              "dimensions"
+            ],
+            "additionalProperties": false
+          },
+          "required_qualifications": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "minItems": 0,
+            "maxItems": 10000
+          }
+        },
+        "required": [
+          "key",
+          "contract_designed",
+          "adapter_implemented",
+          "normalizer_version",
+          "comparison_profile",
+          "read_scope",
+          "write_scope",
+          "coverage",
+          "required_qualifications"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": { "key": { "properties": { "operation": { "const": "project.inspect" } }, "required": ["operation"] } },
+              "required": ["key"]
+            },
+            "then": {
+              "properties": {
+                "key": { "properties": { "scope": { "const": "PROJECT" }, "device_family": { "type": "null" } } },
+                "write_scope": { "maxItems": 0 }
+              }
+            }
+          }
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0,
+      "maxItems": 10000
+    }
+  },
+  "required": [
+    "schema_version",
+    "registry_version",
+    "entries"
+  ],
+  "additionalProperties": false
+}

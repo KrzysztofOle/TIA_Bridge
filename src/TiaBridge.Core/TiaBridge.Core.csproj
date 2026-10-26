@@ -9,5 +9,6 @@
   <ItemGroup>
     <PackageReference Include="JsonSchema.Net" Version="7.3.3" />
     <EmbeddedResource Include="../../contracts/v1/*.schema.json" Link="Contracts/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../contracts/v2/capability-registry.schema.json" LogicalName="TiaBridge.Core.Contracts.capability-registry-v2.schema.json" />
   </ItemGroup>
 </Project>

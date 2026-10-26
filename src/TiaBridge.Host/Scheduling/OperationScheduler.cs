@@ -256,6 +256,7 @@ public sealed class OperationScheduler : IAsyncDisposable
             var template = current.Spec.V19Target is { } target
                 ? V19InspectionProjection.Create(store, previousReport, target, reportJson,
                     worker is WorkerConnection native ? native.Build : throw new ProtocolException(),
+                    current.Spec.CapabilityBinding ?? throw new ProtocolException(),
                     current.WorkerResourcesBefore ?? throw new ProtocolException(), native.SampleResources())
                 : ContractJson.ReadReport(Encoding.UTF8.GetBytes(reportJson));
             if (template.Method != previousReport.Method || template.State != OperationState.SUCCEEDED) throw new ProtocolException();

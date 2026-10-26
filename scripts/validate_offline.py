@@ -115,7 +115,7 @@ def run_step(name, command, steps, collect_test_failure=False):
     started = time.monotonic()
     environment = os.environ.copy()
     environment.update(DOTNET_CLI_UI_LANGUAGE="en", DOTNET_CLI_TELEMETRY_OPTOUT="1", PYTHONIOENCODING="utf-8")
-    result = subprocess.run(command, cwd=ROOT, env=environment, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace", check=False)
+    result = subprocess.run(command, cwd=ROOT, env=environment, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="strict", check=False)
     (OUTPUT / (name + ".log")).write_text(result.stdout, encoding="utf-8")
     steps.append({"name": name, "exit_code": result.returncode, "elapsed_s": round(time.monotonic() - started, 3)})
     print(result.stdout, end="", flush=True)
@@ -124,7 +124,16 @@ def run_step(name, command, steps, collect_test_failure=False):
     return result
 
 
+def configure_console_utf8():
+    """Use strict UTF-8 for console reports while leaving report files explicitly UTF-8."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="strict")
+
+
 def main():
+    configure_console_utf8()
     OUTPUT.mkdir(parents=True, exist_ok=True)
     report = {"schema_version": "1.0", "scope": "B-01A-C/B-02A-D OFFLINE", "status": "FAIL", "started_at": datetime.now(timezone.utc).isoformat(), "steps": [], "engineering": "NOT_RUN", "runtime": "NOT_RUN"}
     try:

@@ -1,7 +1,9 @@
 using System.Runtime.Versioning;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using TiaBridge.Client;
 using TiaBridge.Core.Identity;
 using TiaBridge.Core.Operations;
 using TiaBridge.Core.Transport.V1;
@@ -73,6 +75,9 @@ public class ApiMetadataAndCliTests
         var bounded = await f.Cli("submit", "project.inspect", "--request", request, "--wait", "--max-wait", "1"); Assert.Equal(5, bounded.Code);
         var report = ContractJson.ReadReport(Encoding.UTF8.GetBytes(bounded.Json)); Assert.False(report.CancelRequested);
         using var client = f.Client(); var status = ContractJson.ReadReport((await client.SendAsync(HttpMethod.Get, "/v1/operations/" + report.OperationId)).Json);
+        Assert.Contains(status.State, new[] { OperationState.ACCEPTED, OperationState.QUEUED, OperationState.RUNNING });
+        Assert.False(status.CancelRequested);
+        status = await WaitForRunning(client, report.OperationId, TimeSpan.FromSeconds(12));
         Assert.Equal(OperationState.RUNNING, status.State); Assert.False(status.CancelRequested);
         var cancel = await f.Cli("operation", "cancel", report.OperationId.ToString()); Assert.Equal(0, cancel.Code);
     }
@@ -106,5 +111,20 @@ public class ApiMetadataAndCliTests
         Assert.Equal(0, f.Files.Open().AttemptCount(next)); Assert.True(f.Files.Open().OwnerBlocked);
         var health = ContractJson.ReadReport((await fresh.SendAsync(HttpMethod.Get, "/v1/diagnostics/health")).Json);
         Assert.Contains(Assert.IsType<DiagnosticsHealthResult>(health.Result).Components, c => c.Component == "quarantine" && c.Status == ComponentHealth_Status.DEGRADED);
+    }
+
+    private static async Task<OperationReport> WaitForRunning(BridgeClient client, OperationId id, TimeSpan timeout)
+    {
+        var timer = Stopwatch.StartNew();
+        OperationReport report;
+        do
+        {
+            report = ContractJson.ReadReport((await client.SendAsync(HttpMethod.Get, "/v1/operations/" + id)).Json);
+            Assert.False(report.CancelRequested);
+            if (report.State == OperationState.RUNNING) return report;
+            Assert.Contains(report.State, new[] { OperationState.ACCEPTED, OperationState.QUEUED });
+            await Task.Delay(25);
+        } while (timer.Elapsed < timeout);
+        throw new Xunit.Sdk.XunitException($"Operation did not leave ACCEPTED/QUEUED within {timeout}; last state was {report.State}.");
     }
 }

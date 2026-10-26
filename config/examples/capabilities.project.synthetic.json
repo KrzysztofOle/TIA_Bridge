@@ -1,0 +1,51 @@
+{
+  "schema_version": "2.0",
+  "registry_version": "synthetic-project-2",
+  "entries": [
+    {
+      "key": {
+        "scope": "PROJECT",
+        "tia_version": "19.0.synthetic-build",
+        "adapter_id": "tia-bridge.worker.v19",
+        "adapter_build": "1.0+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "device_family": null,
+        "object_kind": "project",
+        "profile": "v19.discovery.v1",
+        "language": null,
+        "operation": "project.inspect"
+      },
+      "contract_designed": true,
+      "adapter_implemented": true,
+      "normalizer_version": "1.0",
+      "comparison_profile": "v19.discovery.v1",
+      "read_scope": [
+        "TiaPortal.GetProcesses",
+        "TiaPortalProcess.Attach",
+        "TiaPortal.Projects",
+        "Project.Path",
+        "Project.Name",
+        "Project.IsModified",
+        "Project.Devices",
+        "Device.Name",
+        "Device.DeviceItems",
+        "DeviceItem.Name",
+        "DeviceItem.DeviceItems",
+        "DeviceItem.GetService<SoftwareContainer>",
+        "SoftwareContainer.Software"
+      ],
+      "write_scope": [],
+      "coverage": {
+        "dimensions": [
+          {
+            "dimension": "STRUCTURE",
+            "state": "COMPLETE",
+            "reason": null
+          }
+        ]
+      },
+      "required_qualifications": [
+        "synthetic-only-discovery-receipt"
+      ]
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using TiaBridge.Core.Capabilities;
 using TiaBridge.Core.Operations;
@@ -9,6 +10,21 @@ namespace TiaBridge.Core.Tests;
 
 public class CapabilityTests
 {
+    private static readonly string[] DiscoveryGetters =
+    [
+        "TiaPortal.GetProcesses", "TiaPortalProcess.Attach", "TiaPortal.Projects", "Project.Path", "Project.Name",
+        "Project.IsModified", "Project.Devices", "Device.Name", "Device.DeviceItems", "DeviceItem.Name",
+        "DeviceItem.DeviceItems", "DeviceItem.GetService<SoftwareContainer>", "SoftwareContainer.Software"
+    ];
+    private static CapabilityKeyV2 ProjectDiscoveryKey(string tia = "19.0.3.0", string? worker = null, OperationMethod operation = OperationMethod.ProjectInspect) =>
+        new(OperationScope.PROJECT, tia, "tia-bridge.worker.v19", worker ?? "1.0+" + new string('a', 64), null, "project", "v19.discovery.v1", null, operation);
+    private static CapabilityConfigurationV2 ProjectDiscoveryConfiguration(IReadOnlyList<string>? readScope = null) =>
+        new("2.0", "synthetic-project-2", [new(ProjectDiscoveryKey(), true, true, "1.0", "v19.discovery.v1",
+            readScope ?? DiscoveryGetters, [], new Coverage([new(CoverageDimension.STRUCTURE, CoverageState.COMPLETE)]), ["synthetic-discovery-receipt"])]);
+    private static CapabilityQueryV2 ProjectDiscoveryQuery(CapabilityKeyV2? key = null, IReadOnlyList<string>? readScope = null, IReadOnlyList<string>? writeScope = null) =>
+        new(key ?? ProjectDiscoveryKey(), "synthetic-project-2", "1.0", "v19.discovery.v1", readScope ?? DiscoveryGetters,
+            writeScope ?? [], [CoverageDimension.STRUCTURE]);
+
     private static CapabilityConfiguration Example() => CapabilityJson.Read(WorkspaceTests.Fixture("capabilities.synthetic.json"));
     private static CapabilityQuery Query(CapabilityEntry entry) => new(entry.Key, "synthetic-1", entry.NormalizerVersion,
         entry.ComparisonProfile, new[] { "content" }, Array.Empty<string>(), new[] { CoverageDimension.CONTENT });
@@ -144,5 +160,79 @@ public class CapabilityTests
             _ = Example();
             Assert.Throws<ArgumentException>(() => CapabilityJson.Read("{}"u8.ToArray()));
         });
+    }
+
+    [Theory]
+    [InlineData("EMPTY")]
+    [InlineData("PLC")]
+    [InlineData("HMI_UNIFIED")]
+    [InlineData("MIXED_PLC_HMI")]
+    [InlineData("UNKNOWN_FAMILY")]
+    public void Project_discovery_capability_is_independent_of_device_inventory(string projectContents)
+    {
+        _ = projectContents; // Device identities/families are discovered after the project-scope preflight.
+        var registry = new CapabilityRegistry(ProjectDiscoveryConfiguration());
+        var result = registry.Assess(ProjectDiscoveryQuery(), new HashSet<string>(["synthetic-discovery-receipt"], StringComparer.Ordinal));
+        Assert.True(result.CapabilityConfirmed);
+        Assert.Equal(SessionPermissionState.NOT_EVALUATED, result.SessionPermission);
+    }
+
+    [Fact]
+    public void Project_discovery_requires_exact_build_profile_and_every_named_getter_qualification()
+    {
+        var config = ProjectDiscoveryConfiguration();
+        var registry = new CapabilityRegistry(config);
+        var evidence = new HashSet<string>(["synthetic-discovery-receipt"], StringComparer.Ordinal);
+        Assert.Equal(CapabilityDenial.MISSING_CAPABILITY, registry.Assess(ProjectDiscoveryQuery(key: ProjectDiscoveryKey(tia: "unknown")), evidence).Denial);
+        Assert.Equal(CapabilityDenial.MISSING_CAPABILITY, registry.Assess(ProjectDiscoveryQuery(key: ProjectDiscoveryKey(worker: "unknown")), evidence).Denial);
+        Assert.Equal(CapabilityDenial.MISSING_CAPABILITY, registry.Assess(ProjectDiscoveryQuery(key: ProjectDiscoveryKey(operation: OperationMethod.ProjectExport)), evidence).Denial);
+        Assert.Equal(CapabilityDenial.MISSING_CAPABILITY, registry.Assess(ProjectDiscoveryQuery(key: ProjectDiscoveryKey() with { Profile = "generic-project" }), evidence).Denial);
+        var missingGetter = new CapabilityRegistry(ProjectDiscoveryConfiguration(DiscoveryGetters[..^1]));
+        Assert.Equal(CapabilityDenial.SCOPE_NOT_COVERED, missingGetter.Assess(ProjectDiscoveryQuery(), evidence).Denial);
+        Assert.Equal(CapabilityDenial.QUALIFICATION_REQUIRED, registry.Assess(ProjectDiscoveryQuery(), null).Denial);
+    }
+
+    [Fact]
+    public void Project_read_does_not_inherit_device_object_or_write_permissions()
+    {
+        var registry = new CapabilityRegistry(ProjectDiscoveryConfiguration());
+        var evidence = new HashSet<string>(["synthetic-discovery-receipt"], StringComparer.Ordinal);
+        var device = ProjectDiscoveryKey() with { Scope = OperationScope.DEVICE, DeviceFamily = DeviceFamily.PLC, ObjectKind = "device" };
+        var item = ProjectDiscoveryKey() with { Scope = OperationScope.OBJECT, DeviceFamily = DeviceFamily.HMI_UNIFIED, ObjectKind = "screen" };
+        Assert.Equal(CapabilityDenial.MISSING_CAPABILITY, registry.Assess(ProjectDiscoveryQuery(key: device), evidence).Denial);
+        Assert.Equal(CapabilityDenial.MISSING_CAPABILITY, registry.Assess(ProjectDiscoveryQuery(key: item), evidence).Denial);
+        Assert.Equal(CapabilityDenial.SCOPE_NOT_COVERED, registry.Assess(ProjectDiscoveryQuery(writeScope: ["project.write"]), evidence).Denial);
+        foreach (var operation in new[] { OperationMethod.ProjectExport, OperationMethod.SyncApply })
+            Assert.Equal(CapabilityDenial.MISSING_CAPABILITY, registry.Assess(ProjectDiscoveryQuery(key: ProjectDiscoveryKey(operation: operation)), evidence).Denial);
+    }
+
+    [Fact]
+    public void Capability_registry_v2_round_trips_without_changing_v1_bytes_and_rejects_inconsistent_project_family()
+    {
+        var v1 = CapabilityJson.Write(Example());
+        var v2 = CapabilityJson.WriteV2(ProjectDiscoveryConfiguration());
+        Assert.Equal(v1, CapabilityJson.Write(CapabilityJson.Read(v1)));
+        Assert.Equal(v2, CapabilityJson.WriteV2(CapabilityJson.ReadV2(v2)));
+        using (var json = JsonDocument.Parse(v2))
+        {
+            var key = json.RootElement.GetProperty("entries")[0].GetProperty("key");
+            Assert.Equal("PROJECT", key.GetProperty("scope").GetString());
+            Assert.Equal(JsonValueKind.Null, key.GetProperty("device_family").ValueKind);
+        }
+        foreach (var mutation in new Action<System.Text.Json.Nodes.JsonNode>[]
+        {
+            node => node["schema_version"] = "1.0",
+            node => node["entries"]![0]!["key"]!["device_family"] = "PLC",
+            node => node["entries"]![0]!["key"]!["scope"] = "UNKNOWN",
+            node => node["entries"]![0]!["key"]!["operation"] = "project.import",
+            node => node["entries"]![0]!["key"]!["unreviewed"] = true
+        })
+        {
+            var node = System.Text.Json.Nodes.JsonNode.Parse(System.Text.Encoding.UTF8.GetString(v2))!;
+            mutation(node);
+            Assert.Throws<ArgumentException>(() => CapabilityJson.ReadV2(System.Text.Encoding.UTF8.GetBytes(node.ToJsonString())));
+        }
+        Assert.Equal(CapabilityDenial.MISSING_CAPABILITY,
+            CapabilityRegistry.DenyAll.Assess(ProjectDiscoveryQuery(), new HashSet<string>(["synthetic-discovery-receipt"], StringComparer.Ordinal)).Denial);
     }
 }

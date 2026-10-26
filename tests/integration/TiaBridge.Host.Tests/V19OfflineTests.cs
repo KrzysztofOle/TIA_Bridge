@@ -15,12 +15,12 @@ namespace TiaBridge.Host.Tests;
 public class V19OfflineTests
 {
     [Theory]
-    [InlineData("all_supported", true, true)]
-    [InlineData("all_supported", null, true)]
+    [InlineData("all_supported", true, false)]
+    [InlineData("all_supported", null, false)]
     [InlineData("all_supported", false, false)]
     [InlineData("plc", true, false)]
     [InlineData("hmi", true, false)]
-    public void Unqualified_filtered_or_cached_inspection_is_denied(string scope, bool? fresh, bool supported)
+    public void Missing_project_capability_and_unqualified_inventory_parameters_are_denied(string scope, bool? fresh, bool supported)
     {
         using var files = new StoreFixture(); var store = files.Open();
         var json = System.Text.Json.Nodes.JsonNode.Parse(StoreFixture.Wire("project.inspect"))!;
@@ -32,6 +32,34 @@ public class V19OfflineTests
         var target = new V19Target(request.Identity.Project!.ToString(), 123, 456, "X:\\synthetic.ap19");
         var config = new HostConfiguration("1.0", files.Root, files.Repository, [target.ProjectKey], V19WorkerExe: "synthetic-not-executed", V19: new([target], "X:\\"));
         Assert.Equal(supported, new TiaBridge.Host.Scheduling.V19InspectionProfile(config).Resolve(operation) is not null);
+    }
+    [Fact]
+    public void Project_discovery_dispatch_requires_exact_project_scope_profile_builds_getters_and_verified_qualification()
+    {
+        using var files = new StoreFixture(); var store = files.Open();
+        byte[] wire = StoreFixture.Wire("project.inspect");
+        var request = TiaBridge.Core.Transport.V1.ContractJson.ReadRequest(wire);
+        store.RegisterProject(request.Identity.Project!); var operation = store.Accept("synthetic-principal", wire).Operation;
+        var target = new V19Target(request.Identity.Project!.ToString(), 123, 456, "X:\\synthetic.ap19");
+        var config = new HostConfiguration("1.0", files.Root, files.Repository, [target.ProjectKey], V19WorkerExe: "synthetic-not-executed", V19: new([target], "X:\\"));
+        string tiaBuild = "19.0.3.0", workerBuild = "1.0+" + new string('a', 64), qualification = "synthetic-discovery-receipt";
+        var key = new TiaBridge.Core.Capabilities.CapabilityKeyV2(TiaBridge.Core.Capabilities.OperationScope.PROJECT, tiaBuild,
+            "tia-bridge.worker.v19", workerBuild, null, "project", V19DiscoveryProfile.Id, null, TiaBridge.Core.Operations.OperationMethod.ProjectInspect);
+        var entry = new TiaBridge.Core.Capabilities.CapabilityEntryV2(key, true, true, "1.0", V19DiscoveryProfile.Id,
+            TiaBridge.Host.Scheduling.V19InspectionProfile.DiscoveryReadScope, [], new TiaBridge.Core.Workspace.Coverage([new(TiaBridge.Core.Workspace.CoverageDimension.STRUCTURE, TiaBridge.Core.Workspace.CoverageState.COMPLETE)]), [qualification]);
+        var registry = new TiaBridge.Core.Capabilities.CapabilityRegistry(new TiaBridge.Core.Capabilities.CapabilityConfigurationV2("2.0", "synthetic-v2", [entry]));
+        TiaBridge.Host.Scheduling.V19InspectionProfile Profile(string? tia = null, string? worker = null, bool withEvidence = true, TiaBridge.Core.Capabilities.CapabilityRegistry? selected = null) =>
+            new(config, selected ?? registry, withEvidence ? new HashSet<string>([qualification], StringComparer.Ordinal) : null,
+                () => tia ?? tiaBuild, () => worker ?? workerBuild);
+
+        Assert.NotNull(Profile().Resolve(operation));
+        Assert.Null(Profile(tia: "unknown").Resolve(operation));
+        Assert.Null(Profile(worker: "1.0+unknown").Resolve(operation));
+        Assert.Null(Profile(withEvidence: false).Resolve(operation));
+        var incomplete = new TiaBridge.Core.Capabilities.CapabilityRegistry(new TiaBridge.Core.Capabilities.CapabilityConfigurationV2("2.0", "missing-getter", [entry with { ReadScope = entry.ReadScope.Take(entry.ReadScope.Count - 1).ToArray() }]));
+        Assert.Null(Profile(selected: incomplete).Resolve(operation));
+        var v1 = new TiaBridge.Core.Capabilities.CapabilityRegistry(new TiaBridge.Core.Capabilities.CapabilityConfiguration("1.0", "synthetic-v1", []));
+        Assert.Null(Profile(selected: v1).Resolve(operation));
     }
     [Theory]
     [InlineData("PLC", "Siemens.Engineering.SW.PlcSoftware", "hardware")]
@@ -221,7 +249,7 @@ public class V19OfflineTests
         Assert.Throws<ProtocolException>(() =>
         {
             _ = TiaBridge.Host.Scheduling.V19InspectionProjection.Create(store, previous, target,
-                JsonSerializer.Serialize(observation, Protocol.Json), build, before, after);
+                JsonSerializer.Serialize(observation, Protocol.Json), build, Binding(), before, after);
         });
         Assert.NotEqual(OperationState.SUCCEEDED, store.Read(previous.OperationId).Report.State);
     }
@@ -285,7 +313,9 @@ public class V19OfflineTests
 
     private static V19Node Node(int index, int device, int? parent, string name, string? type, string? state = null) =>
         new(V19NodeLocatorCodec.Encode(new(index, parent, device, name, "Synthetic.DeviceItem", state ?? (type is null ? "UNKNOWN" : "READ"), "UNKNOWN", "UNAVAILABLE")), type ?? "unknown");
+    private static TiaBridge.Core.Capabilities.CapabilityBinding Binding() =>
+        new(TiaBridge.Core.Capabilities.OperationScope.PROJECT, "synthetic-v2", new string('a', 64), V19DiscoveryProfile.Id);
     private static OperationReport Project(SqliteOperationStore store, OperationReport previous, V19Target target, V19Observation observation) =>
         TiaBridge.Host.Scheduling.V19InspectionProjection.Create(store, previous, target, JsonSerializer.Serialize(observation, Protocol.Json),
-            "1.0+" + new string('a', 64), new(10, 1024, 2048), new(12, 1536, 2048));
+            "1.0+" + new string('a', 64), Binding(), new(10, 1024, 2048), new(12, 1536, 2048));
 }

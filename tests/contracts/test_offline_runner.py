@@ -1,6 +1,9 @@
 """Runner must fail closed on missing/skipped tests, dependencies or failed tools."""
 import importlib.util
+import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -56,6 +59,19 @@ class OfflineRunnerTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     runner.run_step("synthetic", ["synthetic-no-execution"], steps)
                 self.assertEqual(9, steps[0]["exit_code"])
+
+    def test_unicode_console_reporting_works_when_windows_python_starts_in_charmap(self):
+        environment = os.environ.copy()
+        environment.update(PYTHONIOENCODING="cp1252", PYTHONUTF8="0", PYTHONDONTWRITEBYTECODE="1")
+        code = (
+            "import sys; sys.path.insert(0, 'scripts'); import validate_offline; "
+            "assert sys.stdout.encoding.lower() == 'cp1252'; "
+            "validate_offline.configure_console_utf8(); print('Réacteur → żółć')"
+        )
+        result = subprocess.run([sys.executable, "-c", code], cwd=ROOT, env=environment,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+        self.assertEqual(0, result.returncode, result.stderr.decode("utf-8", errors="strict"))
+        self.assertIn("Réacteur → żółć", result.stdout.decode("utf-8", errors="strict"))
 
 
 if __name__ == "__main__":

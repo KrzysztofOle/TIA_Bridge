@@ -1,5 +1,6 @@
 using TiaBridge.Core.Identity;
 using TiaBridge.Core.Workspace;
+using TiaBridge.Core.Capabilities;
 
 namespace TiaBridge.Core.Discovery;
 
@@ -17,5 +18,5 @@ public sealed record DiscoveryResourceSample(int Handles, long PrivateBytes, lon
 public sealed record DiscoverySnapshot(string SchemaVersion, string ProfileId, ProjectKey ProjectKey,
     SessionEpoch SessionEpoch, int ProcessId, long ProcessStartTicks, string ProjectPath, string ProjectName,
     string ProjectIdentityState, string? PublicProjectId, string? PublicProjectIdValidityScope,
-    string TiaBuild, string WorkerBuild, DiscoveryResourceSample WorkerResourcesBefore, DiscoveryResourceSample WorkerResourcesAfter,
+    string TiaBuild, string WorkerBuild, CapabilityBinding Capability, DiscoveryResourceSample WorkerResourcesBefore, DiscoveryResourceSample WorkerResourcesAfter,
     bool IsModifiedBefore, bool IsModifiedAfter, IReadOnlyList<DiscoveryDevice> Devices, IReadOnlyList<DiscoveryNode> Nodes, Coverage Coverage);

@@ -1,5 +1,19 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-26 — B-03A capabilities PROJECT, regresja Host i raportowanie Unicode
+
+**Wejście:** HEAD=`115c3cd1cc30fef21a84967bd324dc593499b55b`, `origin/main` zgodny, worktree clean. Zachowano NF-08 (FAIL przy 1,0288% CPU idle, próg 1,0%), NF-03 exFAT FAIL, NF-11 NOT_RUN, X-01 historyczne PASS i Worker Handle Risk UNKNOWN.
+
+**Capability compatibility:** registry/Core/schema v1 pozostają niezmienione. Dodano kontrakt v2 tylko dla capability registry: `OperationScope` PROJECT/DEVICE/OBJECT jest osobny od `DeviceFamily`; `project.inspect` jest PROJECT, wymaga null family i pustego write scope. V2 wiąże dokładną wersję TIA, SHA builda Worker, adapter/build, operację, profil i listę getterów. Dokładne dopasowanie nie dziedziczy PROJECT do DEVICE/OBJECT ani READ do EXPORT/IMPORT/WRITE. HTTP API v1, IPC envelope, Workspace, SYNCED i ADR 0003 pozostają bez zmian. Host ładuje registry v2 ze stałej ścieżki w state; brak registry lub dowodu kwalifikacji oznacza odmowę przed uruchomieniem workera. Provider zaufanych evidence IDs nie jest zaimplementowany, więc konfiguracja syntetyczna nie przyznaje live dostępu.
+
+**Host flaky:** `ACCEPTED` po wyczerpaniu krótkiego wait CLI jest prawidłowe: operation intent jest trwały, dispatch jest asynchroniczny, a stan RUNNING pojawia się po jego przygotowaniu. Test zachowuje brak cancel i akceptowane stany po bounded wait, a następnie czeka na RUNNING przez deadline związany z budżetem uruchomienia workera; nie wydłużano opóźnienia arbitralnie i nie usunięto gwarancji.
+
+**Unicode:** `validate_offline.py` przełącza stdout/stderr na UTF-8 strict przed raportowaniem, logi nadal są jawnie UTF-8 strict. Dodano test uruchamiający Python z `PYTHONIOENCODING=cp1252`, `PYTHONUTF8=0`; raport zawiera znaki Unicode bez zastępowania. Nie tłumimy wyjątku kodowania.
+
+**Wpływ dokumentów:** przejrzano `AGENTS.md`, `Instrukcja_ChatGPT.md`, ADR 0001–0003, kontrakty v1/v2, plan, capabilities i test strategy. Obie instrukcje i ADR pozostawiono bez zmian; wersjonowany dodatek v2 jest kompatybilny z ich granicami. Aktualizacje capabilities, B-03A, test README, backlog i tego rejestru zapisują zasadę PROJECT, deny-by-default i otwarty provider kwalifikacji.
+
+**Walidacja:** finalny pojedynczy `scripts/validate_offline.py` uruchomiono z początkową konsolą CP1252. Locked restore/Build Release 0 warning/error; .NET 801/801 (Host 255/255, Core 546/546), Python 33/33, generatory, audyt jakości, format, diff-check PASS; `test_execution_status=PASS`. Unicode raportowanie PASS. `resilience_gate=FAIL`, więc pełny runner zwrócił kod 1: NF-03 repo volume X: fail (without-worker replace p95 115.8212 ms), NF-11 NOT_RUN; blockers formal qualification zachowano bez waivera. NF-08 historyczne FAIL 1,0288%/1,0%, NF-03 exFAT FAIL i NF-11 NOT_RUN bez zmian. Wcześniejszy jednorazowy pełny .NET test zmierzył NF-02 p95 298,0946 ms; izolowane powtórzenie i finalny runner przeszły NF-02 (156,9138 ms), bez zmiany progu. BUILD/CORE/Host offline zachowują pełne wyniki; FULL OFFLINE RUNNER/B-03A OFFLINE oznaczone FAIL z powodu bramki resilience. Nie uruchamiano TIA/Siemens, nowych testów Engineering ani Runtime.
+
 ## 2026-10-26 — B-03A Discovery/Inventory, implementacja offline
 
 **Wejście:** `X:\Projects\TIA_Bridge`, HEAD=`ea7a616d554805bf38860e4b8261507b4d5f046c`, `origin/main` zgodny, worktree clean. `git fsck --full --no-reflogs` wykazał jeden dangling blob bez referencji; nie zmieniano historii ani obiektów Git. X-01 bazowy status zachowano.

@@ -1,7 +1,10 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using TiaBridge.Core.Capabilities;
 using TiaBridge.Core.Discovery;
 using TiaBridge.Core.Identity;
 using TiaBridge.Core.Operations;
@@ -15,8 +18,65 @@ using TiaBridge.Ipc;
 namespace TiaBridge.Host.Scheduling;
 
 /// <summary>Operator-bound experimental read-only inspect; never a grant to mutate Siemens.</summary>
-internal sealed class V19InspectionProfile(HostConfiguration configuration) : IExecutionProfile
+internal sealed class V19InspectionProfile : IExecutionProfile
 {
+    private const string AdapterId = "tia-bridge.worker.v19";
+    private readonly HostConfiguration configuration;
+    private readonly CapabilityRegistry registry;
+    private readonly IReadOnlySet<string>? verifiedQualifications;
+    private readonly Func<string?> tiaBuild;
+    private readonly Func<string?> workerBuild;
+
+    internal V19InspectionProfile(HostConfiguration configuration)
+        : this(configuration, LoadRegistry(configuration.StatePath), null, GetInstalledTiaBuild,
+        () => GetWorkerBuild(configuration.V19WorkerExe))
+    { }
+
+    internal V19InspectionProfile(HostConfiguration configuration, CapabilityRegistry registry,
+        IReadOnlySet<string>? verifiedQualifications, Func<string?> tiaBuild, Func<string?> workerBuild)
+    {
+        this.configuration = configuration;
+        this.registry = registry;
+        this.verifiedQualifications = verifiedQualifications;
+        this.tiaBuild = tiaBuild;
+        this.workerBuild = workerBuild;
+    }
+
+    internal static IReadOnlyList<string> DiscoveryReadScope =>
+    [
+        "TiaPortal.GetProcesses", "TiaPortalProcess.Attach", "TiaPortal.Projects", "Project.Path", "Project.Name",
+        "Project.IsModified", "Project.Devices", "Device.Name", "Device.DeviceItems", "DeviceItem.Name",
+        "DeviceItem.DeviceItems", "DeviceItem.GetService<SoftwareContainer>", "SoftwareContainer.Software"
+    ];
+
+    private static CapabilityRegistry LoadRegistry(string statePath)
+    {
+        string path = Path.Combine(Path.GetFullPath(statePath), "capability-registry.v2.json");
+        if (!File.Exists(path)) return CapabilityRegistry.DenyAllV2;
+        if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) throw new ArgumentException("Capability registry cannot be a reparse point.");
+        using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (file.Length > 256 * 1024) throw new ArgumentException("Capability registry exceeds limit.");
+        byte[] bytes = new byte[checked((int)file.Length)]; file.ReadExactly(bytes);
+        return new CapabilityRegistry(CapabilityJson.ReadV2(bytes));
+    }
+
+    private static string? GetInstalledTiaBuild()
+    {
+        if (!OperatingSystem.IsWindows()) return null;
+        string api = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Siemens", "Automation", "Portal V19", "PublicAPI", "V19", "Siemens.Engineering.dll");
+        if (!File.Exists(api)) return null;
+        for (string? item = api; item is not null; item = Path.GetDirectoryName(item))
+            if ((File.GetAttributes(item) & FileAttributes.ReparsePoint) != 0) return null;
+        return FileVersionInfo.GetVersionInfo(api).FileVersion;
+    }
+
+    private static string? GetWorkerBuild(string? path)
+    {
+        if (path is null || !File.Exists(path)) return null;
+        using var image = File.OpenRead(path);
+        return "1.0+" + Convert.ToHexStringLower(SHA256.HashData(image));
+    }
+
     internal static void Validate(HostConfiguration c)
     {
         if (c.V19 is null && c.V19WorkerExe is null) return;
@@ -45,15 +105,23 @@ internal sealed class V19InspectionProfile(HostConfiguration configuration) : IE
         // cached reads must fail closed instead of silently changing semantics.
         if (request.Parameters is not ProjectInspectParameters { InventoryScope: ProjectInspectParameters_InventoryScope.all_supported, Fresh: not false }) return null;
         var target = configuration.V19!.Targets.SingleOrDefault(t => Guid.Parse(t.ProjectKey) == request.Identity.Project?.Value);
-        // Automatic retry is deliberately unqualified in X-01, even though this executor contains reads only.
-        return target is null ? null : new ExecutionSpec("v19:" + target.Pid + ":" + target.StartTicks, "v19.x01.inspect", false, null, V19Target: target);
+        if (target is null) return null;
+        string tia = tiaBuild() ?? "unknown";
+        string worker = workerBuild() ?? "unknown";
+        var key = new CapabilityKeyV2(OperationScope.PROJECT, tia, AdapterId, worker, null, "project", V19DiscoveryProfile.Id, null, OperationMethod.ProjectInspect);
+        var query = new CapabilityQueryV2(key, registry.RegistryVersion, "1.0", V19DiscoveryProfile.Id,
+            DiscoveryReadScope, [], [CoverageDimension.STRUCTURE]);
+        if (!registry.Assess(query, verifiedQualifications).CapabilityConfirmed) return null;
+        var binding = new CapabilityBinding(OperationScope.PROJECT, registry.RegistryVersion, registry.CapabilitySetHash, V19DiscoveryProfile.Id);
+        return new ExecutionSpec("v19:" + target.Pid + ":" + target.StartTicks, "v19.project.discovery.v1", false, null,
+            V19Target: target, CapabilityBinding: binding);
     }
 }
 
 internal static class V19InspectionProjection
 {
     internal static OperationReport Create(SqliteOperationStore store, OperationReport previous, V19Target target,
-        string reportJson, string workerBuild, DiscoveryResourceSample resourcesBefore, DiscoveryResourceSample resourcesAfter)
+        string reportJson, string workerBuild, CapabilityBinding capability, DiscoveryResourceSample resourcesBefore, DiscoveryResourceSample resourcesAfter)
     {
         Protocol.CheckJson(Encoding.UTF8.GetBytes(reportJson));
         using var doc = JsonDocument.Parse(reportJson);
@@ -65,6 +133,9 @@ internal static class V19InspectionProjection
             || observed.Nodes.Any(n => n is null || !Text(n.Locator, 4096) || !Text(n.SoftwareType, 512))
             || !Text(observed.ProjectName, 512) || !Text(observed.ApiBuild, 128) || observed.IsModifiedBefore != observed.IsModifiedAfter || observed.OwnerThreadId <= 0
             || workerBuild is null || !Regex.IsMatch(workerBuild, "\\A1\\.0\\+[0-9a-f]{64}\\z", RegexOptions.CultureInvariant)
+            || capability is null || capability.Scope != OperationScope.PROJECT || capability.Profile != V19DiscoveryProfile.Id
+            || string.IsNullOrWhiteSpace(capability.RegistryVersion) || string.IsNullOrEmpty(capability.CapabilitySetHash)
+            || !Regex.IsMatch(capability.CapabilitySetHash, "\\A[0-9a-f]{64}\\z", RegexOptions.CultureInvariant)
             || resourcesBefore is null || resourcesAfter is null
             || new[] { resourcesBefore, resourcesAfter }.Any(r => r.Handles < 0 || r.PrivateBytes < 0 || r.WorkingSetBytes < 0)
             || observed.CallbackThreads is null || observed.CallbackThreads.Length > 64 || observed.CallbackThreads.Any(t => t <= 0)
@@ -84,7 +155,7 @@ internal static class V19InspectionProjection
         var snapshot = new DiscoverySnapshot("1.0", V19DiscoveryProfile.Id,
             new ProjectKey(UuidIdentity.ParseValue(target.ProjectKey)), new SessionEpoch(observed.SessionEpoch), observed.TiaPid,
             observed.TiaStartTicks, observed.ProjectPath, observed.ProjectName, "EXACT_REGISTERED_BINDING", null, null,
-            observed.ApiBuild, workerBuild, resourcesBefore, resourcesAfter, observed.IsModifiedBefore, observed.IsModifiedAfter,
+            observed.ApiBuild, workerBuild, capability, resourcesBefore, resourcesAfter, observed.IsModifiedBefore, observed.IsModifiedAfter,
             devices, nodes, coverage);
         var discoveryProof = store.Artifacts.Put(previous.OperationId, new MemoryStream(JsonSerializer.SerializeToUtf8Bytes(snapshot, Protocol.Json)));
         var result = new ProjectInspectResult(new ProjectKey(UuidIdentity.ParseValue(target.ProjectKey)), new SessionEpoch(observed.SessionEpoch), observed.ApiBuild,

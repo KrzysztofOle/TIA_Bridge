@@ -1,4 +1,4 @@
-# Kontrakty v1 — B-01A i B-01B
+# Kontrakty v1 oraz capability registry v2 — B-01A/B-01B/B-03A
 
 Zaimplementowane są modele i walidacja offline w [Core](../src/TiaBridge.Core/README.md). Semantykę 19 metod określa [interfejs CODEX](../docs/05_CODEX_INTERFACE.md). Host Storage/ledger, scheduler/Fake oraz lokalne [HTTP API i CLI](../docs/15_HTTP_API_CLI.md) są zaimplementowane; X-01 dodaje wyłącznie eksperymentalne project.inspect w odrębnym workerze V19. Poprawny JSON nie potwierdza odbiorcy ani uprawnień.
 
@@ -17,6 +17,8 @@ Zaimplementowane są modele i walidacja offline w [Core](../src/TiaBridge.Core/R
 Wire schema_version ma dokładnie wartość `1.0`; inne wersje są odrzucane. Numer OpenAPI 3.1.1 i info.version 1.0.0 są niezależne. Schematy Draft 2020-12 mają wyłącznie lokalne refs. Zmiany semantyki wymagają jawnego wersjonowania zgodnie z dokumentem 04; parser nie zgaduje zgodności przyszłych wersji.
 
 ## Macierz modeli
+
+Registry [v1](v1/capability-registry.schema.json) pozostaje niezmienionym kontraktem dla dotychczasowych operacji. B-03A dodaje odrębny [capability registry v2](v2/capability-registry.schema.json) dla project-scoped Discovery. V2 rozdziela scope operacji od DeviceFamily, wymaga jawnego profilu i exact-match; nie zmienia schematów HTTP/API v1, nie rozszerza capabilities v1 i nie dziedziczy PROJECT→DEVICE/OBJECT.
 
 Każdy wiersz ma schemat wejścia/wyjścia, klasę parametrów, klasę wyniku oraz testy pozytywne i negatywne. W raporcie akceptowane są błędy wspólne dokumentu 05 i błędy szczególne danej metody z registry.
 

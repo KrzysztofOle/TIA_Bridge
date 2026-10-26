@@ -13,10 +13,12 @@ HISTORICAL exFAT: FAIL — NF-03
 NF-11: NOT_RUN
 WORKER HANDLE RISK: UNKNOWN
 B-03A READINESS: READY — bounded read-only only
-B-03A ENGINEERING QUALIFICATION: BLOCKED/NOT_RUN
-B-03A IMPLEMENTATION: INCOMPLETE_OFFLINE — CapabilityRegistry project-level semantics unresolved
+B-03A OFFLINE: FAIL — test execution PASS; full runner blocked by resilience qualification
+B-03A ENGINEERING: BLOCKED/NOT_RUN
+B-03A IMPLEMENTATION: COMPLETE_OFFLINE
 B-03A OVERALL: BLOCKED
 B-03B READINESS: NOT_READY
+FULL OFFLINE QUALIFICATION: FAIL
 ```
 
 Nie otwierano TIA, nie wywoływano nowych getterów live i nie uruchamiano harnessu Engineering. Polecenie autoryzuje implementację oraz testy offline; nowe odczyty wymagają osobnej zgody i świeżego sprawdzenia obu bindingów. Historyczne X-01/A-B nie jest dowodem nowej kwalifikacji B-03A.
@@ -51,9 +53,9 @@ HMI Discovery ogranicza się do klasyfikacji publicznego runtime typu `HmiSoftwa
 
 ## Capabilities i otwarty zakres
 
-Core `CapabilityRegistry` pozostaje domyślnie deny i nie ma kwalifikowanego wpisu Siemens dla builda nowego B-03A. Bieżący Host utrzymuje historyczny, wąski X-01 allowlist dla `project.inspect`, ale nie ocenia jeszcze tego nowego Discovery snapshot przez Core registry. Nie deklarujemy WRITE/IMPORT/EXPORT. Przed rozszerzeniem dopuszczenia trzeba dodać dokładne, zaufane kwalifikacje związane z TIA build, Worker build, rodzajem/familią i profilem; tej luki nie maskuje status `STRUCTURE COMPLETE`.
+Registry v1 i jego `CapabilityKey` pozostały bez zmian. Dodano zamknięty, oddzielny registry v2, który modeluje `OperationScope` niezależnie od `DeviceFamily`; `project.inspect` jest PROJECT, `device_family` musi być null, a kwalifikacja DEVICE/OBJECT wymaga jawnej rodziny. Klucz jest exact-match po TIA FileVersion, Worker SHA-256 build, adapter id/build, operacji, profilu i ograniczonym getter read scope. Nie ma dziedziczenia PROJECT→DEVICE/OBJECT, ani READ→EXPORT/IMPORT/WRITE. Host odmawia dispatchu przed uruchomieniem Workera, gdy capability lub exact profile/build/kwalifikacja nie pasują.
 
-Core registry `CapabilityKey` wymaga konkretnego `DeviceFamily`, natomiast wejściowa operacja inwentaryzuje projekt przed poznaniem rodzin, włącznie z nieznanym/mieszanym urządzeniem. Rozszerzenie registry/kontraktu lub niezależny model capability dla project-level Discovery wymaga osobnej, jawnej decyzji o semantyce. W tej dostawie stan ten pozostaje otwarty; jest to powód braku pełnego B-03A PASS.
+Host odczytuje registry wyłącznie z `<state_path>/capability-registry.v2.json`; brak pliku oznacza `DenyAllV2`. Zaufany provider weryfikowanych qualification evidence IDs nie został jeszcze zaimplementowany i produkcyjny Host przekazuje pusty kontekst dowodów. W rezultacie sama lokalna deklaracja registry nie włącza jeszcze żadnego niezweryfikowanego wywołania; testy syntetyczne wstrzykują jawne evidence tylko w procesie testowym. To jest fail-closed granica wdrożeniowa, a nie rozszerzenie uprawnień Engineering. Contract v1 HTTP i capabilities v1 pozostały kompatybilne.
 
 ## Wyniki i ograniczenia
 
@@ -66,22 +68,23 @@ Core registry `CapabilityKey` wymaga konkretnego `DeviceFamily`, natomiast wejś
 ## Walidacja implementacji offline
 
 ```text
-BUILD RELEASE: PASS (TiaBridge.slnx oraz TiaBridge.Engineering.slnx; 0 warnings/errors)
-V19OfflineTests: PASS (44/44)
-FULL .NET: Core PASS (538/538); Host FAIL (253/254)
-FLAKY HOST TEST RETRY: PASS (1/1; original suite failure remains recorded)
-PYTHON CONTRACTS: PASS (31/31, isolated QA environment)
-QUALITY AUDIT: PASS
-FORMAT VERIFY: PASS
-git diff --check: PASS
-ENGINEERING LIVE: BLOCKED/NOT_RUN
+BUILD RELEASE: PASS (locked restore/build; 0 warnings/errors)
+FULL .NET: PASS (Host 255/255, Core 546/546; total 801/801, 0 skipped)
+PYTHON CONTRACTS / IPC / CAPABILITIES / SCHEDULER: PASS (33/33)
+V19OfflineTests: PASS (45/45)
+HOST CLI BOUNDED-WAIT REGRESSION: PASS (1/1)
+NF-02 PERFORMANCE REGRESSION: PASS in final runner (submit p95 156.9138 ms); an earlier standalone full-suite run measured 298.0946 ms and failed that assertion, while an isolated rerun passed
+UNICODE CP1252 CONSOLE REGRESSION: PASS
+GENERATORS / QUALITY AUDIT / FORMAT / DIFF CHECK: PASS
+FULL OFFLINE RUNNER: FAIL — test execution PASS; resilience gate FAIL
+ENGINEERING LIVE: NOT_RUN
 RUNTIME: NOT_RUN
 ```
 
-Jedyny pełnego zestawu Host failure: `ApiMetadataAndCliTests.Explicit_wait_is_bounded_and_cli_exit_does_not_cancel_the_operation` oczekiwał `RUNNING`, otrzymał `ACCEPTED`; pojedyncze ponowienie przeszło. Wynik traktujemy jako niestabilność testu/schedulera wymagającą osobnego triage, nie jako dowód PASS całej regresji. Pełny `scripts/validate_offline.py` poprzedzający końcowe zmiany zaliczył Host 251/251, Core 538/538, Python 31/31 oraz audyt/generatory/format, ale zakończył `FAIL` na etapie raportu: Windows `charmap` nie zakodował znaku Unicode. Historyczne NF-08 FAIL i progi nie zmieniono.
+Finalny pojedynczy runner działał z `PYTHONIOENCODING=cp1252`, `PYTHONUTF8=0`, po czym skrypt jawnie ustawił UTF-8 strict. Test execution: .NET 801/801, Python 33/33, zero pominiętych. Runner zakończył kodem 1 z powodu istniejącej resilience qualification, a nie błędu testów/builda/raportowania: NF-03 dla woluminu repozytorium X: nie jest kwalifikowany (niezależny replace bez workera p95 115.8212 ms); NF-11 ośmiogodzinny soak pozostaje NOT_RUN. Gate blockers i wyniki zachowano w ignorowanym `.tia-bridge/resilience/run.json`. To zadanie nie zmienia NF-08 historycznego FAIL 1,0288% > 1,0%, NF-03 exFAT FAIL ani NF-11 NOT_RUN. Wcześniejszy oddzielny pełny test .NET zgłosił przejściowy NF-02 submit p95 298.0946 ms; powtórzony izolowany test i końcowy runner przeszły (156.9138 ms). Nie zmieniano progu NF-02 ani testu.
 
 ## Ocena wpływu dokumentacji i następny etap
 
-`AGENTS.md` sekcja Zakres i stan była nieaktualna (stwierdzała brak istniejącego workera/hosta); poprawiono wyłącznie fakt bieżącego stanu. `Instrukcja_ChatGPT.md` sprawdzono sekcja po sekcji: pozostaje zgodna, nie zmieniono jej, bo określa role i granice, nie zaprzecza B-03A. ADR 0001/0002 zachowują granice Core/Worker, serializację i async Host. ADR 0003 pozostaje bez zmian i wyklucza rekonstrukcję HMI. Kontrakty HTTP/API nie zmieniły się; rozszerzono tylko wewnętrzny DTO payloadu raportu IPC 1.1, bez zmiany frame/envelope. Szczegóły wpływu są w `Zmiany.md`.
+`AGENTS.md` i `Instrukcja_ChatGPT.md` sprawdzono sekcja po sekcji: pozostają zgodne, nie zmieniono ich, bo zasady scope/capability pozostają w zatwierdzonym kontrakcie, a workflow/autoryzacja nie uległy zmianie. ADR 0001–0003 pozostają bez zmian: V2 jest wersjonowanym dodatkiem dla capability registry, nie zmienia Workspace/SYNCED, granic Core/Worker ani semantyki HMI. HTTP/API v1, IPC envelope i registry v1 pozostały kompatybilne. Szczegóły wpływu są w `Zmiany.md`.
 
-Następny krok: rozstrzygnąć model capability dla project-level discovery; następnie osobno autoryzować dokładne Engineering getter set, ponownie potwierdzić oba PID/start/path i workspace NTFS, wykonać świeże odczyty z monitoringiem zasobów i porównać strukturę, coverage oraz `IsModified`. Nie rozpoczynać B-03B.
+Następny krok: usunąć lub rozstrzygnąć istniejące blockers pełnej offline resilience qualification według obowiązujących decyzji (bez zmiany progów), potem osobno zatwierdzić dokładny zakres testów Engineering, ponownie potwierdzić oba PID/start/path i workspace NTFS, wykonać świeże odczyty z monitoringiem zasobów i porównać strukturę, coverage oraz `IsModified`. Nie rozpoczynać B-03B.
