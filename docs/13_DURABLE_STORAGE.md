@@ -69,6 +69,12 @@ Fault injection obejmuje realne transakcje i błędy SQL przy events/outbox, kon
 
 ## Testy i kolejna bramka
 
+### Regresja integralności B-03A/E1-R
+
+Przed terminalnym commitem scheduler zapisuje receipt, a następnie `Complete` ponownie weryfikuje dokładne pliki wskazane przez raport. Brak/ucięcie/zmiana dowodu blokuje commit wyniku; błąd zatrzymanej pętli jest widoczny jako scheduler `DEGRADED`. Operacja pozostaje RUNNING bez terminalnego sukcesu do recovery; restart niepewnej mutacji utrwala UNKNOWN/quarantine, bez retry. Jest to wykrycie podczas obsługi receipt, nie okresowy skaner artefaktów.
+
+Po completion każdy odczyt result ponownie sprawdza size/SHA i zwraca HTTP 422/VERIFY_FAILED przy uszkodzeniu. Wcześniejszy poprawny odczyt nie jest trwałym validation receipt i nie zastępuje nowej weryfikacji. Status/events zachowują historyczny wynik, bez deklarowania świeżej integralności. Sam błąd odczytu result nie oznacza zatrzymania schedulera ani automatycznego przepisania jego health. [Raport E1-R](B03A_E1_R_ARTIFACT_REPAIR.md) opisuje naprawiony binding testowego fault injection i regresje bez zmiany tego mechanizmu produkcyjnego.
+
 Nowe [testy Host](../tests/integration/TiaBridge.Host.Tests/OperationStorageTests.cs), [awarii/restartu](../tests/integration/TiaBridge.Host.Tests/FailureAndRestartTests.cs), [migracji/polityki](../tests/integration/TiaBridge.Host.Tests/MigrationAndPolicyTests.cs) i [artefaktów](../tests/integration/TiaBridge.Host.Tests/ArtifactStorageTests.cs) używają plikowych SQLite na C:/lokalnym NTFS w własnych UUID katalogach `%LOCALAPPDATA%\TIA_Bridge2\dev\storage-tests`. Sprzątanie ograniczono do tej ścieżki i nie przechodzi przez reparse points. Test junction powstaje tylko we własnym katalogu testu. [StorageProbe](../tests/integration/TiaBridge.StorageProbe/Program.cs) jest krótkim procesem testowym, nie workerem/fake workerem ani CLI aplikacji.
 
 Pełne polecenie i raporty: [instrukcja testów](../tests/README.md). Runner zbiera oddzielne TRX obu projektów, nie pozwala nadpisać regresji wynikiem Host i wymaga również określonych testów trwałości. B-02A kończy wyłącznie tę warstwę. ENGINEERING/RUNTIME NOT_RUN; rozszerzenie B-02B opisuje dokument 14; B-02C/D nadal nie są wykonane i bramka Siemens pozostaje zamknięta.

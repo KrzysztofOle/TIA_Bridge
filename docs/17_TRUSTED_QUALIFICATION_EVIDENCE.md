@@ -31,4 +31,6 @@ Recommended activation variant: an administrator-controlled Host configuration p
 
 ## Compatibility and limits
 
+B-03A/E1-R diagnosed three failing resilience artifact cases as a test-probe binding defect exposed by the additional profile resolutions during revalidation. The probe now preserves the synthetic admitted proof/template per operation and checks it against the actual Worker receipt before corruption. This does not cache qualification decisions or change production revalidation, trust anchors, artifact verification, HTTP codes, or recovery. See the [repair report](B03A_E1_R_ARTIFACT_REPAIR.md) for reproduction, regression coverage and separately reported validation results. Historical qualification reports retain their original results.
+
 No HTTP/API v1, capability registry v1/v2, IPC 1.1, or Worker DTO shape changes. Registry v1 remains unchanged. The current Host retains the X-01 `all_supported`, fresh, read-only PROJECT DiscoveryV1 bound to registered ProjectKey/PID/start/path. Exact TIA API FileVersion and Worker SHA-256 are required. This mechanism does not qualify newly added Siemens getters, confer session permissions, qualify production, remove `WORKER HANDLE RISK: UNKNOWN`, or authorize Siemens Engineering work. D-11 status and historical evidence are unchanged.

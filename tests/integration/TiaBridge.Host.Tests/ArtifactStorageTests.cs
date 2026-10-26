@@ -71,6 +71,34 @@ public class ArtifactStorageTests
     }
 
     [Theory]
+    [InlineData("invalid-hash")]
+    [InlineData("other-file-hash")]
+    [InlineData("other-file-id")]
+    public void Completion_rejects_a_reference_whose_hash_is_not_bound_to_its_exact_file(string defect)
+    {
+        using var f = new StoreFixture(); var store = f.Open();
+        var accepted = f.Accept(store, "diagnostics.health").Operation;
+        var first = store.Artifacts.Put(accepted.Report.OperationId, new MemoryStream("abc"u8.ToArray()));
+        var second = store.Artifacts.Put(accepted.Report.OperationId, new MemoryStream("xyz"u8.ToArray()));
+        using (var verified = store.Artifacts.OpenVerified(first.ArtifactId)) Assert.Equal(first, verified.Descriptor);
+        var running = StoreFixture.Start(store, accepted, out _);
+        var template = ContractJson.ReadReport(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "response.diagnostics.health.json")));
+        var reference = defect switch
+        {
+            "invalid-hash" => new ArtifactRef(first.ArtifactId, new string('f', 64)),
+            "other-file-hash" => new ArtifactRef(first.ArtifactId, second.Sha256),
+            _ => new ArtifactRef(second.ArtifactId, first.Sha256)
+        };
+        var completion = template with { OperationId = running.Report.OperationId, AcceptedAt = running.Report.AcceptedAt, ArtifactRefs = [reference] };
+        Assert.Equal(ErrorCode.VERIFY_FAILED, Assert.Throws<StorageException>(() => store.Record(running.Report.OperationId, running.Revision, completion)).Code);
+        Assert.Equal(0, f.Count("operation_results"));
+        Assert.Equal(OperationState.RUNNING, store.Read(accepted.Report.OperationId).Report.State);
+        // A rejected reference does not poison valid content or silently synthesize a result.
+        store.Record(running.Report.OperationId, running.Revision, completion with { ArtifactRefs = [new(first.ArtifactId, first.Sha256)] });
+        Assert.Equal(OperationState.SUCCEEDED, f.Open().ReadResult(accepted.Report.OperationId)!.State);
+    }
+
+    [Theory]
     [InlineData(StorageFaultPoint.ArtifactFlushed, "TEMPORARY_RETAINED")]
     [InlineData(StorageFaultPoint.ArtifactPublished, "UNREFERENCED_RETAINED")]
     public void Artifact_crash_boundaries_retain_orphans_without_adoption_or_deletion(StorageFaultPoint point, string reason)

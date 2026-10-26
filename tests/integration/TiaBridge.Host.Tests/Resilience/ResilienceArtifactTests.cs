@@ -58,6 +58,19 @@ public class ResilienceArtifactTests
         await using var f = new ApiFixture(); await f.Start(mutation: true, resilienceMode: "artifact"); using var client = f.Client();
         var id = await f.Submit(client, ApiFixture.Request("sync.apply")); await ResilienceEvidence.Marker(f, "receipt-received.reached");
         var artifact = await ResilienceEvidence.Marker(f, "result-artifact.json"); string relative = artifact.GetProperty("RelativePath").GetString()!;
+        var received = ContractJson.ReadReport(await File.ReadAllBytesAsync(Path.Combine(f.Files.Root, "received-report.json")));
+        Assert.Equal(OperationState.RUNNING, f.Files.Open().Read(id).Report.State);
+        Assert.Equal(0, f.Files.Open().ReceiptCount(id));
+        evidence.Data["selected_artifact_id"] = artifact.GetProperty("ArtifactId").GetString();
+        evidence.Data["receipt_artifact_id"] = Assert.Single(received.ArtifactRefs).ArtifactId;
+        evidence.Data["profile_resolutions"] = File.ReadAllLines(Path.Combine(f.Files.Root, "artifact-profile-resolutions.jsonl"));
+        try
+        {
+            Assert.Equal(artifact.GetProperty("ArtifactId").GetString(), Assert.Single(received.ArtifactRefs).ArtifactId);
+            Assert.Equal(artifact.GetProperty("Sha256").GetString(), Assert.Single(received.ArtifactRefs).Sha256);
+            Assert.Single(File.ReadAllLines(Path.Combine(f.Files.Root, "artifact-profile-resolutions.jsonl")));
+        }
+        catch { ResilienceEvidence.Release(f, "receipt-received"); throw; }
         string path = Path.GetFullPath(Path.Combine(f.Files.Root, relative)); Assert.StartsWith(Path.GetFullPath(f.Files.Root) + Path.DirectorySeparatorChar, path, StringComparison.OrdinalIgnoreCase);
         if (afterCompletion) { ResilienceEvidence.Release(f, "receipt-received"); await f.Until(client, id, r => r.State == OperationState.SUCCEEDED); }
         File.SetAttributes(path, FileAttributes.Normal); if (defect == "missing") File.Delete(path); else File.WriteAllText(path, defect == "truncated" ? "x" : "corrupt proof");
@@ -77,7 +90,13 @@ public class ResilienceArtifactTests
                 Assert.True(timer.Elapsed < TimeSpan.FromSeconds(10)); await Task.Delay(20);
             }
             Assert.Equal(0, f.Files.Count("operation_results")); Assert.Equal(202, (await client.SendAsync(HttpMethod.Get, "/v1/operations/" + id + "/result")).StatusCode);
+            Assert.Equal(1, f.Files.Open().ReceiptCount(id)); Assert.Equal(1, f.Files.Open().AttemptCount(id));
+            Assert.DoesNotContain(f.Files.Open().Events(id), e => e.Report.State == OperationState.SUCCEEDED);
+            evidence.Data["before_restart"] = ResilienceEvidence.Journal(f, id);
             await f.Stop(); await f.Start(mutation: true); Assert.Equal(OperationOutcome.UNKNOWN, f.Files.Open().Read(id).Report.Outcome); Assert.True(f.Files.Open().OwnerBlocked);
+            Assert.Equal(1, f.Files.Open().AttemptCount(id)); Assert.Equal(1, ResilienceEvidence.DurableEffects(f, id));
+            Assert.False(File.Exists(path) && defect == "missing");
+            evidence.Data["after_restart"] = ResilienceEvidence.Journal(f, id);
         }
         evidence.Data["artifact_id"] = artifact.GetProperty("ArtifactId").GetString(); evidence.Data["after_completion"] = afterCompletion; evidence.Data["defect"] = defect; evidence.Pass();
     }

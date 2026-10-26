@@ -69,11 +69,16 @@ internal static class HttpResilienceProbe
     private sealed class Profile(IExecutionProfile inner, Control control) : IExecutionProfile
     {
         private Guid? first;
+        private readonly Dictionary<Guid, ArtifactDescriptor> artifactTemplates = new();
         public ExecutionSpec? Resolve(StoredOperation operation)
         {
             control.Hit("profile"); var spec = inner.Resolve(operation);
             if (control.Mode == "artifact" && spec is not null)
             {
+                // Revalidation resolves the profile again. Keep the admitted proof/template pair;
+                // a new proof here would make fault injection target an unused artifact.
+                if (artifactTemplates.TryGetValue(operation.Report.OperationId.Value, out var prepared))
+                    return spec with { SuccessReport = prepared };
                 var store = new SqliteOperationStore(StorageLocation.Open(control.Root, Directory.GetCurrentDirectory()));
                 var proof = store.Artifacts.Put(operation.Report.OperationId, new MemoryStream("synthetic proof"u8.ToArray()));
                 var bytes = Protocol.ReadArtifact(control.Root, new(spec.SuccessReport!.ArtifactId, spec.SuccessReport.Sha256), Protocol.MaxReceiptBytes);
@@ -81,6 +86,8 @@ internal static class HttpResilienceProbe
                 report["artifact_refs"] = JsonSerializer.SerializeToNode(new[] { new { artifact_id = proof.ArtifactId, sha256 = proof.Sha256 } });
                 var template = store.Artifacts.Put(operation.Report.OperationId, new MemoryStream(JsonSerializer.SerializeToUtf8Bytes(report)));
                 File.WriteAllText(Path.Combine(control.Root, "result-artifact.json"), JsonSerializer.Serialize(proof));
+                File.AppendAllText(Path.Combine(control.Root, "artifact-profile-resolutions.jsonl"), JsonSerializer.Serialize(proof) + "\n");
+                artifactTemplates.Add(operation.Report.OperationId.Value, template);
                 return spec with { SuccessReport = template };
             }
             if (control.Mode != "stale" || spec is null) return spec;
@@ -132,6 +139,8 @@ internal static class HttpResilienceProbe
             if (!inner.TryRead(out message!)) return false;
             if (message.Kind == MessageKind.Receipt)
             {
+                if (control.Mode == "artifact")
+                    File.WriteAllText(Path.Combine(control.Root, "received-report.json"), Protocol.Read<WorkerReply>(message.Body).Receipt.Report);
                 control.Completion = true; control.Hit("receipt-received");
                 if (control.Mode == "stale" && Protocol.Read<WorkerReply>(message.Body).Receipt is { Disposition: "Succeeded", EffectCount: 1 })
                     File.WriteAllText(Path.Combine(control.Root, "synthetic-state.json"), JsonSerializer.Serialize(new { p = new string('c', 64), b = new string('d', 64), revision = 1 }));
