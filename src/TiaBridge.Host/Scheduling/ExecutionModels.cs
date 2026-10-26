@@ -7,7 +7,7 @@ namespace TiaBridge.Host.Scheduling;
 
 public sealed record OwnerToken(Guid Epoch, long Fence);
 public sealed record AttemptBinding(OperationId OperationId, int Attempt, Guid WorkerEpoch, long Fence, string InputHash, string? PlanHash, bool Mutation, DateTimeOffset Deadline);
-public sealed record ExecutionSpec(string PortalKey, string Capability, bool QualifiedEffectFreeRead, ArtifactDescriptor SuccessReport, FakeScenario Scenario = FakeScenario.Success, int DelayMs = 0, ErrorCode FailureCode = ErrorCode.TIA_UNAVAILABLE);
+public sealed record ExecutionSpec(string PortalKey, string Capability, bool QualifiedEffectFreeRead, ArtifactDescriptor? SuccessReport, FakeScenario Scenario = FakeScenario.Success, int DelayMs = 0, ErrorCode FailureCode = ErrorCode.TIA_UNAVAILABLE, V19Target? V19Target = null);
 /// <summary>Explicit synthetic qualification. This does not grant any Siemens capability or session permission.</summary>
 public interface IExecutionProfile { ExecutionSpec? Resolve(StoredOperation operation); }
 public interface IJitter { double NextUnit(); }

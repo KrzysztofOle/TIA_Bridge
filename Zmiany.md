@@ -1,5 +1,30 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-26 — X-01: izolowany Siemens V19 read-only
+
+Stan wejściowy: czysty main/origin main `eca8a079b04001c792c0669b991edfbeb6faaca6`. Osobne jawne zadanie użytkownika autoryzuje odczyt dwóch otwartych projektów testowych V19 pod X:\TESTY_TIA_Bridge. D-11 ogranicza profil do lokalnego NTFS; nie zmieniono historycznych QUALIFICATION/qualification.json lub ograniczonej bramki. NF-03 exFAT FAIL, NF-11 NOT_RUN/B-10B i RUNTIME NOT_RUN pozostają odrębne.
+
+- Dodano Worker.V19 net48/x64, resolver czterech dokładnych assembly z chronionej instalacji Siemens, exact PID/start/SID/AP19 binding, jednego właściciela STA/MTA, audit przed wywołaniami i bounded metadata/inventory. Nie dodano żadnego mutatora ani wywołania TiaPortalProcess.Dispose. Zwolnienie własnego TiaPortal po Attach nie zamyka TIA.
+- Ten sam Host/Core/API/CLI/SQLite/outbox/scheduler obsługuje realny odczyt. Wspólne IPC ma wariant net48 i jawne 1.1 z immutable input artifact, bez Fake success template. Brak downgrade, retry native call i automatycznego sukcesu po timeout/late/old epoch. Realne metadane i częściowe Coverage są zweryfikowanymi artefaktami; brak eksportera lub pełnego modelu PLC/HMI jest jawny.
+- Naprawiono również klasyfikację mieszanego native Device: zamiast nadpisywać PLC przez ostatnio odwiedzony HMI, rodzic ma UNKNOWN, a oba typy software pozostają w bounded inventory. Syntetyczna regresja obejmuje kolejność oraz nieznane typy. Naprawiono wykryte błędy guardu AP19 (separator końcowy po ValidateRoot) i coverage_refs (referencje muszą wskazywać trwałe artefakty, nie opisy). Dodano 25 regresji offline oraz niezależną walidację dziewięciu komunikatów IPC 1.1. Core i kontrakty publicznych 19 metod nie zmieniły się. Framework reference assemblies pobrano standardowym NuGet, bez instalacji systemowej; nie zmieniano grup lub zabezpieczeń Siemens.
+- Osobny harness Engineering używa rzeczywistych procesów Host/CLI/V19 oraz istniejących barier StorageProbe dla utraty IPC/rodzica, starego epoch, late response i cancel. Naprawiono jego oczekiwanie 202 przy idempotentnym HTTP 200 oraz współdzielenie audit file podczas kontrolowanego odczytu. Cleanup zwalnia wyłącznie własne bariery; nie zabija TIA ani nie zakłada przerwania vendor call.
+- Użytkownik wybrał B — samodzielną obsługę dialogu Siemens. Nie stosowano Computer Use lub globalnej whitelisty. Pierwszy Attach z timeoutem pozostaje FAILED w historii; późniejsze powodzenie nie zmienia pierwotnego wyniku. [Raport X-01](docs/X01_TIA_V19_QUALIFICATION.md) zawiera osobne dowody obu instancji, próby nieudane, pomiary i końcowy zakres kwalifikacji. Surowe logi/projekty/vendor DLL/discovery/tokeny i DB pozostają poza Git.
+
+Wyniki końcowe X-01: oba projekty mają rzeczywiste Attach/read/Dispose PASS; 80 cykli STA/MTA + 7 scenariuszy awarii + 4 testy startup/loader + 2 odczyty po końcowym guardzie = 93 przypadki Engineering PASS. Metadane plików i IsModified przed/po bez zmian. Własne procesy kończą się, portale pozostają otwarte. Zarejestrowano wzrost uchwytów workera (STA 462→702, MTA 456→602); R-14/8 h soak nie został zamknięty. Runtime NOT_RUN.
+
+Build Release offline/Engineering: PASS, 0 warning/error. Pełny validate_offline.py run a901583fdab74745bebadad476794a39: 763/764 .NET PASS, 1 FAIL (NF-03 M:/exFAT edit p95 178,5496 ms), 31/31 Python PASS; wymagane RT PASS. Po końcowych zmianach 25/25 V19OfflineTests PASS, w tym 9 przypadków nieobecnych we wcześniejszym pełnym buildzie. Unikalnie 772 PASS / 1 FAIL / 0 SKIP z 773 .NET; nie udajemy pojedynczego pełnego uruchomienia 773. Ponowne Python/audit/format/diff PASS. Historyczne snapshoty B-02D/D-11 niezmienione. Pełny OFFLINE i X-01 OVERALL: FAIL z powodu kryterium pełnej regresji; ENGINEERING w ograniczonym NTFS: PASS, B-03A READINESS: NOT_READY. Jawny zakres częściowy jest dozwolony przez zadanie użytkownika; nie zadeklarowano pełnego X-01 PASS ani nie rozpoczęto B-03A.
+
+Ocena wpływu instrukcji i semantyki — obie instrukcje pozostawiono bez zmian:
+
+| Sekcje | Ocena i uzasadnienie |
+|---|---|
+| AGENTS: Zakres i stan; Instrukcja §1–2 | Historyczny stan odniesienia nie jest deklaracją bieżącej implementacji; aktualny stan i granice X-01 zapisano w README/raporcie. Nie zmieniono podziału ról. |
+| AGENTS: Role/hierarchia; Instrukcja §3–5 | Wykonano jedno jawnie zlecone X-01 po zatwierdzonej D-11; nie rozszerzano architektury ani autoryzacji. |
+| AGENTS: Niezmienne granice; Instrukcja §6–7 | Vendor tylko net48/x64, jeden owner, wersjonowane DTO, trwały intent i nieblokujące API zachowano; cały B-03A nie jest ogłoszony jako wykonany. |
+| AGENTS: Autoryzacja i testy; Instrukcja §8–10 | Read-only i osobne Engineering/Runtime, UNKNOWN/quarantine, default deny, brak replay, brak PLC/download pozostały obowiązkowe. GUI obsługiwał użytkownik zgodnie z B. |
+| AGENTS: Dyscyplina/Conventional Commits; Instrukcja §11–12 | Nowe skrypty i live lane mają instrukcje; audyt/linki/format/diff i named-path staging są wymagane; raport zawiera ograniczenia zamiast pozornych PASS. |
+| AGENTS: Dane nieufne; ADR 0002 i specyfikacje 03/04/05 | Zachowano rozmiary/głębokość, HMAC/epoch/fence i tożsamość Core; 1.1 jest jawnym rozszerzeniem wewnętrznego IPC. Brak zmian lifecycle, synchronizacji, grantów lub definicji SYNCED. |
+
 ## 2026-10-26 — D-11: ograniczona bramka X-01 read-only i pełna kwalifikacja
 
 Stan wejściowy: czysty main/origin main `51d859f5b361b614672ccf9abb59a05606c461c5`. Użytkownik zatwierdził propozycję z dokumentu 16: ograniczony X-01 read-only i pełna kwalifikacja stabilności mają oddzielne kryteria. Zadanie wyłącznie dokumentacyjne; bez X-01, uruchamiania TIA/Openness, procesów Host/Fake, zmian kodu produkcyjnego, dysków, przenoszenia baz, cleanup B-02C lub dostępu do projektów na X:.

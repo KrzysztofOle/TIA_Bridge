@@ -115,3 +115,7 @@ git diff --check
 ```
 
 Audyt dokumentacji pozostaje oddzielny od walidacji OpenAPI i artefaktów B-01B. Wszystkie dane testowe są syntetyczne. Host udostępnia Storage/ledger B-02A, wykonanie Fake B-02B i HTTP/CLI B-02C. Brak testów live, IO synchronizacji i adapterów Siemens. Harness B-02D pozostaje syntetyczny i nie kwalifikuje capabilities Siemens lub produkcyjnej stabilności. Wyniki: OFFLINE; ENGINEERING i RUNTIME NOT_RUN. Następne pakiety wymagają osobnego zlecenia zgodnie z [backlogiem](../docs/08_IMPLEMENTATION_PLAN.md).
+
+## X-01 — oddzielny Engineering lane
+
+Standardowe `validate_offline.py` i TiaBridge.slnx nie ładują Siemens. Dodano 25 testów V19OfflineTests: exact configuration binding, wersjonowanie/no downgrade, native read-only dispatch, rzeczywisty net48 proces IPC bez vendor, negatywne observations oraz trwały wynik z coverage artifact po ponownym otwarciu SQLite. Dziewięć nowych przykładów IPC 1.1 jest sprawdzanych w jednym dodatkowym unittest Python. Testy live i osobna kompilacja workera wymagają [jawnej procedury Engineering](engineering/README.md); ich wyniki są w [raporcie X-01](../docs/X01_TIA_V19_QUALIFICATION.md). Nie uruchamiają się w discovery .NET/Python offline. Historyczny NF-03 exFAT FAIL i NF-11 NOT_RUN nie są zastępowane nową kwalifikacją odczytu na NTFS.

@@ -1,6 +1,6 @@
 # Kontrakty v1 — B-01A i B-01B
 
-Zaimplementowane są modele i walidacja offline w [Core](../src/TiaBridge.Core/README.md). Semantykę 19 metod określa [interfejs CODEX](../docs/05_CODEX_INTERFACE.md). Host Storage/ledger, scheduler/Fake oraz lokalne [HTTP API i CLI](../docs/15_HTTP_API_CLI.md) są zaimplementowane; rzeczywiste operacje TIA nie istnieją. Poprawny JSON nie potwierdza odbiorcy ani uprawnień.
+Zaimplementowane są modele i walidacja offline w [Core](../src/TiaBridge.Core/README.md). Semantykę 19 metod określa [interfejs CODEX](../docs/05_CODEX_INTERFACE.md). Host Storage/ledger, scheduler/Fake oraz lokalne [HTTP API i CLI](../docs/15_HTTP_API_CLI.md) są zaimplementowane; X-01 dodaje wyłącznie eksperymentalne project.inspect w odrębnym workerze V19. Poprawny JSON nie potwierdza odbiorcy ani uprawnień.
 
 ## Artefakty
 
@@ -90,3 +90,5 @@ py -3 scripts/generate_contracts.py --write
 [Odrębny schemat IPC 1.0](ipc/v1/message.schema.json) i [opis transportu](../docs/14_SCHEDULER_IPC.md) definiują dziewięć typów komunikatów, epoch/fence/sequence i bounded artifact references. To kontrakt Host ↔ Fake Worker, bez zmian semantyki 19 operacji API. Shared fixtures są walidowane przez .NET i JSON Schema; hash/HMAC, limity bajtów i stan połączenia są dodatkowo sprawdzane w kodzie.
 
 B-02C: wymagane nullable ComponentHealth.age_ms zachowuje JSON null podczas typowanej serializacji. Poprawiono generator/DTO i dodano regresję, bez zmiany schematu lub semantyki 1.0. OpenAPI opisuje aktualny serwis oraz typowany status w odpowiedzi GET result/202; nie dodano endpointów/metod/grantów. Acceptance pozostaje zamkniętym dotychczasowym DTO, a X-TiaBridge-Contract-Version potwierdza wersję HTTP.
+
+[IPC 1.1 read-only](ipc/v1.1/message.schema.json) i [dziewięć przykładów](../examples/ipc/v1.1) rozszerzają wyłącznie transport workera X-01. Standardowe kontrakty API 1.0 i Fake IPC 1.0 są niezmienione; walidacja odrzuca mieszanie profili. Testy schema pozostają offline, a rzeczywiste wyniki Siemens opisuje odrębny [raport Engineering](../docs/X01_TIA_V19_QUALIFICATION.md).

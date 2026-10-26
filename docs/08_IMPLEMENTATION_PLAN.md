@@ -185,3 +185,7 @@ Zamknięcie prac B-02D wymaga wykonania i jawnego raportu RT/NF, bez ukrywania F
 | OB-21–OB-24 | B-01A/B, B-03A/D, B-08A–C, B-11A/B |
 
 Każdy pakiet kończy się named-path diff, właściwymi testami i osobnym commitem; nie łączyć rozwoju adaptera z niezamówionym wdrożeniem do aktywnego projektu. Obecne zadanie tworzy jeden wspólny commit dokumentacyjno-projektowy zgodnie z poleceniem użytkownika.
+
+## Wykonanie X-01 read-only
+
+Eksperymentalny [worker V19](../src/TiaBridge.Worker.V19/README.md) korzysta z istniejącego trwałego silnika i osobnego net48/x64. [Raport X-01](X01_TIA_V19_QUALIFICATION.md) jest źródłem faktycznych wyników obu instancji, a [harness Engineering](../tests/engineering/README.md) jest opt-in. Kod konieczny do eksperymentu obejmuje bootstrap/exact binding/Attach/bounded metadata/Dispose; nie oznacza realizacji całego B-03A ani B-03B. X-01 nie rozszerza D-11 na produkcję/exFAT, nie realizuje NF-11 lub funkcji mutacji. Przejście do B-03A wymaga osobnego zadania; nic nie uruchamia się automatycznie.

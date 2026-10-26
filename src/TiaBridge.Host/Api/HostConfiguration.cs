@@ -13,7 +13,8 @@ namespace TiaBridge.Host.Api;
 public sealed record FakeApiProfile(string Method, FakeScenario Scenario, int DelayMs, bool QualifiedEffectFreeRead, JsonElement SuccessReport);
 public sealed record HostConfiguration(string SchemaVersion, string StatePath, string RepositoryRoot, string[] RegisteredProjects,
     string? FakeWorkerDll = null, FakeApiProfile[]? FakeProfiles = null, bool EnableSyntheticMutations = false,
-    int RequestsPerSecond = 2048, int SubmitsPerSecond = 256, int MaxInFlight = 64)
+    int RequestsPerSecond = 2048, int SubmitsPerSecond = 256, int MaxInFlight = 64,
+    string? V19WorkerExe = null, V19Settings? V19 = null)
 {
     internal static readonly JsonSerializerOptions Json = new()
     {
@@ -44,6 +45,7 @@ public sealed record HostConfiguration(string SchemaVersion, string StatePath, s
             if (report.Method != method || report.State != OperationState.SUCCEEDED || report.ArtifactRefs.Length != 0 || System.Text.Encoding.UTF8.GetByteCount(fake.SuccessReport.GetRawText()) > Protocol.MaxReceiptBytes) throw new ArgumentException("Invalid synthetic success report.");
         }
         if (config.FakeWorkerDll is not null && (Path.GetFileName(config.FakeWorkerDll) != "TiaBridge.FakeWorker.dll" || !File.Exists(config.FakeWorkerDll))) throw new ArgumentException("Built Fake Worker required.");
+        V19InspectionProfile.Validate(config);
         return config;
     }
     public static OperationMethod ParseMethod(string name) => Enum.GetValues<OperationMethod>().SingleOrDefault(m => OperationCatalog.Name(m) == name, (OperationMethod)(-1)) is var method && Enum.IsDefined(method) ? method : throw new ArgumentException("Unknown method.");

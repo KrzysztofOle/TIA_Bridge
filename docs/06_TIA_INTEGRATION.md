@@ -77,3 +77,11 @@ Port TCP 102 lokalnie należy do `s7oiehsx64`, co nie dowodzi dostępnej CPU Sna
 ## Eksperymenty potrzebne przed reklamowaniem wsparcia
 
 X-01 worker attach/dispose/apartment i parent loss; X-02 transaction scope/partial import; X-03 PLC round-trip wszystkich pól pierwszej FC; X-04 publiczny natywny reader HMI API/structure; X-05 Advanced instance/API/license + TCP isolation; X-06 Runtime Manager status/start/stop i TLS/UMC; X-07 OPC subscriptions/quality/namespace mapping; X-08 Snap7 test DB i layout. Każdy ma zakres, dowody i kryteria w [09](09_RISKS_AND_DECISIONS.md). Żaden nie jest ukrytą zgodą na bieżące zmiany dirty projektu T05.
+
+## X-01 — rzeczywisty worker read-only, 2026-10-26
+
+Powyższe obserwacje audytu starego Bridge pozostają historyczne. Nowy [Worker.V19](../src/TiaBridge.Worker.V19/README.md) został zbudowany jako net48/x64 z przypiętych reference assemblies NuGet i lokalnego PublicAPI V19; runtime nie dowodził targeting packa. [Osobne rozwiązanie Engineering](../TiaBridge.Engineering.slnx) nie wprowadza vendor dependencies do Core/Host lub standardowego offline build. [Raport X-01](X01_TIA_V19_QUALIFICATION.md) podaje rzeczywiste Attach/read/Dispose dla dwóch jednoznacznych PID/start/AP19, model apartment, callbacki, pomiary i próby awarii własnych procesów.
+
+Uwaga wynikająca z lokalnego XML V19: `TiaPortalProcess.Dispose` zamyka proces TIA i nie jest używane. Worker zwalnia wyłącznie własny `TiaPortal` uzyskany przez Attach. Callback Disposed zapisuje ograniczoną kolejkę numerów wątków, bez IO i ponownego wywołania API. Każde vendor call jest serializowane przez jednego właściciela; transport/heartbeat pozostają niezależne. Wynik udanego odczytu powstaje dopiero po Dispose. Timeout/utrata IPC nie przerywają Siemens call; wymagany jest dowód quiescence albo końca dokładnego procesu przed dalszą pracą.
+
+X: zweryfikowano jako lokalny NTFS; projekty nie były kopiowane, otwierane od nowa ani zapisywane przez Bridge. Zgoda read-only nie daje praw PLC/HMI, Save, Compile lub Download. [Jawna instrukcja testów](../tests/engineering/README.md) nie jest automatyczną zgodą na kolejne live uruchomienie.
