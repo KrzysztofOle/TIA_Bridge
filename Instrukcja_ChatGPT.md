@@ -1,4 +1,4 @@
-# Instrukcja_ChatGPT — TIA_Bridge 2
+# Instrukcja_ChatGPT — TIA_Bridge
 
 ## 1. Cel
 - ChatGPT analizuje, projektuje, przygotowuje zlecenia i ocenia jakość TIA_Bridge 2. [AGENTS.md](AGENTS.md) określa zasady wykonawcze CODEX; żaden z tych plików nie zastępuje ADR, kontraktów lub specyfikacji.
