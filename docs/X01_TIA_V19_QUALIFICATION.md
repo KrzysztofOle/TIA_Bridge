@@ -159,3 +159,11 @@ B-03A READINESS: NOT_READY
 ```
 
 Lista zmienionych plików: pole changed_paths w [raporcie maszynowym](../tests/engineering/x01-qualification.json). Obejmuje nowe rozwiązanie/worker net48 i jego README/lockfile, wspólny IPC/kompatybilność, profil/supervisor/scheduler Host, net48 probe i testy, IPC schema/examples 1.1, audit środowiska, harness/reporty Engineering oraz aktualizacje README/dokumentów 06/08/09/14/contracts/scripts/tests/Zmiany. AGENTS.md i Instrukcja_ChatGPT.md pozostawiono bez zmian; ocenę każdej sekcji i uzasadnienie zapisano w Zmiany.md.
+
+## Ponowna kwalifikacja po przeniesieniu repo na X:/NTFS — 2026-10-26
+
+Wyniki nowego pełnego przebiegu z checkoutu `e6b659708c6141ad89be4ea109a64a8e76109a3d` są oddzielone od powyższego historycznego X-01. Raport przebiegu D-11, rozdział exFAT/NTFS, statusy i hashe dowodów znajdują się w [kwalifikacji NTFS](../tests/resilience/X01_NTFS_REQUALIFICATION_2026-10-26.md) i [JSON](../tests/resilience/x01-ntfs-requalification-2026-10-26.json).
+
+Build Release jest PASS. Pełny offline current NTFS pozostaje FAIL z powodu jednego testu NF-08: 5-minutowy idle CPU wyniósł 1,0288% przy progu 1,0%; 772 pozostałe testy .NET i 31 testów Python przeszły. NF-03 NTFS PASS na rzeczywistym Workspace X:. Historyczny NF-03 exFAT FAIL pozostaje. Ograniczona D-11 jest osobno oceniona jako PASS według jawnych kryteriów 07/08; nie zastępuje ogólnego FAIL reportera ani pełnej kwalifikacji. Engineering 93/93 PASS to wcześniejszy wynik, niepowtarzany w tym zadaniu. NF-11 pozostaje NOT_RUN, Runtime NOT_RUN.
+
+Pomiary Worker V19 nadal wykazują wzrost uchwytów STA 462→702 i MTA 456→602; przyczyna pozostaje nieznana. B-03A rekomendowany jako READY wyłącznie dla ograniczonej, obserwowanej pracy read-only. Nie deklaruje się usunięcia wycieku, zamknięcia R-14 ani gotowości produkcyjnej.

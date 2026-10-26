@@ -1,5 +1,34 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-26 — końcowa kwalifikacja X-01 na X:/NTFS
+
+**Wejście:** aktywny checkout `X:\Projects\TIA_Bridge`; przed zmianą czysty `main`, `HEAD=origin/main=e6b659708c6141ad89be4ea109a64a8e76109a3d`; implementacja X-01 `9e8b7bfadb1f4e7b0fc3a793d01cbb82f54e5c07`. `Get-Volume` potwierdził X: jako lokalny Fixed/NTFS. State oraz Workspace w pomiarach również wskazały NTFS. Nie otwierano TIA ani projektów.
+
+**Pełny runner:** odizolowany QA Python uruchomił `scripts/validate_offline.py` z aktualnego checkoutu. Run `f116dd23c7aa480995b5a69077f4db35`, fingerprint LF źródeł `f4bd013d908d7f77a777f5741c77f402046cd9c8b459be07d13d795d9cb55ea7`. Locked restore/build PASS; Build Release 0 warning/error. .NET 772 PASS / 1 FAIL / 0 SKIP z 773; Python 31/31 PASS; generatory, audyt jakości, format i diff PASS. Jedyny FAIL: pięciominutowy idle NF-08 zmierzył CPU 1,0287988877% przy istniejącym progu 1,0%. Próg i test nie zmieniano. NF-03 workspace/repo X:/NTFS: 100 kontrolnych próbek bez workera p95 4,5592 ms; 100 paced 1 MiB samples podczas Fake Hang p95 6,5635 ms, p99 87,0439 ms; refused=0. Historyczny exFAT FAIL zachowano.
+
+**Oddzielne oceny:** aktualna pełna kwalifikacja offline NTFS = FAIL; limited D-11 = PASS według jawnego zakresu 07/08: RT-03/05/06/15/16 i NF-01/02/03/04/05/06/12/14/15 PASS, idle 306,410 s oraz 1001 operacji PASS. NF-08 CPU failure pozostaje widoczny jako pełny profil, ale NF-08 nie należy do zestawu NF ograniczonej D-11; nie wykryto krytycznego błędu wykonania/izolacji. Istniejący ogólny reporter zachował `x01_readiness=NOT_READY`, bo konserwatywnie propaguje dowolny FAIL testu oraz nadal ma historyczną regułę agregacji NF-11. Reporter/thresholds nie modyfikowano; osobna ocena uzasadnia D-11 z jego zatwierdzonym zakresem. Engineering 93/93 PASS jest wcześniejszym dowodem, nie był powtarzany. Runtime NOT_RUN, NF-11 NOT_RUN, produkcyjna kwalifikacja nieukończona.
+
+**Zasoby i rekomendacja:** historyczny Worker V19 miał STA handles 462→702 i MTA 456→602. Dispose i zakończenie własnych procesów przeszły, lecz przyczyna wzrostu pozostaje nierozstrzygnięta. Status ryzyka `UNKNOWN`; nie deklarujemy naprawy ani zamknięcia R-14. Rekomendacja B-03A `READY` wyłącznie dla ograniczonego, obserwowanego read-only; surowy/ciągły zakres i produkcja nie są gotowe. Dodano propozycję osobnego pomiaru cykli i kryteriów przed rozszerzeniem reuse Workera. Nie rozpoczęto B-03A.
+
+**Dowody:** nowy, oddzielny raport [NTFS requalification](tests/resilience/X01_NTFS_REQUALIFICATION_2026-10-26.md) i JSON (źródłowy SHA, profil, statusy oraz hashe lokalnych surowych artefaktów); historyczne qualification snapshots pozostają niezmienione. Bieżące `.tia-bridge/offline` oraz `.tia-bridge/resilience` przed uruchomieniem skopiowano do ignorowanego archiwum `pre-run-5b99356133a24fe5a84ccf893fcb9bfe`; runner pracował z osobnym UUID. Brak surowych logów, danych projektu, DLL lub credentiali w Git.
+
+**Ocena instrukcji i decyzji:** porównano sekcja po sekcji AGENTS: zakres/stan, hierarchia, niezmienne granice, autoryzacja/testy, dyscyplina zmian, Conventional Commits i dane nieufne; oraz Instrukcja_ChatGPT: stan/role, hierarchia, workflow, standard zadania, bezpieczeństwo, bramki, dowody i zamknięcie. Pozostawiono oba dokumenty bez zmian: to raport wyniku istniejących kryteriów, nie zmiana workflow, autoryzacji, architektury, kontraktu ani progu. ADR 0001/0002, 07/08/09/16 pozostają semantycznie bez zmian; dopisano wyłącznie nowy odrębny wynik i linki, zachowując historyczne raporty. Nierozstrzygnięte kwestie handle growth pozostają jawnie UNKNOWN; nie są sprzecznością architektury/bezpieczeństwa wymagającą decyzji przed ograniczonym B-03A.
+
+**Walidacja po dokumentacji:** pełny runner powyżej poprzedzał dodanie raportu i edycje dokumentów. Po zmianach wykonano lokalny JSON parse, test dokumentacyjnej zgodności D-11, `py -3 scripts/audit_quality.py`, diff/link review; wyniki zapisano po walidacji. Brak nowych testów Engineering, TIA/Runtime, zmian produkcyjnego Workera, testów progów i NF-11.
+
+```text
+REPOSITORY: X:\Projects\TIA_Bridge
+FILESYSTEM: NTFS
+BUILD RELEASE: PASS
+OFFLINE CURRENT NTFS: FAIL (1 NF-08 idle CPU threshold)
+HISTORICAL exFAT: FAIL
+X-01 LIMITED D-11: PASS
+X-01 ENGINEERING: PASS (93 historical; not rerun)
+NF-11: NOT_RUN
+WORKER HANDLE RISK: UNKNOWN
+B-03A READINESS: READY (bounded read-only only)
+```
+
 ## 2026-10-26 — weryfikacja klonu X: i audyt odwołań
 
 **Stan repozytorium:** checkout `X:\Projects\TIA_Bridge`; przed fetch i po nim HEAD `9e8b7bfadb1f4e7b0fc3a793d01cbb82f54e5c07`, `origin/main` ten sam SHA; `main` śledzi `origin/main`, różnica 0/0. Remote fetch/push: `git@github.com:KrzysztofOle/TIA_Bridge.git`, ten sam projekt co zadany URL HTTPS. `git fetch origin` zakończył się bez aktualizacji; brak lokalnych commitów do wysłania, zmian wejściowych, dodatkowych gałęzi/worktree, konfliktów i stanów operacji Git. Submoduły nie są używane; Git LFS jest zainstalowany, ale repo nie ma plików LFS.
