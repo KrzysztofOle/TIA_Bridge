@@ -62,6 +62,14 @@ Wartości są **proponowanymi celami**, nie wynikami pomiarów TIA_Bridge 2. Pom
 | NF-14 | 100% prób fizycznego downloadu i write poza allowlist zablokowane przed adapterem | negatywne testy policy i recipients; brak credentiali w bundle testowym |
 | NF-15 | manifest/plan ≤10 MiB, żądanie API ≤1 MiB, event ≤64 KiB, maks. kolejka 1 000 | 413/429 przed przyjęciem; źródła przez artifact IDs, nie body HTTP; przerwanie parserów nad limitami |
 
+### Etapy kwalifikacji i profile filesystemu
+
+Decyzja [D-11](09_RISKS_AND_DECISIONS.md#decyzje) z 2026-10-26 rozdziela ograniczony eksperyment X-01 read-only od pełnej kwalifikacji stabilności produkcyjnej. Wartości i semantyka NF pozostają bez zmian. Przed X-01 obowiązują NF-01/02/03/04/05/06/12/14/15 w zaimplementowanym zakresie Fake/Host, w jawnym profilu lokalnego NTFS, rzeczywisty pomiar idle ≥5 min oraz krótki przebieg ≥1000 operacji, obok wymaganych RT i niezmienników [bramki 07](07_TEST_STRATEGY.md#ograniczona-bramka-x-01-read-only). Syntetyczny PASS nie kwalifikuje odpowiednich wywołań Siemens, odbiorców ani przyszłych adapterów.
+
+NF-11 nadal wymaga minimum 8 h, 1000 operacji syntetycznych i osobnego read-only live soak 100 operacji. Właścicielem pełnej kwalifikacji jest B-10B/R-14. NF-11: NOT_RUN nie blokuje ograniczonego X-01 read-only, ale nie staje się PASS i pozostaje wymaganiem późniejszej kwalifikacji stabilności produkcyjnej. Krótki przebieg i pomiar idle nie zaliczają pełnego NF-08 ani NF-11.
+
+NF-03 raportuje odrębnie NTFS i exFAT. SQLite, journal, outbox, artefakty oraz operacje plikowe wymagające kwalifikowanego zapisu/replace korzystają z lokalnego NTFS. Historyczny NF-03 exFAT: FAIL pozostaje ograniczeniem profilu M:; NTFS PASS nie kwalifikuje exFAT. Nie dopuszcza się delete+copy jako obejścia replace ani automatycznego przenoszenia repozytorium. Typ filesystemu każdej nowej lokalizacji, w tym X:, wymaga weryfikacji przed użyciem w profilu NTFS.
+
 ## Kryterium zakończenia MVP
 
 Na syntetycznym, czystym projekcie V19: zlecenie eksportu, edycja jednej FC SCL, trzystronny plan, jeden backup sesji, Apply z kwalifikowanym importem, kompilacja PLC, Save i niezależny odczyt dają SYNCED dla dokładnej rewizji. Powtórzenie żądania nie importuje ponownie. W czasie zablokowanego fake adaptera CODEX edytuje drugi plik i otrzymuje status w NF-01. Awaria po pierwszym imporcie pozostawia RECONCILIATION_REQUIRED, a nie sukces lub samoczynny retry. Runtime może nadal być NOT_RUN.

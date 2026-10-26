@@ -62,9 +62,18 @@ Akceptacja wymaga całego validate_offline.py. [API/CLI i przykład uruchomienia
 
 ## B-02D — resilience i odrębna kwalifikacja
 
-Ten sam runner obejmuje 48 nowych przypadków .NET oraz 4 Python reportera: łącznie 748 .NET i 24 Python, bez wliczania requestów z pętli jako odrębnych testów. [Harness, bariery i polecenia](resilience/README.md), [raport techniczny](../docs/16_RESILIENCE_RECOVERY.md), [snapshot kwalifikacji](resilience/QUALIFICATION.md). Zestaw wykonuje prawdziwe 300 s idle, 1001 operacji, 100 identycznych submitów/8 klientów, crashy Host, peer attacks na Named Pipe, WAL-tail/artifacts i kontrolę własnych child/lock. Całość trwa kilkanaście minut zależnie od komputera. Nie wykonuje 8 h soak — decyzja użytkownika: NF-11 NOT_RUN w B-02D, B-10B/R-14 pozostaje właścicielem.
+Historyczny przebieg B-02D obejmował 48 nowych przypadków .NET oraz 4 Python reportera: łącznie 748 .NET i 24 Python, bez wliczania requestów z pętli jako odrębnych testów. D-11 dodaje 6 testów zgodności dokumentacyjnej (obecnie 30 Python w discovery), bez nowych testów silnika .NET. [Harness, bariery i polecenia](resilience/README.md), [raport techniczny](../docs/16_RESILIENCE_RECOVERY.md), [snapshot kwalifikacji](resilience/QUALIFICATION.md). Zestaw wykonuje prawdziwe 300 s idle, 1001 operacji, 100 identycznych submitów/8 klientów, crashy Host, peer attacks na Named Pipe, WAL-tail/artifacts i kontrolę własnych child/lock. Całość trwa kilkanaście minut zależnie od komputera. Nie wykonuje 8 h soak — decyzja użytkownika: NF-11 NOT_RUN w B-02D, B-10B/R-14 pozostaje właścicielem.
 
-Raport .tia-bridge/resilience/run.json oddziela wyniki xUnit/unittest od kwalifikacji NF i formalnej bramki. Każdy run ma własny UUID i hashe dowodów; stare pliki nie mogą dać PASS. FAIL NF-03 na repo volume powoduje OFFLINE FAIL/exit 1 nawet przy samych zielonych testach kontroli; lokalny NTFS ma osobny profil. Brak 8 h nie staje się PASS; rozbieżność bramki i minimalna propozycja do decyzji są opisane w dokumencie 16. Aktualne szczegółowe liczby/wyniki należy czytać ze snapshot po zakończonym przebiegu.
+Raport .tia-bridge/resilience/run.json oddziela wyniki xUnit/unittest od kwalifikacji NF i formalnej bramki. Każdy run ma własny UUID i hashe dowodów; stare pliki nie mogą dać PASS. FAIL NF-03 na repo volume powoduje OFFLINE FAIL/exit 1 nawet przy samych zielonych testach kontroli; lokalny NTFS ma osobny profil. Reporter i matrix.json zachowują historyczny konserwatywny sposób agregacji B-02D. Aktualna [ocena ograniczonej bramki D-11](resilience/X01_LIMITED_GATE.md) jest oddzielnym raportem przypiętym do niezmienionego snapshot; nie zmienia reporterów ani dawnych wyników. NF-11 ≥8 h pozostaje NOT_RUN/B-10B, ale nie jest warunkiem ograniczonego X-01 read-only na NTFS. Nowe dane lub zmiana kodu/środowiska wymagają ponownej oceny.
+
+Dokumentacyjną zgodność decyzji i źródłowych dowodów, bez Host/Worker/Siemens, sprawdza:
+
+```powershell
+py -3 -B -m unittest discover -s tests/contracts -p test_limited_gate_documentation.py -v
+py -3 scripts/audit_quality.py
+```
+
+Testy te kontrolują zachowanie historycznych hashy i statusów, powiązanie warunków RT/NF z dowodami oraz rozdzielenie profili/poziomów kwalifikacji. Nie są ponownym wykonaniem pomiarów lub testów odporności.
 
 ## Build i testy .NET
 

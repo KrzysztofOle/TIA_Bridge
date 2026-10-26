@@ -1,5 +1,33 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-26 — D-11: ograniczona bramka X-01 read-only i pełna kwalifikacja
+
+Stan wejściowy: czysty main/origin main `51d859f5b361b614672ccf9abb59a05606c461c5`. Użytkownik zatwierdził propozycję z dokumentu 16: ograniczony X-01 read-only i pełna kwalifikacja stabilności mają oddzielne kryteria. Zadanie wyłącznie dokumentacyjne; bez X-01, uruchamiania TIA/Openness, procesów Host/Fake, zmian kodu produkcyjnego, dysków, przenoszenia baz, cleanup B-02C lub dostępu do projektów na X:.
+
+- Przeczytano i porównano obie instrukcje, README, dokumenty 02/03/07/08/09/16, oba historyczne snapshot, instrukcję harnessu i historię. Niejednoznaczność dotyczyła ogólnego minimum 8 h w 07, pełnej bramki w 08, odesłań obu instrukcji do 07/08 i oczekującej decyzji w 16/09/README/test instructions. R-14 już przypisywał soak do B-10B. [Dokument 16](docs/16_RESILIENCE_RECOVERY.md#historia-rozbieżności-i-odnośnik-archiwalny) zawiera wykaz miejsc i historię rozbieżności.
+- D-11 rozdziela B-02 OFFLINE TEST EXECUTION, B-02 OFFLINE QUALIFICATION, X-01 LIMITED READ-ONLY GATE i PRODUCTION QUALIFICATION. Wymagane RT-03/05/06/15/16, recovery/UNKNOWN/quarantine/epoch, brak replay niepewnej mutacji i właściwe NF-01/02/03/04/05/06/12/14/15 obowiązują nadal. Idle ≥5 min i ≥1000 operacji są osobnymi dowodami, bez pozornego zaliczenia pełnego NF-08/NF-11. NF-11 ≥8 h pozostaje obowiązkowy w B-10B; R-14 aktywne.
+- Historyczne QUALIFICATION.md i qualification.json zachowano bajtowo. [Nowa ocena](tests/resilience/X01_LIMITED_GATE.md) i JSON decyzji przypinają ich SHA-256 i źródłowy run. Faktyczne stare wyniki: 748 .NET/24 Python PASS, OFFLINE/GATE FAIL, X-01 NOT_READY, NF-03 exFAT FAIL, NF-11/ENGINEERING/RUNTIME NOT_RUN nie są zmieniane. Aktualna ocena ograniczonej bramki: PASS tylko dla udokumentowanego profilu lokalnego NTFS; pełna kwalifikacja offline badanego profilu: FAIL; produkcja: NOT_RUN. Reporter/matrix pozostają historyczne; nie są aktualnym interpretatorem D-11 ani przepustką dla nowego kodu/środowiska.
+- Zweryfikowano istniejące dowody: wymagane RT PASS, 306,2474483 s idle i 1001 operacji/513,2943582 s. NTFS save/replace 1 MiB/N100/co 100 ms podczas Hang p95 3,2648 ms; repo exFAT kontrolne p95 205,5911 ms pozostaje FAIL. Bez delete+copy, relokacji lub osłabienia ACL. Dodatkowo sprawdzono wskazane regresje watchdog, queue deadlines i default deny, nie tylko ogólną deklarację reportera.
+- Odnotowano deklarację użytkownika o dwóch projektach V19 w X:\TESTY_TIA_Bridge i zgodzie na ich przyszłe zmiany/utratę w osobnych eksperymentach. Filesystem X: NIEZWERYFIKOWANY; brak dostępu do projektów w tym zadaniu. Nie jest to izolacja PLC/HMI lub zgoda na download. Pierwszy X-01 read-only wymaga odrębnego zadania/autoryzacji i weryfikacji środowiska; późniejsze mutacje mają własne bramki.
+- Dodano sześć testów wyłącznie zgodności dokumentacyjnej decyzji z niezmiennymi dowodami, bez uruchamiania silnika. Nie zmieniono narzędzi agregujących kwalifikację ani implementacji Host/Scheduler/Worker. Dotychczasowe wyniki pomiarów nie zostały ponownie wykonane w tym zadaniu.
+
+Ocena instrukcji sekcja po sekcji i dokumentów normatywnych:
+
+| AGENTS.md / Instrukcja_ChatGPT.md | Decyzja i uzasadnienie |
+|---|---|
+| Zakres i stan / §1–2 | Bez zmian: zadanie ograniczone do zatwierdzonej decyzji dokumentacyjnej; stan implementacji/dowodów opisuje README. |
+| Role, hierarchia / §3 | Bez zmian: jawna decyzja użytkownika rozstrzyga zgłoszony konflikt; nie rozstrzygano samodzielnie nowej semantyki. |
+| Niezmienne granice / §6 | Bez zmian: Core/vendor boundary, trwałość, UNKNOWN, quarantine, brak replay i SYNCED pozostają obowiązkowe. |
+| Autoryzacja i testy / §4–5, §7–8 | AGENTS otrzymuje jeden punkt doprecyzowujący ograniczoną bramkę i lokalny NTFS. Dotychczasowe obowiązkowe scenariusze zachowano. Workflow, granice zadań, read-only, uprawnienia, backup, download/PLC/HMI i Computer Use bez zmian. |
+| Bramka / §10 | Instrukcja §10 otrzymuje jedno doprecyzowanie D-11 zgodne z AGENTS i 07/08; NF-11 w B-10B, exFAT nadal niezakwalifikowany. PASS Fake nie dowodzi Siemens; osobne zadanie i autoryzacja X-01. |
+| Dyscyplina, dane nieufne / §9, §11–12 | Bez zmian: ocena wpływu zapisana tutaj, źródła historyczne przypięte hashami, niewykonane testy pozostają NOT_RUN. |
+| Git / §5, §11 | Bez zmian: jeden angielski Conventional Commit, jawne ścieżki/staged diff i normalny fast-forward push. |
+| Architektura 03, ADR 0001/0002, kontrakty | Bez zmian: decyzja określa etap kwalifikacji, nie zmienia process isolation, DTO/lifecycle, UNKNOWN/quarantine lub autoryzacji; te dokumenty nie nakładają dodatkowej bramki 8 h. |
+
+Zmienione pliki: AGENTS.md, Instrukcja_ChatGPT.md, README.md, Zmiany.md; docs/02_REQUIREMENTS.md, docs/07_TEST_STRATEGY.md, docs/08_IMPLEMENTATION_PLAN.md, docs/09_RISKS_AND_DECISIONS.md, docs/16_RESILIENCE_RECOVERY.md; tests/README.md, tests/resilience/README.md, tests/resilience/X01_LIMITED_GATE.md, tests/resilience/x01-limited-gate.json, tests/contracts/test_limited_gate_documentation.py. Historyczne wpisy poniżej pozostają bez zmian.
+
+Walidacja: sześć testów zgodności dokumentacyjnej PASS; pełne discovery Python w istniejącym QA venv: 30 PASS/0 FAIL/0 SKIP. Próba pełnego discovery systemowym Python zgłosiła brak openapi_spec_validator (24 testy PASS i 1 błąd importu); nie instalowano pakietów, powtórzono we właściwym udokumentowanym środowisku. Kontrola hashy obu historycznych raportów PASS. Pierwszy audyt wykrył jeden błędny nowy anchor instrukcji testów, poprawiony; końcowy audit_quality.py PASS: 43 Markdown, 355 lokalnych odnośników, 0 błędów (23 zastane linki zewnętrzne rejestrowane, bez ponownego sprawdzania sieciowego). Pełny build/testy odporności, Engineering i Runtime nie są ponownie uruchamiane w zadaniu dokumentacyjnym. Diff i sekrety podlegają końcowej kontroli przed commitem. Praca kończy się po commicie/push bez X-01.
+
 ## 2026-10-25 — B-02D: resilience, crash recovery i izolacja procesów
 
 Stan wejściowy: czysty main/origin main 11eda18ae43d90c09affeb3bb2cebdd1624ee423. Przeczytano aktualne instrukcje, dokumentację 02–09/13–15, kontrakty, Core/Host i testy B-01A–B-02C. Implementacja wykorzystuje ten sam SQLite/outbox/journal, lifecycle, scheduler i IPC v1. Brak Siemens, X-01, PLC/HMI, symulatorów, OPC/Snap7, Playwright lub migracji rzeczywistych projektów.

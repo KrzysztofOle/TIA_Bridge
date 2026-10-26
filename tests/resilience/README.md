@@ -2,6 +2,8 @@
 
 Harness używa istniejącego projektu Host.Tests i StorageProbe, rzeczywistych procesów Host/CLI/Fake oraz plikowej SQLite na własnym lokalnym NTFS. Nie powstaje drugi silnik operacji. [Dokumentacja i macierz RT/NF](../../docs/16_RESILIENCE_RECOVERY.md), [ostatnia kwalifikacja](QUALIFICATION.md), [maszynowy snapshot](qualification.json).
 
+Decyzja D-11 (2026-10-26): [odrębna ocena ograniczonej bramki X-01](X01_LIMITED_GATE.md), [JSON decyzji](x01-limited-gate.json). Historyczne QUALIFICATION.md i qualification.json pozostają niezmienione, włącznie z OFFLINE/GATE FAIL, NF-03 exFAT FAIL i NF-11 NOT_RUN. Aktualna ograniczona bramka NTFS ma PASS na podstawie wskazanych dowodów; nie oznacza produkcji, kwalifikacji exFAT ani zgody na uruchomienie X-01. NF-11 ≥8 h pozostaje obowiązkowy w B-10B/R-14.
+
 ## Uruchomienie
 
 Wymagania i jednorazowy cache: [tests/README.md](../README.md). Windows, .NET SDK/ASP.NET Core 10, Windows PowerShell do odczytu CPU/RAM/AV oraz QA Python z przypiętymi zależnościami. Nie instalujemy Siemens, nowych pakietów ani kont testowych.
@@ -32,4 +34,4 @@ RT-15 pozostawia własny testowy child/lock, wykrywa anomaly i quarantine, a har
 
 Raporty .tia-bridge/resilience/<run-id> zawierają scenario IDs, RT/NF, status, czas, PID/epoch, journal i hashe. Pełny run.json, środowisko CPU/RAM/AV, metryki i TRX są ignorowane przez Git. [Snapshot](qualification.json) zawiera tylko syntetyczne, zredagowane podsumowanie i hashe dowodów. Nie drukuj chronionego discovery, tokenów ani bootstrapu IPC. Surowe logi i DB nie trafiają do repo.
 
-Test drugiego SID i rzeczywistego power-loss: NOT_RUN, brak zatwierdzonego środowiska. Uszkodzenie końcówki ostatniej transakcji wyniku WAL nie dowodzi odzyskania całkowicie zniszczonej bazy. Brak testów Engineering/Runtime. Formalny X-01 pozostaje osobnym zadaniem i wymaga rozstrzygnięcia bramki opisanej w dokumencie 16.
+Test drugiego SID i rzeczywistego power-loss: NOT_RUN, brak zatwierdzonego środowiska. Uszkodzenie końcówki ostatniej transakcji wyniku WAL nie dowodzi odzyskania całkowicie zniszczonej bazy. Brak testów Engineering/Runtime. X-01 pozostaje osobnym zadaniem z odrębną autoryzacją i weryfikacją środowiska. Konserwatywne pola gate/x01_readiness reportera i missing_blocks_x01 z matrix.json opisują dawną agregację całego B-02D; aktualną interpretację zatwierdzonej D-11 zawiera osobny raport. Nie należy przepisywać dawnych pomiarów ani wnioskować PASS dla nowego przebiegu z tej oceny archiwalnych dowodów. [Kontrola zgodności dokumentacyjnej](../README.md#kontrola-dokumentacji) nie uruchamia procesów testowych.

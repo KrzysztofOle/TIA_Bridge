@@ -4,7 +4,7 @@ Plan przygotowany 2026-10-24/25. Obecne zadanie dostarcza projekt etapu 0 i kont
 
 ## Kolejność dostarczenia
 
-Najkrótsza droga: **1A→2A–2D na fake→X-01→3A/3B read-only→4A/4B dla jednej FC→5A→6A→ograniczone 4C Apply**. Pełna bramka B-02A–B-02D musi zakończyć się pozytywnie przed integracją z rzeczywistym Siemens Openness, także przed eksperymentem X-01. Pozostałe zależności pakietów poniżej nadal obowiązują. Bez qualification importer pozostaje disabled. Równoległe moduły logiczne mogą być rozwijane osobno, ale nie uruchamiają jednocześnie vendor calls do tego samego portalu. HMI, symulatory i E2E nie blokują pierwszego PLC MVP. Odporność jest budowana od2B; etap 10 rozszerza ją, nie odkłada bezpieczeństwa na koniec.
+Najkrótsza droga: **1A→2A–2D na fake→X-01→3A/3B read-only→4A/4B dla jednej FC→5A→6A→ograniczone 4C Apply**. Przed integracją z rzeczywistym Siemens Openness, także przed X-01, wymagana jest pozytywna ograniczona bramka B-02A–D opisana w [07](07_TEST_STRATEGY.md#ograniczona-bramka-x-01-read-only), zgodnie z D-11. Pełna kwalifikacja stabilności produkcyjnej pozostaje osobnym etapem B-10B, z NF-11 ≥8 h. Pozostałe zależności pakietów poniżej nadal obowiązują. Bez qualification importer pozostaje disabled. Równoległe moduły logiczne mogą być rozwijane osobno, ale nie uruchamiają jednocześnie vendor calls do tego samego portalu. HMI, symulatory i E2E nie blokują pierwszego PLC MVP. Odporność jest budowana od2B; etap 10 rozszerza ją, nie odkłada bezpieczeństwa na koniec.
 
 Pierwszy task CODEX: zbudować kontrakty + host na fake, `submit/status/result/cancel`, durable idempotency i test wiszącego wykonawcy. Bez Siemens DLL, uprawnień TIA ani importów. Dopiero kolejny task X-01 daje read-only worker V19.
 
@@ -36,7 +36,7 @@ Stan 2026-10-25: B-01A/B-01B zaimplementowane offline w [Core](../src/TiaBridge.
 
 ## Etap 2 — Silnik operacji, procesy i recovery [MVP]
 
-Stan 2026-10-25: zrealizowano [B-02A — warstwę trwałości](13_DURABLE_STORAGE.md) oraz [B-02B — scheduler, supervisor i Fake Worker/IPC](14_SCHEDULER_IPC.md). Działa wyłącznie wykonanie syntetyczne. [B-02C — HTTP API i CLI](15_HTTP_API_CLI.md) udostępnia ten sam silnik. [B-02D](16_RESILIENCE_RECOVERY.md) dodaje harness i raport RT/NF; status formalnej bramki jest jawny w snapshot, bez automatycznej zgody na Siemens. NF-11 minimum 8 h pozostaje NOT_RUN/B-10B zgodnie z decyzją użytkownika; propozycja doprecyzowania bramki wymaga zatwierdzenia.
+Stan 2026-10-26: zrealizowano [B-02A — warstwę trwałości](13_DURABLE_STORAGE.md) oraz [B-02B — scheduler, supervisor i Fake Worker/IPC](14_SCHEDULER_IPC.md). Działa wyłącznie wykonanie syntetyczne. [B-02C — HTTP API i CLI](15_HTTP_API_CLI.md) udostępnia ten sam silnik. [B-02D](16_RESILIENCE_RECOVERY.md) dostarczył harness i historyczny raport RT/NF z OFFLINE/GATE FAIL. Zatwierdzona D-11 rozdziela jego wykonanie, ograniczoną bramkę NTFS i produkcję; [aktualna interpretacja dowodów](../tests/resilience/X01_LIMITED_GATE.md) nie zmienia snapshot. NF-11 minimum 8 h pozostaje NOT_RUN/B-10B, a NF-03 exFAT FAIL nie jest uchylony.
 
 **Cel:** nieblokujący, trwały interfejs jeszcze przed TIA. **Zależności:**1A, częściowo 1B. **Pakiety:**
 
@@ -47,7 +47,16 @@ Stan 2026-10-25: zrealizowano [B-02A — warstwę trwałości](13_DURABLE_STORAG
 | B-02C | `Host/Api`, `Cli`, token discovery/ACL, status/result/events/cancel | klient kończy submit szybko; status NF-01 i edit W w NF-03 przy wiszącym fake; cancel queued nie dispatchuje |
 | B-02D | crash/restart/late-result/parent-loss harness `tests/resilience` | RT-03/05/06/15/16 na fake; zero fałszywego sukcesu, zero podwójnego efektu |
 
-**Ryzyka:** lease mylony z fencing w TIA, automatyczny kill workera po śmierci hosta, WAL/artifact durability. **Testy:** każdy journal boundary i host restart, bounded queue 1000, rate/status 8 klientów. **Akceptacja:** 100 powtórzonych submitów 1 ID, każdy zaakceptowany ID po crash dostępny, status p95≤100 ms, brak ponowienia unknown mutacji. **Rezultat:** działające async API+CLI na fake. **Bramka:** ten test jest obowiązkowy przed podłączeniem rzeczywistego API Siemens.
+**Ryzyka:** lease mylony z fencing w TIA, automatyczny kill workera po śmierci hosta, WAL/artifact durability. **Testy:** każdy journal boundary i host restart, bounded queue 1000, rate/status 8 klientów. **Akceptacja:** 100 powtórzonych submitów 1 ID, każdy zaakceptowany ID po crash dostępny, status p95≤100 ms, brak ponowienia unknown mutacji. **Rezultat:** działające async API+CLI na fake.
+
+Zamknięcie prac B-02D wymaga wykonania i jawnego raportu RT/NF, bez ukrywania FAIL/NOT_RUN. Przejście do osobnego X-01 wymaga wszystkich warunków [ograniczonej bramki 07](07_TEST_STRATEGY.md#ograniczona-bramka-x-01-read-only): RT-03/05/06/15/16, recovery/UNKNOWN/quarantine/epoch, NF-01/02/03/04/05/06/12/14/15 w kwalifikowanym lokalnym NTFS, rzeczywistego idle ≥5 min, ≥1000 operacji i braku krytycznych błędów. Pełny NF-11 nie jest warunkiem tego ograniczonego przejścia; nie wolno na tej podstawie ogłosić całego B-02 lub produkcji bezwarunkowo PASS.
+
+| Raport | Zakres statusu |
+|---|---|
+| B-02 OFFLINE TEST EXECUTION | PASS/FAIL faktycznie wykonanych testów |
+| B-02 OFFLINE QUALIFICATION | PASS/FAIL całego badanego profilu, z zachowaniem NF-03 exFAT FAIL |
+| X-01 LIMITED READ-ONLY GATE | PASS/FAIL/BLOCKED tylko według powyższych warunków; osobne zadanie i autoryzacja X-01 |
+| PRODUCTION QUALIFICATION | PASS/FAIL/NOT_RUN; pełna kwalifikacja późniejszych etapów, w tym B-10B/NF-11 i aktywne R-14 |
 
 ## Etap 3 — Discovery, eksport i mapowanie [MVP PLC / REQUIRED HMI]
 

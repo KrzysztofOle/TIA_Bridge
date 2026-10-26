@@ -83,10 +83,32 @@ Dodatkowe REQUIRED: queue cancel vs dispatch race; śmierć workera przy żywym 
 
 ## Wydajność, stabilność i dostarczanie dowodów
 
-Profil NF-01–NF-15 z [02](02_REQUIREMENTS.md), 1000 operacji syntetycznych i minimum 8 h; osobny read-only live soak 100 operacji. Mierz warm/cold Attach, Export per kind/size, compile duration, CPU/RAM/handles/process count i API latency podczas wiszącego call. Nie porównuj czasu OPC i Snap7 z różnymi buildami DB lub częstotliwością. Wartości celów należy skorygować pomiarami, nie przedstawiać jako już osiągnięte.
+Pełna kwalifikacja stabilności w B-10B/R-14 obejmuje profil NF-01–NF-15 z [02](02_REQUIREMENTS.md), minimum 1000 operacji syntetycznych i minimum 8 h NF-11 oraz osobny read-only live soak 100 operacji. Minimum 8 h nie jest warunkiem ograniczonego eksperymentu X-01 read-only; pozostaje obowiązkowe przed odpowiednią kwalifikacją stabilności produkcyjnej. Mierz warm/cold Attach, Export per kind/size, compile duration, CPU/RAM/handles/process count i API latency podczas wiszącego call. Nie porównuj czasu OPC i Snap7 z różnymi buildami DB lub częstotliwością. Wartości celów należy skorygować pomiarami, nie przedstawiać jako już osiągnięte.
 
 Pakiet dowodów: machine-readable `run.json`, test IDs, sanitized event journal, plan/source/capability/normalizer versions, compiler results, raw artifact hashes i wybrane screenshots/trace. Duże/zawierające projekt artifacts pozostają chronione poza Git; repo zawiera syntetyczne fixtures i podsumowania z hashami. Redakcja nie może usuwać informacji o UNKNOWN lub niespełnionym kryterium. CI offline nie potrzebuje Siemens; Windows integration lane jest opt-in z bezpiecznym profilem, a E2E nigdy nie uruchamia się automatycznie na fizycznym PLC.
 
-## Dowody B-02D i zakres niezakwalifikowany
+## Ograniczona bramka X-01 read-only
 
-[Harness i raport](16_RESILIENCE_RECOVERY.md) wykonuje rzeczywisty syntetyczny Host/CLI/Fake flow oraz RT-03/05/06/15/16, z oddzielnym wynikiem NF/RT i formalnej bramki. Nie zmienia kryteriów macierzy powyżej. NF-11 minimum 8 h nie został w tym zadaniu wykonany na jawną decyzję użytkownika; B-10B/R-14 jest właścicielem długotrwałej stabilności. Rozbieżność interpretacji wejścia X-01 i minimalna propozycja doprecyzowania są udokumentowane, bez zastosowania wyjątku lub nadania praw do Siemens. Kwalifikacja NTFS i ewentualny failure repo exFAT pozostają rozdzielone; NOT_RUN nie staje się PASS.
+Zatwierdzona decyzja [D-11](09_RISKS_AND_DECISIONS.md#decyzje), 2026-10-26, określa warunki przed osobno zleconym X-01 read-only:
+
+- RT-03, RT-05, RT-06, RT-15 i RT-16 mają PASS na Fake Workerze, w oryginalnym zakresie kryteriów, bez udawania importu, Save lub readbacku TIA.
+- Dowody potwierdzają trwałość zaakceptowanych operacji po restarcie, hang, timeout, late response, utratę procesu, idempotencję i bezpieczeństwo anulowania. UNKNOWN i kwarantanna zachowują semantykę po restarcie; stary epoch nie zatwierdza wyniku; niepewne mutacje nie są automatycznie ponawiane.
+- NF-01/02/03/04/05/06/12/14/15 mają pozytywne dowody we właściwym zaimplementowanym zakresie, w jednoznacznie opisanym profilu lokalnego NTFS. State/journal/outbox/artifacts i operacje zależne od kwalifikowanego zapisu/replace są na NTFS. NF-14 potwierdza obecny default deny, nie uprawnienia przyszłych odbiorców PLC/HMI.
+- Wykonano rzeczywisty pomiar idle ≥5 min i krótki przebieg ≥1000 operacji. Nie są one zaliczeniem pełnego NF-08 scale ani NF-11 soak.
+- Nie ma nierozwiązanych błędów krytycznych bezpieczeństwa wykonania lub izolacji procesów. Brak dowodu wymaganego warunku daje BLOCKED; negatywny wynik wymaganego warunku w wybranym profilu daje FAIL.
+
+NF-11 może pozostać NOT_RUN przed tym eksperymentem; B-10B/R-14 pozostaje obowiązkowe. Historyczny NF-03 exFAT: FAIL nie jest zmieniany ani przenoszony na NTFS. Pozytywny NTFS nie dopuszcza operacji zależnych od safe replace na niezakwalifikowanym exFAT i nie uprawnia do relokacji danych.
+
+PASS tej bramki pozwala wyłącznie przygotować osobne zadanie X-01 read-only, z odrębną autoryzacją i weryfikacją środowiska, tożsamości projektu, exact DLL/rights oraz własności procesów. Nie uruchamia X-01 i nie nadaje zgody na mutacje, download ani sterowanie PLC/HMI. Fake nie dowodzi poprawności Siemens.
+
+## Kolejne poziomy kwalifikacji i dowody B-02D
+
+| Poziom | Obowiązkowy zakres i znaczenie |
+|---|---|
+| B-02 OFFLINE TEST EXECUTION | rzeczywiste testy regresji i odporności; zielone testy nie zastępują kwalifikacji NF/filesystemu |
+| B-02 OFFLINE QUALIFICATION | wynik pełnego badanego profilu; historyczny FAIL exFAT pozostaje nawet przy PASS ograniczonej bramki NTFS |
+| X-01 LIMITED READ-ONLY GATE | powyższe warunki na Fake/NTFS; PASS/FAIL/BLOCKED, bez potwierdzenia Siemens |
+| Późniejsza integracja Siemens | osobny X-01 i kolejne pakiety kwalifikują attach/dispose, adaptery, RT Engineering/sync/simulation i live read-only; brak automatycznego zaliczenia przez Fake |
+| PRODUCTION QUALIFICATION | pełna stabilność B-10B (NF-11 ≥8 h), skala, retencja i wymagane RT/NF dla release oraz testy odbiorców, izolacji i uprawnień; samo X-01 nie wystarcza |
+
+[Harness i raport](16_RESILIENCE_RECOVERY.md) dokumentują syntetyczny Host/CLI/Fake flow. [Historyczne wyniki](../tests/resilience/QUALIFICATION.md) i [JSON](../tests/resilience/qualification.json) są niezmienne. [Odrębna ocena D-11](../tests/resilience/X01_LIMITED_GATE.md) stosuje zatwierdzone kryteria do tych dowodów; nie zamienia NOT_RUN w PASS i nie zmienia oryginalnej macierzy RT.

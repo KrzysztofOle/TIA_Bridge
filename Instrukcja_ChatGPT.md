@@ -142,6 +142,8 @@ W pierwszej kolejności: `B-01A` i weryfikowane przyrostowo `B-02A`–`B-02D` �
 
 Tę kolejność zmienia się wyłącznie świadomą decyzją, zapisaną w dokumentacji, z oceną ryzyka i zależności.
 
+Zatwierdzona 2026-10-26 [D-11](docs/09_RISKS_AND_DECISIONS.md#decyzje) doprecyzowuje tę bramkę dla pierwszego X-01 read-only: obowiązują [warunki ograniczonej bramki 07](docs/07_TEST_STRATEGY.md#ograniczona-bramka-x-01-read-only), w tym wymagane RT/NF na Fake w jawnym kwalifikowanym profilu lokalnego NTFS, rzeczywisty idle ≥5 min i ≥1000 operacji oraz brak krytycznych błędów wykonania/izolacji. NF-11 ≥8 h jest nadal obowiązkowy w B-10B/R-14; NOT_RUN nie blokuje wyłącznie tej ograniczonej bramki i nie jest PASS. NF-03 exFAT FAIL pozostaje ograniczeniem; NTFS PASS nie potwierdza exFAT. State/journal/outbox/artifacts i operacje zależne od kwalifikowanego zapisu/replace wymagają lokalnego NTFS, zweryfikowanego przed użyciem nowej lokalizacji. Oceniaj oddzielnie wykonanie testów offline, pełny profil B-02, ograniczoną bramkę i produkcję. X-01 wymaga osobnego zadania i odrębnej autoryzacji, pozostaje read-only; PASS Fake nie dowodzi Siemens. UNKNOWN/quarantine, worker isolation i wszystkie zasady §8 pozostają bez zmian; dostęp do testowego projektu nie uprawnia do sterowania PLC/HMI, fizyczny download jest domyślnie wyłączony.
+
 ## 11. Zasady redagowania odpowiedzi ChatGPT
 
 - Odpowiedzi i zadania dla CODEX przygotowuj po polsku; zachowuj techniczne identyfikatory i nazwy API bez tłumaczenia. Wyjątkiem są komunikaty commitów Git: temat, ewentualny opis rozszerzony i stopki wyłącznie po angielsku, zgodnie ze standardem w `AGENTS.md`.

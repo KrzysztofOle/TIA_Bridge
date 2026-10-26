@@ -16,6 +16,7 @@ Stan projektu: 2026-10-24/25. Decyzja projektowa nie jest dowodem wdrożenia ani
 | D-08 | przyjęta: OPC UA i Playwright niezależne od Engineering | Runtime ma własne E/T; simulator start≠load≠RUN≠ready; GUI adapter osobno i tylko po zgodzie |
 | D-09 | przyjęta: Snap7 jako OPTIONAL transport testowy, analiza REQUIRED | przydatny offsetowy test DB, lecz brak optimized/symbolic/security/subscriptions classic S7; nie zastępuje OPC ani Openness; [11](11_SNAP7_PLC_TESTING.md) |
 | D-10 | odroczona: użycie Transaction jako gwarancji rollbacku | API istnieje, zakres import/compile/Save niepotwierdzony; X-02; MVP saga i reconciliation |
+| D-11 | zatwierdzona przez użytkownika 2026-10-26: oddzielna ograniczona bramka X-01 read-only na lokalnym NTFS | [warunki 07](07_TEST_STRATEGY.md#ograniczona-bramka-x-01-read-only) obejmują wymagane RT/NF Fake, recovery, idle ≥5 min i ≥1000 operacji; NF-11 ≥8 h pozostaje obowiązkowy w B-10B/R-14, NOT_RUN przed X-01 nie staje się PASS; NF-03 exFAT FAIL zachowany, bez dopuszczenia exFAT lub gotowości produkcyjnej |
 
 ## Rejestr ryzyk
 
@@ -34,7 +35,7 @@ Stan projektu: 2026-10-24/25. Decyzja projektowa nie jest dowodem wdrożenia ani
 | R-11 High | TLS/UMC blokują lokalny web runtime (świeży błąd SSL) | X-06/B-09A: poprawny trust i testowa tożsamość; żadnego ignoreHTTPSErrors jako domyślnego obejścia |
 | R-12 High | browser canvas/CWC bez stabilnych selektorów | B-09B: adapter per family, coverage i alternatywne API; screenshots nie dowodzą logiki PLC |
 | R-13 High | Windows session/Openness rights nowego EXE i net48 targeting pack | X-01/B-11A: build i attach qualified; stare doctor PASS nie przenosi permissions |
-| R-14 Medium | CPU/RAM/handles creep i koszt pełnych snapshotów | B-10B:8 h, bounded scope i streaming, NF-08/11; liczby są na razie celami |
+| R-14 Medium | aktywne: CPU/RAM/handles creep i koszt pełnych snapshotów | B-10B: minimum 8 h, bounded scope i streaming, NF-08/11; krótki przebieg 1001 operacji i D-11 nie zamykają ryzyka ani pełnej kwalifikacji stabilności |
 | R-15 High | schema/normalizer upgrade zmienia interpretację B | B-01C/05B/11C: versioned golden tests i re-verify, bez przepisywania historycznych dowodów |
 | R-16 High | sekrety w trace/log/IPC/command line; lokalny endpoint dostępny obcej stronie | B-02C/09A/10C: ACL/token/Origin checks/redaction; audit fixture bez sekretów |
 | R-17 High | Snap7 PUT/GET obniża ochronę i offsets przestają odpowiadać DB | X-08/B-08D: tylko test DB/instance, layout fingerprint i grant; w przeciwnym razie disabled |
@@ -70,6 +71,14 @@ To backlog osobnych prac, nie polecenie wykonania teraz. Zapis/compile/start/sto
 
 Informacje te nie blokowały obecnego projektu dokumentacyjnego. Przyszłe implementacje, które od nich zależą, muszą rozstrzygnąć je eksperymentem lub jawnie ograniczyć capability.
 
-## Dowód B-02D bez zmiany decyzji
+## Dowód B-02D i zatwierdzone rozstrzygnięcie D-11
 
-[Raport B-02D](16_RESILIENCE_RECOVERY.md) dokumentuje granice UNKNOWN/recovery i procesów Fake. R-14 pozostaje otwarte: pełny 8 h soak NF-11 jest NOT_RUN, jawnie odłożony do B-10B przez użytkownika. Raport wskazuje rozbieżność zakresu bramki z dokumentem 07 i propozycję do osobnej decyzji, nie zmienia D-01–D-10 ani kryteriów X-01. R-08 wymaga osobnej kwalifikacji safe replace na repo exFAT; wyniki testu kontrolnego nie są ukrywane przez pozytywne testy lokalnego NTFS.
+[Raport B-02D](16_RESILIENCE_RECOVERY.md) dokumentuje granice UNKNOWN/recovery i procesów Fake. W B-02D wykryto rozbieżność: ogólny profil 8 h z 07 odczytywany razem z bramką 08 i instrukcjami mógł blokować pierwszy read-only X-01, choć R-14 przypisywał soak do B-10B. D-11 rozstrzyga wyłącznie etap zastosowania wymagań. D-01–D-10, lifecycle, UNKNOWN/quarantine, worker isolation i autoryzacja pozostają bez zmian. [Ocena dowodów D-11](../tests/resilience/X01_LIMITED_GATE.md) jest odrębna od niezmienionego historycznego snapshot.
+
+R-14 pozostaje aktywne: pełny 8 h soak NF-11 jest NOT_RUN i obowiązkowy w B-10B. R-08 również pozostaje aktywne; historyczny NF-03 exFAT: FAIL i wymóg osobnej kwalifikacji safe replace nie są usuwane przez pozytywne NTFS. Nie stosuje się delete+copy, automatycznej relokacji ani zmiany ACL.
+
+## Przygotowane środowisko przyszłego X-01
+
+Według deklaracji użytkownika folder `X:\TESTY_TIA_Bridge` zawiera dwa projekty TIA Portal V19 dedykowane przyszłym testom. Użytkownik dopuścił ich modyfikację, uszkodzenie lub utratę w odrębnie zlecanych eksperymentach. Nie jest to obecne polecenie otwarcia, kopiowania, modyfikacji lub usunięcia tych projektów. W tym zadaniu nie uzyskiwano do nich dostępu; typ filesystemu X: pozostaje NIEZWERYFIKOWANY i musi zostać sprawdzony przed operacjami objętymi kwalifikacją NTFS. Nie zakłada się ani nie wykonuje automatycznego przenoszenia danych.
+
+Folder testowy nie dowodzi izolacji PLC/HMI. Dostęp do projektów i zgoda na ich przyszłe zmiany nie uprawniają do fizycznego downloadu lub sterowania sprzętem. Pierwszy X-01 pozostaje read-only, wymaga osobnego zadania i autoryzacji oraz świeżej tożsamości i weryfikacji środowiska. Późniejsze mutacje wymagają osobnego zakresu, capabilities i wszystkich właściwych bramek. Fizyczny download pozostaje domyślnie wyłączony.

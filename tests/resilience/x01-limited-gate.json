@@ -1,0 +1,82 @@
+{
+  "assessment_format": "1",
+  "kind": "documentation_decision_assessment_not_new_test_run",
+  "decision": "D-11",
+  "decision_date": "2026-10-26",
+  "source_commit": "51d859f5b361b614672ccf9abb59a05606c461c5",
+  "source_run_id": "e46332b7aee247c28cc9ca3910e69c48",
+  "source_files_sha256": {
+    "tests/resilience/QUALIFICATION.md": "64c8bcece5907244d5b6ca9cdc120835a0296c758fd1fd7d88448b9957aba776",
+    "tests/resilience/qualification.json": "cbb66c2e5208f53e33f6aa66c4645b99d6b9f34304f2abc965715f5a046ebb97"
+  },
+  "source_git_lf_sha256": {
+    "tests/resilience/QUALIFICATION.md": "79434194d0046ef3cb6541fb14ddbf23984175ceb981a4c469cd1cb874021dbe",
+    "tests/resilience/qualification.json": "39263578afbcdfdff19605ec895dc178edf14c82121065d009b75e25e450cd45"
+  },
+  "statuses": {
+    "b02_offline_test_execution": "PASS",
+    "b02_offline_qualification": "FAIL",
+    "x01_limited_read_only_gate": "PASS",
+    "production_qualification": "NOT_RUN",
+    "engineering": "NOT_RUN",
+    "runtime": "NOT_RUN"
+  },
+  "profile": {
+    "id": "b02d-qualified-local-ntfs-fake",
+    "state_journal_outbox_artifacts": "local NTFS outside repository",
+    "qualified_workspace_operations": "local NTFS, 100 paced 1 MiB save/replace samples during Fake Hang, 100 ms interval",
+    "host_api_measurements": "file-backed local NTFS state; 1 and 8 clients; synthetic operations only",
+    "environment_reference": "qualification.json#/environment and #/measurements/http_readers_recovery/environment",
+    "excluded": ["exFAT safe replace qualification", "Siemens implementation or capability qualification", "production stability"],
+    "transfer_to_new_code_or_environment": "requires new evidence assessment"
+  },
+  "required_rt": ["RT-03", "RT-05", "RT-06", "RT-15", "RT-16"],
+  "required_nf_source_pointers": {
+    "NF-01": "/nf/NF-01/status",
+    "NF-02": "/nf/NF-02/status",
+    "NF-03": "/nf/NF-03/ntfs_save_replace_status",
+    "NF-04": "/nf/NF-04/status",
+    "NF-05": "/nf/NF-05/status",
+    "NF-06": "/nf/NF-06/status",
+    "NF-12": "/nf/NF-12/status",
+    "NF-14": "/nf/NF-14/status",
+    "NF-15": "/nf/NF-15/status"
+  },
+  "additional_criteria_scenarios": {
+    "durability_after_restart": ["admission-AfterCommit", "queued-restart", "running-result-after"],
+    "hang_timeout_late_process_loss": ["worker-loss-HeartbeatWithoutProgress", "worker-loss-NoHeartbeat", "worker-loss-Exit", "worker-loss-Disconnect", "deadline-late-receipt"],
+    "idempotency_cancellation": ["idempotency-100", "cancel-race-False", "cancel-race-True"],
+    "unknown_quarantine_no_replay": ["lease-expiry-live-call", "deadline-late-receipt", "owned-child-lock"],
+    "stale_epoch_rejected": ["old-epoch-receipt", "ipc-epoch"],
+    "idle_at_least_300_seconds": ["idle-300s"],
+    "short_run_at_least_1000_operations": ["operations-1001"]
+  },
+  "critical_defects_review": {
+    "unresolved_critical_execution_or_process_isolation_defects": 0,
+    "basis": "Historical QUALIFICATION.md Recovery, security and limitations; all required RT and 748 .NET/24 Python passed; this decision changes no production code.",
+    "scope": "implemented synthetic Host/Fake boundary only"
+  },
+  "preserved_limits": {
+    "nf03_exfat": "FAIL",
+    "nf11": "NOT_RUN",
+    "nf11_required_seconds_in_b10b": 28800,
+    "r14": "ACTIVE",
+    "full_nf08_scale": "NOT_RUN",
+    "foreign_sid": "NOT_RUN",
+    "hardware_power_loss": "NOT_RUN"
+  },
+  "before_separate_x01_task": [
+    "Obtain a separate read-only task and authorization; do not run X-01 from this decision.",
+    "Verify filesystem of all paths used for qualified NTFS operations, including X: if selected; do not move data automatically.",
+    "Verify exact TIA V19 DLL, net48 x64 worker rights, fresh PID/start/project identity and process ownership within the authorized experiment.",
+    "Confirm test scope and isolation; access to test projects grants no physical PLC/HMI control or download rights."
+  ],
+  "prepared_test_folder": {
+    "path": "X:\\TESTY_TIA_Bridge",
+    "source": "user declaration: two TIA V19 test projects; future separate experiments may modify, damage or lose them",
+    "filesystem": "UNVERIFIED",
+    "project_access_in_this_task": false,
+    "x01_mode": "read-only",
+    "physical_download_authorized": false
+  }
+}
