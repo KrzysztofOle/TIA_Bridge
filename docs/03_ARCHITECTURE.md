@@ -71,7 +71,7 @@ Lifecycle: `ACCEPTED → QUEUED → RUNNING → SUCCEEDED|FAILED|CANCELLED|RECON
 
 ## Baza, ownership i fencing
 
-SQLite (jeden writer, WAL, `synchronous=FULL`, krótkie transakcje) znajduje się w `%LOCALAPPDATA%\TIA_Bridge2\state` na lokalnym NTFS. Nie na M:/exFAT, SMB ani w katalogu Git. [SQLite WAL](https://www.sqlite.org/wal.html) wymaga współlokalnych procesów i pamięci współdzielonej; wymaganie NTFS jest dodatkową polityką tego projektu dla ACL i walidacji durability. `FULL` i flush nie stanowią bezwarunkowej gwarancji wobec awarii sprzętu.
+SQLite (jeden writer, WAL, `synchronous=FULL`, krótkie transakcje) znajduje się w `%LOCALAPPDATA%\TIA_Bridge2\state` na lokalnym NTFS. Nie na exFAT, SMB ani w katalogu Git. [SQLite WAL](https://www.sqlite.org/wal.html) wymaga współlokalnych procesów i pamięci współdzielonej; wymaganie NTFS jest dodatkową polityką tego projektu dla ACL i walidacji durability. `FULL` i flush nie stanowią bezwarunkowej gwarancji wobec awarii sprzętu.
 
 Minimalne tabele: `projects`, `sessions`, `operations`, `steps`, `events`, `idempotency_keys`, `leases`, `quarantines`, `snapshots`, `artifacts`, `plans`, `baseline_revisions`, `capabilities`, `authorizations`. Unique `(principal, project_key, idempotency_key)` oraz `(operation_id, event_sequence)`. Przyjęcie intentu i outbox w jednej transakcji. Event i nowy stan kroku razem. Przy wyniku z workera host sprawdza epoch i hash planu. Po timeout host nie ufa spóźnionemu `SUCCEEDED`; zachowuje receipt i uruchamia reconciliation.
 
@@ -121,8 +121,8 @@ scripts/                         narzędzia z instrukcjami
 docs/                            projekt, ADR i kontrolowane dowody
 ```
 
-Istniejące trzy katalogi src zachowujemy; dodatkowe powstaną wraz z konkretnymi zadaniami, bez pustego szkieletu pozorującego implementację. Pakiety host/worker/test tools wersjonowane niezależnie z matrix compatibility. Vendor DLL nie są kopiowane do Git ani dystrybuowane bez sprawdzenia warunków; instalator odszukuje i waliduje lokalną instalację. Konfiguracja runtime/sekrety/DB/spool/logi są poza drzewem powyżej.
-
 ## Granica HMI Canonical / Source / Native (D-12)
 
 [ADR 0003](decisions/0003-hmi-canonical-model-and-native-artifacts.md) zatwierdza niezależny model semantyczny **CANONICAL** (nie nowa rola pliku w kontrakcie v1), edytowalne **SOURCE** oraz zachowane bajtowo **NATIVE** Siemens powiązane z ExchangeUnit i SHA-256. Niepewny odczyt Unified nie daje podstaw do całkowitej rekonstrukcji; wersje V19/V21 kwalifikuje się oddzielnie. Bez implementacji lub zmiany kontraktów.
+
+Istniejące trzy katalogi src zachowujemy; dodatkowe powstaną wraz z konkretnymi zadaniami, bez pustego szkieletu pozorującego implementację. Pakiety host/worker/test tools wersjonowane niezależnie z matrix compatibility. Vendor DLL nie są kopiowane do Git ani dystrybuowane bez sprawdzenia warunków; instalator odszukuje i waliduje lokalną instalację. Konfiguracja runtime/sekrety/DB/spool/logi są poza drzewem powyżej.
