@@ -1,5 +1,39 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-26 — weryfikacja klonu X: i audyt odwołań
+
+**Stan repozytorium:** checkout `X:\Projects\TIA_Bridge`; przed fetch i po nim HEAD `9e8b7bfadb1f4e7b0fc3a793d01cbb82f54e5c07`, `origin/main` ten sam SHA; `main` śledzi `origin/main`, różnica 0/0. Remote fetch/push: `git@github.com:KrzysztofOle/TIA_Bridge.git`, ten sam projekt co zadany URL HTTPS. `git fetch origin` zakończył się bez aktualizacji; brak lokalnych commitów do wysłania, zmian wejściowych, dodatkowych gałęzi/worktree, konfliktów i stanów operacji Git. Submoduły nie są używane; Git LFS jest zainstalowany, ale repo nie ma plików LFS.
+
+**Wolumin X:** `X:` = NTFS, Fixed, partycja Basic nr 3 fizycznego dysku Micron 1100 SATA 256 GB; nie jest mapowaniem SMB ani urządzeniem USB/wymiennym. Wolumin online/healthy, ok. 163 GB wolne w chwili kontroli. ACL katalogu repo ma właściciela bieżącego użytkownika; tymczasowy zapis, `os.replace` w tym samym woluminie i odczyt kontrolny PASS, pliki próbne usunięto. `fsutil fsinfo volumeinfo X:` zwrócił odmowę dostępu; typ NTFS potwierdzono niezależnie przez `Get-Volume`.
+
+**Audyt repozytorium:** aktywne opisy starej lokalizacji w `README.md`, `Instrukcja_ChatGPT.md`, `src/TiaBridge.Host/README.md`, `docs/03_ARCHITECTURE.md`, `docs/09_RISKS_AND_DECISIONS.md`, `docs/16_RESILIENCE_RECOVERY.md`, `docs/02_REQUIREMENTS.md` i `tests/README.md` uogólniono, usuwając założenie, że repo/workspace nadal leży na M:/exFAT. Ścieżki do trwałego state na NTFS pozostają poza repo.
+
+| Pozostawione odwołanie | Kategoria | Powód |
+|---|---|---|
+| `docs/10_EVIDENCE_AND_QUALITY.md`, wcześniejsze wpisy `Zmiany.md`, `docs/X01_TIA_V19_QUALIFICATION.md`, historyczny `tests/engineering/x01-qualification.json` | C — historyczne dane | Opisują checkout, pomiary, konfigurację M:/exFAT i dowody z czasu wykonania; nie wolno ich przepisywać jako bieżącego środowiska. |
+| `tests/integration/TiaBridge.Host.Tests/MigrationAndPolicyTests.cs` — syntetyczny `M:\\_Moje_Programy\\TIA_Bridge\\state` | C — fixture testowy | Ujemny przypadek testuje odmowę niezatwierdzonej lokalizacji; nie wskazuje aktywnego workspace ani magazynu. |
+| VS Code `globalStorage/storage.json` i `workspaceStorage` zawierają X: jako bieżący workspace oraz M: jako wcześniejszy wpis | E — lokalna historia IDE | Nie jest to konfiguracja uruchomieniowa projektu. Nie zmieniano ustawień użytkownika ani historii VS Code. `settings.json`, tasks/launch, dostępne zmienne środowiskowe, usługi i zadania planowane nie ujawniły aktywnej konfiguracji TIA_Bridge ze starą ścieżką. |
+| `bin/`, `obj/`, `.vs/`, `.tia-bridge/` | D — generowane/lokalne | Pominięte w ręcznym audycie edycyjnym; nowe buildy i dowody pozostały ignorowane. Nie są wymagane czyszczenie ani odtwarzanie konfiguracji. |
+
+W aktywnych instrukcjach nie pozostało pełne odwołanie `M:\\_Moje_Programy\\TIA_Bridge`. Żadnych danych historycznych, testowych TIA, SQLite, instalacji Siemens ani DLL nie przenoszono. Nie znaleziono innych aktywnych bezwzględnych ścieżek do starego repo. Stare wpisy M: w historii workspace VS Code można usunąć ręcznie z listy ostatnich folderów, jeśli użytkownik nie chce ich zachować.
+
+**Kontrola architektury i instrukcji:** `docs/03_ARCHITECTURE.md`, `docs/04_SYNCHRONIZATION.md`, `docs/07_TEST_STRATEGY.md`, `docs/09_RISKS_AND_DECISIONS.md` i raport X-01 sprawdzono pod kątem separacji repo/state/workspace, profili NTFS/exFAT oraz granic read-only. D-11, progi, architektura, worker i historyczny X-01 nie uległy zmianie.
+
+| Dokument | Ocena spójności |
+|---|---|
+| AGENTS: Zakres i stan; role i hierarchia | Nowy checkout jest celem, stary checkout pozostał wyłącznie materiałem historycznym; brak kopiowania danych. Zasady spójne, bez zmian. |
+| AGENTS: Niezmienne granice; Autoryzacja i testy | Uruchomiono wyłącznie OFFLINE na Fake i syntetycznych danych; TIA/Engineering/Runtime bez zmian. Granice zachowane. |
+| AGENTS: Dyscyplina zmian; standard commitów | Zmiany ograniczone do dokumentacji i wpisu audytowego; zakres Git sprawdzony, obowiązuje Conventional Commit po angielsku. |
+| AGENTS: Dane nieufne i stabilność kontraktów | Kontrakty i parsery niezmienione. |
+| Instrukcja_ChatGPT §1 — cel i stan | Nagłówek lokalizacji zmieniono na katalog bieżącego checkoutu; nie przypina instrukcji do litery dysku. |
+| Instrukcja_ChatGPT §2–5 — odpowiedzialność, źródła, workflow i zadania | Bez zmian semantycznych; hierarchia oraz workflow pozostają zgodne z AGENTS. |
+| Instrukcja_ChatGPT §6–8 — architektura, pakiety, autoryzacja | Granice Core/Worker i uprawnienia Siemens bez zmian; trwałe dane opisano niezależnie od M:. |
+| Instrukcja_ChatGPT §9–12 — raporty, sekwencja, styl i kontrola spójności | Kryteria statusów zachowano; ten wpis dokumentuje ocenę wpływu i wyniki. |
+
+**Weryfikacja:** .NET SDK 10.0.402 i Python 3.12.2 dostępne. Locked restore oraz Build Release PASS (0 warnings/errors). OFFLINE: 773/773 testów .NET PASS (235 Host, 538 Core), 31/31 testów Python PASS; generatory PASS; `audit_quality.py` PASS; NF-03 `repository-replace-control` na X:/NTFS PASS: 100 próbek 1 MiB bez worker (p95 6,1634 ms) i 100 podczas Fake Hang (p95 4,4434 ms), bez odmów. Idle-300s test PASS; nie zmienia to statusu historycznych testów X-01/D-11 ani nie jest kwalifikacją Engineering/Runtime. Początkowy `dotnet format` wykazał wyłącznie CRLF wygenerowane przez globalne `core.autocrlf=true`, sprzeczne z `.editorconfig` LF. Dla tego klonu ustawiono lokalnie `core.autocrlf=false`, odtworzono z indexu niezmienione pliki C# i ujednolicono LF w zmienionych dokumentach; ponowny `dotnet format whitespace --verify-no-changes` oraz `git diff --check` PASS. Pełny runner zgłosił FAIL na kroku formatowania przed korektą lokalnego checkoutu; nie zmieniono progów ani źródeł C#.
+
+**Ocena wpływu:** zaktualizowano tylko opisy lokalizacji i statusu profilu exFAT. Architektura, synchronizacja, autoryzacja, test strategy, ADR, D-11 i historyczne evidence bez zmian. PASS dotyczy wyłącznie opisanych testów OFFLINE na X:/NTFS; Engineering i Runtime pozostają NOT_RUN.
+
 ## 2026-10-26 — X-01: izolowany Siemens V19 read-only
 
 Stan wejściowy: czysty main/origin main `eca8a079b04001c792c0669b991edfbeb6faaca6`. Osobne jawne zadanie użytkownika autoryzuje odczyt dwóch otwartych projektów testowych V19 pod X:\TESTY_TIA_Bridge. D-11 ogranicza profil do lokalnego NTFS; nie zmieniono historycznych QUALIFICATION/qualification.json lub ograniczonej bramki. NF-03 exFAT FAIL, NF-11 NOT_RUN/B-10B i RUNTIME NOT_RUN pozostają odrębne.

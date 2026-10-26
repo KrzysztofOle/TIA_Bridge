@@ -20,7 +20,7 @@ store.RegisterProject(projectKey);
 Admission accepted = store.Accept(authenticatedPrincipal, requestUtf8);
 ```
 
-Zatwierdzona konfiguracja musi pozostać pod lokalnym `%LOCALAPPDATA%\TIA_Bridge2`, poza repo i na stałym NTFS. Testy używają wyłącznie własnych UUID katalogów `dev\storage-tests`, nigdy domyślnego state ani istniejących baz. Repo na M:/exFAT jest miejscem kodu i ignorowanych raportów, nie magazynem SQLite.
+Zatwierdzona konfiguracja musi pozostać pod lokalnym `%LOCALAPPDATA%\TIA_Bridge2`, poza repo i na stałym NTFS. Testy używają wyłącznie własnych UUID katalogów `dev\storage-tests`, nigdy domyślnego state ani istniejących baz. Repozytorium jest miejscem kodu i ignorowanych raportów, nie magazynem SQLite.
 
 Metody Storage nie uwierzytelniają callerów ani nie weryfikują grantów. Principal musi pochodzić z zaufanej warstwy API Host, nie z JSON. IStorageFaults jest wyłącznie wstrzykiwanym interfejsem testowym; normalne użycie wybiera NoStorageFaults. Zakończenie testowego procesu nie implikuje możliwości przerwania Siemens.
 

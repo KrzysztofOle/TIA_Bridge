@@ -71,7 +71,7 @@ Lifecycle: `ACCEPTED → QUEUED → RUNNING → SUCCEEDED|FAILED|CANCELLED|RECON
 
 ## Baza, ownership i fencing
 
-SQLite (jeden writer, WAL, `synchronous=FULL`, krótkie transakcje) znajduje się w `%LOCALAPPDATA%\TIA_Bridge2\state` na lokalnym NTFS. Nie na M:/exFAT, SMB ani w katalogu Git. [SQLite WAL](https://www.sqlite.org/wal.html) wymaga współlokalnych procesów i pamięci współdzielonej; wymaganie NTFS jest dodatkową polityką tego projektu dla ACL i walidacji durability. `FULL` i flush nie stanowią bezwarunkowej gwarancji wobec awarii sprzętu.
+SQLite (jeden writer, WAL, `synchronous=FULL`, krótkie transakcje) znajduje się w `%LOCALAPPDATA%\TIA_Bridge2\state` na lokalnym NTFS. Nie na exFAT, SMB ani w katalogu Git. [SQLite WAL](https://www.sqlite.org/wal.html) wymaga współlokalnych procesów i pamięci współdzielonej; wymaganie NTFS jest dodatkową polityką tego projektu dla ACL i walidacji durability. `FULL` i flush nie stanowią bezwarunkowej gwarancji wobec awarii sprzętu.
 
 Minimalne tabele: `projects`, `sessions`, `operations`, `steps`, `events`, `idempotency_keys`, `leases`, `quarantines`, `snapshots`, `artifacts`, `plans`, `baseline_revisions`, `capabilities`, `authorizations`. Unique `(principal, project_key, idempotency_key)` oraz `(operation_id, event_sequence)`. Przyjęcie intentu i outbox w jednej transakcji. Event i nowy stan kroku razem. Przy wyniku z workera host sprawdza epoch i hash planu. Po timeout host nie ufa spóźnionemu `SUCCEEDED`; zachowuje receipt i uruchamia reconciliation.
 

@@ -7,7 +7,7 @@ Stan projektu: 2026-10-24/25. Decyzja projektowa nie jest dowodem wdrożenia ani
 | ID | Decyzja i status | Powód / alternatywa / konsekwencja |
 |---|---|---|
 | D-01 | przyjęta projektowo: host .NET10 + worker net48/x64 V19 | kompatybilność Siemens oddzielona od nowoczesnego API; Python host możliwy, lecz zwiększa packaging; X-01 przed implementation support claim |
-| D-02 | przyjęta: trwałe operation IDs i SQLite na lokalnym NTFS | niewystarczający synchroniczny subprocess; samo MCP/CLI nie daje durability; M: exFAT jest workspace repo, nie stan operacji/sekrety |
+| D-02 | przyjęta: trwałe operation IDs i SQLite na lokalnym NTFS | niewystarczający synchroniczny subprocess; samo MCP/CLI nie daje durability; exFAT może być workspace repo, nie stan operacji/sekrety |
 | D-03 | przyjęta: HTTP loopback + CLI, MCP OPTIONAL | jeden silnik i diagnostyka; MCP Tasks nie wymagane; klient nie blokuje domyślnie tool call |
 | D-04 | przyjęta: W priorytet planu, S wejściem importu, B wyłącznie po verify | swoboda CODEX, brak utraty późniejszych edycji; odrzucony import-on-save i automatyczny force overwrite |
 | D-05 | przyjęta: quarantine po niepewnej mutacji, brak automatycznego replay/rollback | fence nie dociera do Siemens; exactly-once niemożliwe do obiecania; automatyzujemy diagnozę, nie nieznany efekt |
@@ -29,7 +29,7 @@ Stan projektu: 2026-10-24/25. Decyzja projektowa nie jest dowodem wdrożenia ani
 | R-05 High | CLR proxies po import/restart mają inną tożsamość, OB-12 | B-03A/05A: epoch/re-resolve/owner/inventory; bez opierania identity na Equals |
 | R-06 High | unknown XML/YAML lub języki utracone przy source import | X-03/B-05B: golden round-trip i protected fields; brak coverage blokuje SYNCED |
 | R-07 High | aktywny dirty T05 ma FAILED/UNKNOWN; jego recovery jest poza zadaniem | B-00A/11B: tylko dowody; nowa app nie adoptuje sesji ani nie naprawia projektu automatycznie |
-| R-08 High | target repo na exFAT: inne ACL/rename/durability | B-02A/03B: NTFS state/spool/secrets, M: tylko W; brak blind replace edytowanych plików |
+| R-08 High | workspace na exFAT: inne ACL/rename/durability | B-02A/03B: NTFS state/spool/secrets, workspace na exFAT tylko dla W; brak blind replace edytowanych plików |
 | R-09 High | Archive temp na C:, destination space niewystarczający | B-04B: actual storage failure preserved; jeden backup sesji, bez redirect TEMP/auto cleanup |
 | R-10 High | licencje Advanced/WinCC/clients/provisioning niezweryfikowane | X-05/X-06: legal availability/licensing state jawnie sprawdzone bez kluczy w logu; inaczej BLOCKED |
 | R-11 High | TLS/UMC blokują lokalny web runtime (świeży błąd SSL) | X-06/B-09A: poprawny trust i testowa tożsamość; żadnego ignoreHTTPSErrors jako domyślnego obejścia |

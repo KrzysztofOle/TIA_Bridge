@@ -44,7 +44,7 @@ Wykonany zakres: [Core](src/TiaBridge.Core/README.md), [Host Storage B-02A](src/
 
 Nie ma automatycznego importu po zapisie pliku. Domyślny profil jest read-only; zatwierdzone, ograniczone uprawnienie sesji testowej może obejmować wiele kroków. Usuwanie, fizyczny download i rzeczywista maszyna wymagają osobnej autoryzacji. Kopia Git nie zastępuje archiwum Siemens.
 
-Repozytorium znajduje się obecnie na M: (exFAT). Trwała baza operacji, sekrety i spool wykonawcy mają docelowo znajdować się na lokalnym NTFS poza repo; na exFAT nie opieramy gwarancji ACL ani odporności na utratę zasilania. Nazwy `SYNCED`, `Compile PASS` i `Runtime PASS` opisują niezależne fakty.
+Repozytorium kodu jest odrębne od trwałej bazy operacji, sekretów i spool wykonawcy, które muszą znajdować się poza repo na lokalnym NTFS. Nie opieramy gwarancji ACL ani odporności na utratę zasilania na exFAT. Nazwy `SYNCED`, `Compile PASS` i `Runtime PASS` opisują niezależne fakty.
 
 Kontrola dokumentacji: `py -3 scripts/audit_quality.py`. Wymaga Python 3.12 i `jsonschema`; nie łączy się z Siemens. [Instrukcja](scripts/README.md), [zasady agentów](AGENTS.md).
 
@@ -56,4 +56,4 @@ Pierwotne opracowania [architecture](docs/architecture.md), [sync-model](docs/sy
 
 Osobne [rozwiązanie Engineering](TiaBridge.Engineering.slnx) buduje worker net48/x64 z PublicAPI V19 z Program Files, bez kopiowania vendor DLL. Standardowy build/test offline nie wymaga Siemens. [Jawny harness live](tests/engineering/README.md) wykorzystuje istniejący Host, API, CLI, SQLite, scheduler i IPC 1.1; dopuszcza wyłącznie exact binding i `project.inspect`, bounded inventory oraz Detach. Pozostałe operacje TIA pozostają UNSUPPORTED. Nie ma eksportera, importu, Save, Compile, Download lub Runtime. PASS tego eksperymentu nie oznacza kwalifikacji produkcyjnej ani całego B-03A.
 
-Końcowy X-01: oba projekty read-only i testy izolacji Engineering przeszły; pełna regresja zachowuje jeden FAIL NF-03 na M:/exFAT. Zgodnie z [raportem](docs/X01_TIA_V19_QUALIFICATION.md) nie ogłoszono pełnego X-01 PASS, a B-03A pozostaje NOT_READY do rozstrzygnięcia warunku pełnej regresji. NF-11/R-14 i produkcja pozostają niezakwalifikowane.
+Końcowy X-01: oba projekty read-only i testy izolacji Engineering przeszły; pełna regresja zachowuje jeden historyczny FAIL NF-03 na exFAT. Zgodnie z [raportem](docs/X01_TIA_V19_QUALIFICATION.md) nie ogłoszono pełnego X-01 PASS, a B-03A pozostaje NOT_READY do rozstrzygnięcia warunku pełnej regresji. NF-11/R-14 i produkcja pozostają niezakwalifikowane.

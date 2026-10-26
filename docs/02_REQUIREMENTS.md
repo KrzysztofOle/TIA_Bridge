@@ -68,7 +68,7 @@ Decyzja [D-11](09_RISKS_AND_DECISIONS.md#decyzje) z 2026-10-26 rozdziela ogranic
 
 NF-11 nadal wymaga minimum 8 h, 1000 operacji syntetycznych i osobnego read-only live soak 100 operacji. Właścicielem pełnej kwalifikacji jest B-10B/R-14. NF-11: NOT_RUN nie blokuje ograniczonego X-01 read-only, ale nie staje się PASS i pozostaje wymaganiem późniejszej kwalifikacji stabilności produkcyjnej. Krótki przebieg i pomiar idle nie zaliczają pełnego NF-08 ani NF-11.
 
-NF-03 raportuje odrębnie NTFS i exFAT. SQLite, journal, outbox, artefakty oraz operacje plikowe wymagające kwalifikowanego zapisu/replace korzystają z lokalnego NTFS. Historyczny NF-03 exFAT: FAIL pozostaje ograniczeniem profilu M:; NTFS PASS nie kwalifikuje exFAT. Nie dopuszcza się delete+copy jako obejścia replace ani automatycznego przenoszenia repozytorium. Typ filesystemu każdej nowej lokalizacji, w tym X:, wymaga weryfikacji przed użyciem w profilu NTFS.
+NF-03 raportuje odrębnie NTFS i exFAT. SQLite, journal, outbox, artefakty oraz operacje plikowe wymagające kwalifikowanego zapisu/replace korzystają z lokalnego NTFS. Historyczny NF-03 exFAT: FAIL pozostaje ograniczeniem badanego profilu; NTFS PASS nie kwalifikuje exFAT. Nie dopuszcza się delete+copy jako obejścia replace ani automatycznego przenoszenia repozytorium. Typ filesystemu każdej nowej lokalizacji wymaga weryfikacji przed użyciem w profilu NTFS.
 
 ## Kryterium zakończenia MVP
 
