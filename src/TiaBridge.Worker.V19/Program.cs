@@ -117,7 +117,9 @@ internal static class Program
                             framed.SendAsync(MessageKind.Started, id, message.Fence, Protocol.Body(new StartedBody(1)), stop.Token).GetAwaiter().GetResult();
                             using var gate = VendorGate.Enter();
                             var observation = VendorReader.Inspect(target, Audit);
-                            receipt = new Receipt("Succeeded", JsonSerializer.Serialize(observation, Protocol.Json), null, 0, true);
+                            string report = JsonSerializer.Serialize(observation, Protocol.Json);
+                            if (System.Text.Encoding.UTF8.GetByteCount(report) > Protocol.MaxReceiptBytes) throw new InvalidOperationException("LIMIT_EXCEEDED");
+                            receipt = new Receipt("Succeeded", report, null, 0, true);
                         }
                     }
                     catch (Exception e)

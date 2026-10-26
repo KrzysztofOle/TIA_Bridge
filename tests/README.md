@@ -1,4 +1,4 @@
-# Testy B-01A–B-01C i B-02A–D — bez Siemens
+# Testy offline B-01A–C, B-02A–D oraz Discovery B-03A — bez Siemens
 
 Wymagania: .NET SDK 10.0.4xx (global.json dopuszcza najnowszy patch tego pasma), Python 3.12. Zależności .NET są przypięte w csproj/packages.lock.json; QA Python w [requirements-qa.txt](../scripts/requirements-qa.txt). Pierwszy restore/install wymaga dostępu do repozytoriów pakietów; testy B-02C łączą się wyłącznie z własnym lokalnym Host; nie łączą się z Siemens lub obcymi endpointami.
 
@@ -116,6 +116,6 @@ git diff --check
 
 Audyt dokumentacji pozostaje oddzielny od walidacji OpenAPI i artefaktów B-01B. Wszystkie dane testowe są syntetyczne. Host udostępnia Storage/ledger B-02A, wykonanie Fake B-02B i HTTP/CLI B-02C. Brak testów live, IO synchronizacji i adapterów Siemens. Harness B-02D pozostaje syntetyczny i nie kwalifikuje capabilities Siemens lub produkcyjnej stabilności. Wyniki: OFFLINE; ENGINEERING i RUNTIME NOT_RUN. Następne pakiety wymagają osobnego zlecenia zgodnie z [backlogiem](../docs/08_IMPLEMENTATION_PLAN.md).
 
-## X-01 — oddzielny Engineering lane
+## X-01 / B-03A — oddzielny Engineering lane
 
-Standardowe `validate_offline.py` i TiaBridge.slnx nie ładują Siemens. Dodano 25 testów V19OfflineTests: exact configuration binding, wersjonowanie/no downgrade, native read-only dispatch, rzeczywisty net48 proces IPC bez vendor, negatywne observations oraz trwały wynik z coverage artifact po ponownym otwarciu SQLite. Dziewięć nowych przykładów IPC 1.1 jest sprawdzanych w jednym dodatkowym unittest Python. Testy live i osobna kompilacja workera wymagają [jawnej procedury Engineering](engineering/README.md); ich wyniki są w [raporcie X-01](../docs/X01_TIA_V19_QUALIFICATION.md). Nie uruchamiają się w discovery .NET/Python offline. Historyczny NF-03 exFAT FAIL i NF-11 NOT_RUN nie są zastępowane nową kwalifikacją odczytu na NTFS.
+Standardowe `validate_offline.py` i TiaBridge.slnx nie ładują Siemens. `V19OfflineTests` sprawdzają exact configuration binding, wersjonowanie/no downgrade, read-only dispatch, rzeczywisty net48 proces IPC bez vendor, negatywne observations oraz trwały wynik i artefakt. B-03A dodaje syntetyczne testy hierarchii, Unicode/duplikatów nazw, HMI Unified/Classic, limitów, UNKNOWN i braku fikcyjnych ObjectId. Dziewięć historycznych przykładów IPC 1.1 jest sprawdzanych przez Python. Testy live i osobna kompilacja workera wymagają [jawnej procedury Engineering](engineering/README.md); ich wyniki są w [raporcie X-01](../docs/X01_TIA_V19_QUALIFICATION.md) oraz [raporcie B-03A](../docs/B03A_DISCOVERY_QUALIFICATION.md). Nowe testy Engineering nie uruchamiają się w discovery offline. Historyczny NF-03 exFAT FAIL i NF-11 NOT_RUN nie są zastępowane nową kwalifikacją odczytu na NTFS.

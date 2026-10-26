@@ -1,6 +1,6 @@
-# Siemens V19 — eksperymentalny worker read-only X-01
+# Siemens V19 — worker read-only X-01 / B-03A
 
-Worker jest osobnym procesem .NET Framework 4.8/x64. Host i Core nie referencjonują Siemens. Stan kwalifikacji, wyniki obu instancji i ograniczenia zawiera [raport X-01](../../docs/X01_TIA_V19_QUALIFICATION.md). Zbudowany plik EXE i działająca enumeracja nie potwierdzają jeszcze Attach, Dispose lub gotowości B-03A.
+Worker jest osobnym procesem .NET Framework 4.8/x64. Host i Core nie referencjonują Siemens. X-01 zakwalifikował ograniczony zestaw Attach/read/Dispose; B-03A dodaje offline implementację typed DiscoveryV1 i walidację hierarchii. Nowe pola modelu nie rozszerzają historycznej kwalifikacji Engineering. Aktualny status i ograniczenia zawiera [raport B-03A](../../docs/B03A_DISCOVERY_QUALIFICATION.md).
 
 ## Budowanie i wymagania
 
@@ -53,4 +53,10 @@ Testy i odrębna zgoda Engineering: [instrukcja X-01](../../tests/engineering/RE
 
 Registry Core i jego default deny pozostają niezależne. Zaufany profil X-01 nie jest grantem mutacji lub potwierdzeniem kwalifikacji każdej metody Siemens. [Raport](../../docs/X01_TIA_V19_QUALIFICATION.md) ogranicza zakres uzyskanych dowodów; pełne adapter capabilities należą do następnych osobno zleconych etapów.
 
-X-01 kwalifikuje wyłącznie `inventory_scope=all_supported` i `fresh=true` (również domyślne). Filtrowanie plc/hmi i jawny cache fresh=false pozostają UNSUPPORTED bez dispatch; nie wolno po cichu zamieniać ich na inny zakres odczytu. Mieszany rodzic Device ma rodzinę UNKNOWN, a rzeczywiste typy PLC/HMI zachowuje bounded inventory.
+DiscoveryV1 ma stały profil: do 64 urządzeń, 256 węzłów łącznie z Device, maksymalna głębokość 8 DeviceItem. Request nadal dopuszcza wyłącznie `inventory_scope=all_supported` i `fresh=true` (również domyślne); klient nie wybiera limitów ani dodatkowych zakresów. Relacje parent/child i ordinal są ważne tylko w jednym artefakcie obserwacji. Oryginalne nazwy Siemens są zachowane; nie ma stabilnych publicznych ID w potwierdzonym zakresie, więc nie powstają trwałe ObjectId. Brak `SoftwareContainer.Software` raportuje UNKNOWN, nie pustą listę. Artefakt zawiera SHA-256 zbudowanego workera powiązany z Hello handshake.
+
+Publiczne obserwowane typy rozróżniają `PlcSoftware`, `HmiUnified.HmiSoftware` i `Hmi.HmiSoftware`; inne albo mieszane rodziny pozostają UNKNOWN. Odczyt `HmiSoftware` klasyfikuje rodzinę, lecz nie kwalifikuje Unified/Classic screen API, eksportu ani pełnej struktury HMI. Coverage jest per wymiar i pozostaje PARTIAL/UNSUPPORTED dla API, identity, content i dependencies. CONTENT eksportu nie należy do B-03A.
+
+## Obsługiwane gettery w profilu DiscoveryV1
+
+Odczyt ogranicza się do `TiaPortal.GetProcesses`, `TiaPortalProcess.Attach`, `TiaPortal.Projects`, `Project.Path`, `Project.Name`, `Project.IsModified`, `Project.Devices`, `Device.Name`, `Device.DeviceItems`, `DeviceItem.Name`, `DeviceItem.DeviceItems`, `DeviceItem.GetService<SoftwareContainer>()`, `SoftwareContainer.Software` oraz nazwy dokładnego runtime typu przez `GetType().FullName`. Nie ma enumeracji wszystkich właściwości/reflection getterów. `GetService` zwracające null daje `SoftwareState=UNKNOWN`. PID/start/executable/SID są weryfikowane osobno przez proces Windows. Dispose zwalnia wyłącznie uchwyt sesji Bridge.

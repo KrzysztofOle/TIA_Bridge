@@ -1,5 +1,17 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-26 — B-03A Discovery/Inventory, implementacja offline
+
+**Wejście:** `X:\Projects\TIA_Bridge`, HEAD=`ea7a616d554805bf38860e4b8261507b4d5f046c`, `origin/main` zgodny, worktree clean. `git fsck --full --no-reflogs` wykazał jeden dangling blob bez referencji; nie zmieniano historii ani obiektów Git. X-01 bazowy status zachowano.
+
+**Zakres:** rozbudowano istniejące IPC DTO/worker/projection bez drugiego Attach, sesji, schedulera ani IPC. DiscoveryV1 dodaje Device jako root, jawne parent/device observation ordinals, oryginalne nazwy, exact PLC/HMI Unified/HMI Classic classification, UNKNOWN dla braku Software, limity 64 urządzeń/256 węzłów/głębokości 8, walidację relacji i typed Core snapshot z coverage. Ordinals są lokalne dla jednego artefaktu, nie stanowią ID. Brak publicznych stabilnych ID pozostawia ObjectId niezdefiniowany. Nie zmieniano HTTP v1, ProjectInspectResult, schema API, mutacji ani X-01 historycznych fixtures/raportu.
+
+**Ocena instrukcji/ADR/kontraktów:** sekcja Zakres i stan `AGENTS.md` niezgodnie twierdziła, że Host/Worker jeszcze nie istnieją; skorygowano do bieżącego X-01/B-03A. `Instrukcja_ChatGPT.md` przejrzano sekcja po sekcji i pozostawiono bez zmian: role, autoryzacja i oddzielenie Engineering/Runtime pozostają zgodne. ADR 0001/0002 bez zmian; architektura Core/Worker, exact binding, serializacja i durable engine zachowane. ADR 0003 bez zmian; HMI ograniczono do klasyfikacji. Kontrakty HTTP i IPC 1.1 field-set bez zmian; metadane Discovery kodowane są w wersjonowanym istniejącym `Locator`, a nie w dodatkowych polach IPC. Otwarte pozostaje podłączenie `CapabilityRegistry`: jego obecny klucz zakłada znaną DeviceFamily, podczas gdy project-level Discovery musi obsłużyć UNKNOWN przed rozpoznaniem rodziny. Raport B-03A opisuje rekomendację i nie ukrywa braku kwalifikowanego wpisu Siemens.
+
+**Walidacja:** final Release build `TiaBridge.slnx` oraz `TiaBridge.Engineering.slnx` PASS (0 warnings/errors), `V19OfflineTests` 44/44 PASS, Python contracts 31/31 w isolated QA environment, `audit_quality.py`, format verify oraz `git diff --check` PASS. Pełny .NET: Core 538/538 PASS; Host 253/254, jeden test `Explicit_wait_is_bounded_and_cli_exit_does_not_cancel_the_operation` otrzymał ACCEPTED zamiast RUNNING. Natychmiastowe ponowienie tego testu przeszło 1/1; pierwsze niepowodzenie pozostaje w raporcie jako niestabilność, cała regresja nie jest PASS. Poprzedni full offline runner zaliczył Host 251/251, Core 538/538, Python 31/31 i audyt/generatory/format, lecz zakończył `FAIL` z powodu Windows `charmap` w końcowym raporcie. Engineering dla nowych getterów `BLOCKED/NOT_RUN`; nie potwierdzono nowych procesów/projektów i nie rozszerzano autoryzacji X-01. Runtime `NOT_RUN`. Kod próbkuje uchwyty, Private Bytes i Working Set workera przed i po operacji, ale dla nowego builda nie wykonano odczytu Engineering ani testu stabilizacji; `WORKER HANDLE RISK: UNKNOWN`.
+
+Szczegóły, macierz X-01 → B-03A, listę getterów i ograniczenia zawiera [raport kwalifikacji B-03A](docs/B03A_DISCOVERY_QUALIFICATION.md).
+
 ## 2026-10-26 — końcowa kwalifikacja X-01 na X:/NTFS
 
 **Wejście:** aktywny checkout `X:\Projects\TIA_Bridge`; przed zmianą czysty `main`, `HEAD=origin/main=e6b659708c6141ad89be4ea109a64a8e76109a3d`; implementacja X-01 `9e8b7bfadb1f4e7b0fc3a793d01cbb82f54e5c07`. `Get-Volume` potwierdził X: jako lokalny Fixed/NTFS. State oraz Workspace w pomiarach również wskazały NTFS. Nie otwierano TIA ani projektów.

@@ -1,6 +1,6 @@
-# X-01 — jawnie uruchamiane testy Engineering V19
+# X-01 / B-03A — jawnie uruchamiane testy Engineering V19
 
-Ten katalog nie należy do standardowego discovery offline. Testy wymagają osobnego zadania/autoryzacji, legalnej instalacji V19 i jednoznacznych otwartych projektów testowych. Nie uruchamiają TIA, nie otwierają innego projektu, nie wykonują Save/Import/Compile/Download lub Runtime.
+Ten katalog nie należy do standardowego discovery offline. Testy Engineering wymagają osobnego zakresu i autoryzacji dla dokładnych getterów, świeżej identyfikacji procesów/projektów oraz instalacji V19. Zgoda X-01 nie obejmuje automatycznie nowych odczytów B-03A. Testy X-01 nie uruchamiają TIA, nie otwierają innego projektu ani nie wykonują Save/Import/Compile/Download lub Runtime.
 
 ## Build i kontrolowany przebieg
 
@@ -25,6 +25,8 @@ Nie usuwaj dowodów po błędzie. Sprzątaj wyłącznie własne potwierdzone pro
 [Raport rzeczywistej kwalifikacji](../../docs/X01_TIA_V19_QUALIFICATION.md) podaje, które scenariusze faktycznie wykonano. Samo istnienie tego harnessu nie zalicza 20 cykli, MTA/STA, resource release, parent-loss, restartu lub obu projektów. [Regresje offline](../README.md) używają Fake oraz osobnego net48 IPC probe bez vendor DLL; nie zastępują Engineering.
 
 ## Rozszerzone scenariusze
+
+Przyszły, osobno autoryzowany przebieg B-03A musi potwierdzić dokładny zestaw getterów z [raportu B-03A](../../docs/B03A_DISCOVERY_QUALIFICATION.md), exact project binding, `IsModified` przed/po, powtarzalność hierarchii i brak zmian metadanych plików projektu. Nowa obserwacja zawiera liczbę handles, Private Bytes i Working Set workera przed Attach i po Dispose oraz osobne czasy enumeracji, Attach, read i Dispose. Te próbki są punktami pomiaru pojedynczej operacji; wymagane powtórzenia nadal służą ocenie trendu. Brak świeżego pomiaru pozostaje NOT_RUN, a trend handles UNKNOWN.
 
 Opcjonalne `--apartment MTA` porównuje model wątkowy (domyślnie STA). `--worker-exe <ścieżka zatwierdzonego EXE na lokalnym NTFS>` pozwala ponownie użyć tej samej tożsamości aplikacji Siemens; harness weryfikuje hash wszystkich nie-PDB zależności względem bieżącego build i odmawia nadpisania niezgodnego zestawu. Nie edytuje whitelisty. Obsługa dialogu dostępu wymaga procedury A/B z AGENTS; w X-01 użytkownik wybrał B i sam obsługiwał jednorazową zgodę.
 

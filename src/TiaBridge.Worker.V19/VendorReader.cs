@@ -67,20 +67,29 @@ internal static class VendorReader
                 audit("Project.Devices.ReadBounded");
                 foreach (var device in project.Devices)
                 {
-                    if (devices.Count >= 64) throw new InvalidOperationException("LIMIT_EXCEEDED");
-                    var softwareTypes = new List<string>();
-                    void Walk(DeviceItem item, string path, int depth)
+                    if (devices.Count >= V19DiscoveryProfile.MaxDevices) throw new InvalidOperationException("LIMIT_EXCEEDED");
+                    if (nodes.Count >= V19DiscoveryProfile.MaxNodes) throw new InvalidOperationException("LIMIT_EXCEEDED");
+                    int deviceIndex = devices.Count;
+                    int rootIndex = nodes.Count;
+                    var softwareTypes = new List<string?>();
+                    nodes.Add(new V19Node(V19NodeLocatorCodec.Encode(new(rootIndex, null, deviceIndex, device.Name,
+                        device.GetType().FullName ?? "UNKNOWN", "NOT_APPLICABLE", "UNKNOWN", "UNAVAILABLE")), "unknown"));
+                    void Walk(DeviceItem item, int parentIndex, int depth)
                     {
-                        if (depth > 8 || nodes.Count >= 256) throw new InvalidOperationException("LIMIT_EXCEEDED");
-                        string locator = path + "/" + item.Name;
+                        if (depth > V19DiscoveryProfile.MaxDepth || nodes.Count >= V19DiscoveryProfile.MaxNodes) throw new InvalidOperationException("LIMIT_EXCEEDED");
                         var software = item.GetService<SoftwareContainer>()?.Software;
-                        string type = software?.GetType().FullName ?? "hardware";
+                        string? type = software?.GetType().FullName;
                         softwareTypes.Add(type);
-                        nodes.Add(new V19Node(locator, type));
-                        foreach (var child in item.DeviceItems) Walk(child, locator, depth + 1);
+                        int index = nodes.Count;
+                        nodes.Add(new V19Node(V19NodeLocatorCodec.Encode(new(index, parentIndex, deviceIndex, item.Name,
+                            item.GetType().FullName ?? "UNKNOWN", software is null ? "UNKNOWN" : "READ",
+                            InventoryFamily.HmiKind(type), "UNAVAILABLE")), type ?? "unknown"));
+                        foreach (var child in item.DeviceItems) Walk(child, index, depth + 1);
                     }
-                    foreach (var item in device.DeviceItems) Walk(item, device.Name, 0);
-                    devices.Add(new V19Device(device.Name, InventoryFamily.Classify(softwareTypes)));
+                    foreach (var item in device.DeviceItems) Walk(item, rootIndex, 0);
+                    string detailedFamily = InventoryFamily.ClassifyDetailed(softwareTypes);
+                    string family = detailedFamily == "PLC" ? "PLC" : detailedFamily.StartsWith("HMI_", StringComparison.Ordinal) ? "HMI" : "UNKNOWN";
+                    devices.Add(new V19Device(device.Name, family));
                 }
                 audit("Project.IdentityAndIsModified.ReadAfter");
                 if (!SamePath(project.Path?.FullName, target.ProjectPath)) throw new InvalidOperationException("IDENTITY_MISMATCH");

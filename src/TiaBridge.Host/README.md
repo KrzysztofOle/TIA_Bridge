@@ -2,6 +2,8 @@
 
 Proces ASP.NET Core .NET 10 z lokalnym API oraz współdzielonymi komponentami Storage/Scheduler. Wykorzystuje istniejące Identity, OperationLifecycle, RequestIdentity, ContractJson i DTO Core. Scheduler i supervisor wykonują jawne scenariusze Fake w osobnym procesie przez IPC; HTTP i osobny CLI udostępniają ten sam silnik; X-01 dodaje osobny eksperymentalny worker V19 read-only, bez ładowania Siemens w Host. Przechowanie żądania nie jest autoryzacją jego wykonania.
 
+B-03A rozszerza projekcję `project.inspect` o immutable Discovery snapshot z ograniczonym grafem Device/DeviceItem i coverage. Szczegóły pozostają w artefakcie; publiczny Inventory nie otrzymuje fikcyjnych ObjectId. Nowa projekcja nie jest świeżą kwalifikacją Engineering. Zobacz [raport B-03A](../../docs/B03A_DISCOVERY_QUALIFICATION.md).
+
 - `Operations/SqliteOperationStore.cs`: IOperationRepository i IOutboxRepository; przyjęcie z durable idempotency, dziennik, CAS rewizji, zachowanie wyników oraz jednokrotne przejęcie outbox. Metody są synchronicznym, ograniczonym interfejsem Storage; handler API korzysta z nich bez oczekiwania na wykonanie workera.
 - `Storage/SQLite/SqliteDatabase.cs`: osobne połączenie per write i opcjonalne bounded readers metadanych B-02C, lokalny writer gate i SQLite BEGIN IMMEDIATE pomiędzy procesami, WAL, synchronous=FULL, foreign_keys=ON, private cache, pooling=false i timeout blokady 5 s. Bounded oczekiwanie SQLite na lock nie jest retry zlecenia ani efektu Siemens. Zasady transakcji i błędów: [Microsoft transactions](https://learn.microsoft.com/en-us/dotnet/standard/data/sqlite/transactions), [database errors](https://learn.microsoft.com/en-us/dotnet/standard/data/sqlite/database-errors).
 - `Storage/StorageLocation.cs`: odmowa niezatwierdzonej lokalizacji, obcego katalogu, repozytorium, UNC/SMB, non-NTFS i reparse points.
@@ -33,3 +35,4 @@ Pełna walidacja: [tests/README.md](../../tests/README.md). OFFLINE jest odrębn
 ## Profil X-01
 
 `v19_worker_exe` i `v19` są zaufaną konfiguracją operatora, nigdy parametrem HTTP. [Instrukcja workera](../TiaBridge.Worker.V19/README.md) opisuje exact binding, lokalny NTFS, assembly resolution i zakres deny. Profil jest rozłączny z Fake i syntetycznymi mutacjami. Native dispatch nie ma szablonu sukcesu; dopiero rzeczywista odpowiedź po Dispose jest walidowana względem bindingu i zamieniana na istniejący ProjectInspectResult. Raw observation i częściowe Coverage są dwoma immutable artefaktami z kontrolą SHA-256. Brak pełnego modelu obiektów jest jawny, a coverage_refs zawiera wyłącznie identyfikatory zweryfikowanych artefaktów. Native read nie podlega automatycznemu retry. [Kwalifikacja](../../docs/X01_TIA_V19_QUALIFICATION.md) nie rozszerza tokenu API o mutacje.
+#

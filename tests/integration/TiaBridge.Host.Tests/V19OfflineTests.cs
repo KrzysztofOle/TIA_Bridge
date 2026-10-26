@@ -3,6 +3,10 @@ using System.IO.Pipes;
 using System.Security.Cryptography;
 using System.Text.Json;
 using TiaBridge.Host.Api;
+using TiaBridge.Host.Storage;
+using TiaBridge.Host.Operations;
+using TiaBridge.Core.Operations;
+using TiaBridge.Core.Transport.V1;
 using TiaBridge.Ipc;
 using Xunit;
 
@@ -38,6 +42,27 @@ public class V19OfflineTests
     {
         Assert.Equal(expected, TiaBridge.Worker.V19.InventoryFamily.Classify([first, second]));
         Assert.Equal(expected, TiaBridge.Worker.V19.InventoryFamily.Classify([second, first]));
+    }
+    [Theory]
+    [InlineData("PLC", "Siemens.Engineering.SW.PlcSoftware", "hardware")]
+    [InlineData("HMI_UNIFIED", "Siemens.Engineering.HmiUnified.HmiSoftware", "hardware")]
+    [InlineData("HMI_CLASSIC", "Siemens.Engineering.Hmi.HmiSoftware", "hardware")]
+    [InlineData("UNKNOWN", "Siemens.Engineering.Hmi.HmiSoftware", "Siemens.Engineering.HmiUnified.HmiSoftware")]
+    [InlineData("UNKNOWN", "untrusted.Hmi.HmiSoftware", "hardware")]
+    public void Detailed_hmi_classification_is_exact_and_order_independent(string expected, string first, string second)
+    {
+        Assert.Equal(expected, TiaBridge.Worker.V19.InventoryFamily.ClassifyDetailed([first, second]));
+        Assert.Equal(expected, TiaBridge.Worker.V19.InventoryFamily.ClassifyDetailed([second, first]));
+    }
+    [Fact]
+    public void Discovery_locator_round_trips_unicode_and_parent_context_without_changing_ipc_11_shape()
+    {
+        var locator = new V19NodeLocator(17, 4, 2, "Próba Δ", "Siemens.Engineering.HW.DeviceItem", "UNKNOWN", "UNKNOWN", "UNAVAILABLE");
+        string encoded = V19NodeLocatorCodec.Encode(locator);
+        Assert.True(V19NodeLocatorCodec.TryDecode(encoded, out var decoded));
+        Assert.Equal(locator, decoded);
+        Assert.Equal(["family", "name"], JsonDocument.Parse(JsonSerializer.Serialize(new V19Device("PLC", "PLC"), Protocol.Json)).RootElement.EnumerateObject().Select(p => p.Name).Order().ToArray());
+        Assert.Equal(["locator", "software_type"], JsonDocument.Parse(JsonSerializer.Serialize(new V19Node(encoded, "unknown"), Protocol.Json)).RootElement.EnumerateObject().Select(p => p.Name).Order().ToArray());
     }
     [Fact]
     public void Real_profile_preserves_the_exact_project_file_path_without_a_directory_suffix()
@@ -111,6 +136,7 @@ public class V19OfflineTests
     [InlineData("wrong-process")]
     [InlineData("no-dispose-proof")]
     [InlineData("negative-time")]
+    [InlineData("modified-drift")]
     public void Invalid_native_observation_is_rejected_before_artifact_or_success_commit(string fault)
     {
         using var files = new StoreFixture(); var store = files.Open(); var previous = files.Accept(store, "project.inspect").Operation.Report;
@@ -122,10 +148,82 @@ public class V19OfflineTests
             "wrong-process" => observation with { TiaPid = 999 },
             "no-dispose-proof" => observation with { PortalAliveAfterDispose = false },
             "negative-time" => observation with { DisposeMs = -1 },
+            "modified-drift" => observation with { IsModifiedBefore = false, IsModifiedAfter = true },
             _ => throw new ArgumentException()
         };
-        Assert.Throws<ProtocolException>(() => TiaBridge.Host.Scheduling.V19InspectionProjection.Create(store, previous, target, JsonSerializer.Serialize(observation, Protocol.Json)));
+        Assert.Throws<ProtocolException>(() => Project(store, previous, target, observation));
         Assert.NotEqual(TiaBridge.Core.Operations.OperationState.SUCCEEDED, store.Read(previous.OperationId).Report.State);
+    }
+    [Theory]
+    [InlineData("missing-parent")]
+    [InlineData("cross-device-parent")]
+    [InlineData("duplicate-index")]
+    [InlineData("read-empty-masked")]
+    [InlineData("cycle")]
+    [InlineData("depth-limit")]
+    [InlineData("node-limit")]
+    [InlineData("device-limit")]
+    public void Invalid_discovery_relations_or_unknowns_are_rejected_without_false_success(string fault)
+    {
+        using var files = new StoreFixture(); var store = files.Open(); var previous = files.Accept(store, "project.inspect").Operation.Report;
+        var target = new V19Target("11111111-1111-4111-8111-111111111111", 123, 456, "X:\\synthetic.ap19");
+        var observation = DiscoveryObservation(target);
+        observation = fault switch
+        {
+            "missing-parent" => observation with { Nodes = [observation.Nodes[0], Node(1, 0, 500, "Réacteur", null), observation.Nodes[2]] },
+            "cross-device-parent" => observation with { Nodes = [observation.Nodes[0], Node(1, 0, 2, "Réacteur", null), observation.Nodes[2]] },
+            "duplicate-index" => observation with { Nodes = [observation.Nodes[0], Node(0, 0, 0, "Réacteur", null), observation.Nodes[2]] },
+            "read-empty-masked" => observation with { Nodes = [observation.Nodes[0], Node(1, 0, 0, "Réacteur", "unknown", "READ"), observation.Nodes[2]] },
+            "cycle" => observation with { Nodes = [Node(0, 0, 1, "PLC repeated", null), Node(1, 0, 0, "Réacteur", null), observation.Nodes[2]] },
+            "depth-limit" => observation with { Nodes = Enumerable.Range(0, V19DiscoveryProfile.MaxDepth + 3).Select(i => Node(i, 0, i == 0 ? null : i - 1, "n" + i, null)).ToArray() },
+            "node-limit" => observation with { Nodes = Enumerable.Range(0, V19DiscoveryProfile.MaxNodes + 1).Select(i => Node(i, 0, null, "n" + i, null)).ToArray() },
+            "device-limit" => observation with { Devices = Enumerable.Range(0, V19DiscoveryProfile.MaxDevices + 1).Select(i => new V19Device("d" + i, "UNKNOWN")).ToArray() },
+            _ => throw new ArgumentException()
+        };
+        Assert.Throws<ProtocolException>(() => Project(store, previous, target, observation));
+        Assert.NotEqual(TiaBridge.Core.Operations.OperationState.SUCCEEDED, store.Read(previous.OperationId).Report.State);
+    }
+    [Fact]
+    public void Discovery_artifact_preserves_unicode_names_hierarchy_families_and_partial_identity_coverage()
+    {
+        using var files = new StoreFixture(); var store = files.Open(); var running = StoreFixture.Start(store, files.Accept(store, "project.inspect").Operation, out _);
+        var target = new V19Target("11111111-1111-4111-8111-111111111111", 123, 456, "X:\\synthetic.ap19");
+        var observation = DiscoveryObservation(target);
+        var projection = Project(store, running.Report, target, observation);
+        store.Record(running.Report.OperationId, running.Revision, projection);
+        var final = files.Open().ReadResult(running.Report.OperationId)!;
+        var result = (TiaBridge.Core.Transport.V1.ProjectInspectResult)final.Result!;
+        Assert.Empty(result.Inventory); // No stable vendor IDs: never fabricate ObjectIds.
+        using var artifact = store.Artifacts.OpenVerified(result.CoverageRefs.Single());
+        using var json = JsonDocument.Parse(artifact.Content);
+        var root = json.RootElement;
+        Assert.Equal("v19.discovery.v1", root.GetProperty("profile_id").GetString());
+        Assert.Equal("1.0+" + new string('a', 64), root.GetProperty("worker_build").GetString());
+        Assert.Equal("Réacteur", root.GetProperty("nodes")[1].GetProperty("original_name").GetString());
+        Assert.Equal(0, root.GetProperty("nodes")[1].GetProperty("parent_observation_index").GetInt32());
+        Assert.Equal("UNAVAILABLE", root.GetProperty("nodes")[1].GetProperty("identity_state").GetString());
+        Assert.Equal("UNKNOWN", root.GetProperty("nodes")[1].GetProperty("software_state").GetString());
+        Assert.Equal("HMI_UNIFIED", root.GetProperty("devices")[1].GetProperty("family").GetString());
+        Assert.Contains(root.GetProperty("coverage").GetProperty("dimensions").EnumerateArray(), x => x.GetProperty("state").GetString() == "PARTIAL" && x.GetProperty("dimension").GetString() == "INVENTORY");
+    }
+    [Theory]
+    [InlineData("worker-build")]
+    [InlineData("negative-handles")]
+    [InlineData("negative-private-bytes")]
+    public void Discovery_rejects_unbound_worker_build_and_invalid_resource_samples(string fault)
+    {
+        using var files = new StoreFixture(); var store = files.Open(); var previous = files.Accept(store, "project.inspect").Operation.Report;
+        var target = new V19Target("11111111-1111-4111-8111-111111111111", 123, 456, "X:\\synthetic.ap19");
+        var observation = DiscoveryObservation(target);
+        string build = fault == "worker-build" ? "1.0+unknown" : "1.0+" + new string('a', 64);
+        TiaBridge.Core.Discovery.DiscoveryResourceSample before = fault == "negative-handles" ? new(-1, 1024, 2048) : new(10, 1024, 2048);
+        TiaBridge.Core.Discovery.DiscoveryResourceSample after = fault == "negative-private-bytes" ? new(10, -1, 2048) : new(12, 1536, 2048);
+        Assert.Throws<ProtocolException>(() =>
+        {
+            _ = TiaBridge.Host.Scheduling.V19InspectionProjection.Create(store, previous, target,
+                JsonSerializer.Serialize(observation, Protocol.Json), build, before, after);
+        });
+        Assert.NotEqual(OperationState.SUCCEEDED, store.Read(previous.OperationId).Report.State);
     }
     [Fact]
     public void Native_result_and_all_coverage_references_are_durable_verified_artifacts()
@@ -133,8 +231,8 @@ public class V19OfflineTests
         using var files = new StoreFixture(); var store = files.Open();
         var running = StoreFixture.Start(store, files.Accept(store, "project.inspect").Operation, out _);
         var target = new V19Target("11111111-1111-4111-8111-111111111111", 123, 456, "X:\\synthetic.ap19");
-        var observation = new V19Observation(target.ProjectKey, Guid.NewGuid(), 123, 456, target.ProjectPath, "synthetic", false, false, "synthetic.19", [new("PLC", "PLC")], [], 1, 1, 1, 1, 1, "STA", [], true);
-        var projection = TiaBridge.Host.Scheduling.V19InspectionProjection.Create(store, running.Report, target, JsonSerializer.Serialize(observation, Protocol.Json));
+        var observation = DiscoveryObservation(target);
+        var projection = Project(store, running.Report, target, observation);
         store.Record(running.Report.OperationId, running.Revision, projection);
         var final = files.Open().ReadResult(running.Report.OperationId)!;
         Assert.Equal(TiaBridge.Core.Operations.OperationState.SUCCEEDED, final.State);
@@ -176,4 +274,18 @@ public class V19OfflineTests
             CryptographicOperations.ZeroMemory(secret);
         }
     }
+
+    private static V19Observation DiscoveryObservation(V19Target target)
+    {
+        var devices = new[] { new V19Device("PLC repeated", "PLC"), new V19Device("PLC repeated", "HMI") };
+        var nodes = new[] { Node(0, 0, null, "PLC repeated", "Siemens.Engineering.SW.PlcSoftware"), Node(1, 0, 0, "Réacteur", null), Node(2, 1, null, "PLC repeated", "Siemens.Engineering.HmiUnified.HmiSoftware") };
+        return new V19Observation(target.ProjectKey, Guid.NewGuid(), target.Pid, target.StartTicks, target.ProjectPath,
+            "synthetic", false, false, "synthetic.19", devices, nodes, 1, 2, 3, 4, 7, "STA", [], true);
+    }
+
+    private static V19Node Node(int index, int device, int? parent, string name, string? type, string? state = null) =>
+        new(V19NodeLocatorCodec.Encode(new(index, parent, device, name, "Synthetic.DeviceItem", state ?? (type is null ? "UNKNOWN" : "READ"), "UNKNOWN", "UNAVAILABLE")), type ?? "unknown");
+    private static OperationReport Project(SqliteOperationStore store, OperationReport previous, V19Target target, V19Observation observation) =>
+        TiaBridge.Host.Scheduling.V19InspectionProjection.Create(store, previous, target, JsonSerializer.Serialize(observation, Protocol.Json),
+            "1.0+" + new string('a', 64), new(10, 1024, 2048), new(12, 1536, 2048));
 }

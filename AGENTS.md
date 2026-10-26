@@ -3,7 +3,7 @@
 ## Zakres i stan
 
 - To nowe repozytorium; stary Bridge w `C:\RMA\t05_plc` jest materiałem audytu, nie celem zmian. Nie kopiuj jego kodu, konfiguracji T05 ani danych klienta bez zadania i przeglądu.
-- Stan obecny: dokumentacja, schematy projektowe i kontrola jakości. Żaden adapter ani serwer TIA_Bridge 2 jeszcze nie istnieje. Nie przedstawiaj planowanego modułu jako funkcjonalności.
+- Stan obecny (2026-10-26): zaimplementowano Core, Host/API/CLI, trwały silnik Fake oraz eksperymentalny read-only Worker V19 dla X-01. B-03A rozwija wyłącznie bounded Discovery/Inventory; nie ma eksportu obiektów, synchronizacji ani adaptera mutacji. Nie przedstawiaj planowanego modułu jako funkcjonalności.
 - Przed implementacją czytaj [architekturę](docs/03_ARCHITECTURE.md), [synchronizację](docs/04_SYNCHRONIZATION.md), [interfejs](docs/05_CODEX_INTERFACE.md), [integrację](docs/06_TIA_INTEGRATION.md) i [backlog](docs/08_IMPLEMENTATION_PLAN.md). Realizuj jeden ograniczony pakiet z kryterium akceptacji.
 
 ## Role instrukcji i hierarchia dokumentów

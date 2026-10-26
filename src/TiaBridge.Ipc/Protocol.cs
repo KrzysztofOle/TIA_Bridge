@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -24,12 +25,49 @@ public sealed record V19Target(string ProjectKey, int Pid, long StartTicks, stri
 public sealed record V19Settings(V19Target[] Targets, string ProjectRoot, string Apartment = "STA");
 public sealed record V19Bootstrap(Bootstrap Transport, V19Settings Settings);
 public sealed record InspectDispatch(ArtifactPointer Request, int Attempt, string InputHash, string? PlanHash);
+// Keep the IPC 1.1 observation field set stable. DiscoveryV1 metadata is encoded
+// inside the existing opaque Locator string; old 1.1 readers still see a string.
 public sealed record V19Device(string Name, string Family);
 public sealed record V19Node(string Locator, string SoftwareType);
+public sealed record V19NodeLocator(int ObservationIndex, int? ParentObservationIndex, int DeviceObservationIndex,
+    string Name, string ObjectKind, string SoftwareState, string HmiKind, string IdentityState,
+    string? PublicId = null, string? PublicIdValidityScope = null);
+public static class V19NodeLocatorCodec
+{
+    private const string Prefix = "v19discovery1:";
+    public static string Encode(V19NodeLocator value)
+    {
+        byte[] json = JsonSerializer.SerializeToUtf8Bytes(value, Protocol.Json);
+        string encoded = Prefix + Convert.ToBase64String(json).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        if (encoded.Length > 4096) throw new InvalidOperationException("LIMIT_EXCEEDED");
+        return encoded;
+    }
+    public static bool TryDecode(string value, out V19NodeLocator locator)
+    {
+        locator = null!;
+        if (value is null || !value.StartsWith(Prefix, StringComparison.Ordinal) || value.Length > 4096) return false;
+        try
+        {
+            string base64 = value.Substring(Prefix.Length).Replace('-', '+').Replace('_', '/');
+            base64 += new string('=', (4 - base64.Length % 4) % 4);
+            byte[] json = Convert.FromBase64String(base64); Protocol.CheckJson(json);
+            locator = JsonSerializer.Deserialize<V19NodeLocator>(json, Protocol.Json)!;
+            return locator is not null;
+        }
+        catch (Exception e) when (e is FormatException or JsonException or ArgumentException or ProtocolException) { return false; }
+    }
+}
 public sealed record V19Observation(string ProjectKey, Guid SessionEpoch, int TiaPid, long TiaStartTicks,
     string ProjectPath, string ProjectName, bool IsModifiedBefore, bool IsModifiedAfter, string ApiBuild,
     V19Device[] Devices, V19Node[] Nodes, double EnumerationMs, double AttachMs, double ReadMs, double DisposeMs,
     int OwnerThreadId, string Apartment, int[] CallbackThreads, bool PortalAliveAfterDispose);
+public static class V19DiscoveryProfile
+{
+    public const string Id = "v19.discovery.v1";
+    public const int MaxDevices = 64;
+    public const int MaxNodes = 256;
+    public const int MaxDepth = 8;
+}
 public sealed record WireMessage(string ProtocolVersion, Guid WorkerEpoch, long Sequence, MessageKind Kind, Guid? OperationId, long Fence, JsonElement Body);
 public sealed class ProtocolException() : IOException("Invalid authenticated IPC message.");
 

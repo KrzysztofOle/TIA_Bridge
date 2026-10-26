@@ -71,7 +71,7 @@ internal sealed class ProcessWorkerSupervisor(string workerDll, string artifactR
             var hello = await framed.ReadAsync(deadline.Token); var identity = Protocol.Read<Hello>(hello.Body);
             if (hello.Kind != MessageKind.Hello || hello.OperationId is not null || hello.Fence != 0 || identity.Pid != process.Id || identity.StartTicks != ticks || identity.Nonce != nonce || identity.WorkerId != (native ? "tia-bridge.v19.read-only" : "tia-bridge.fake") || identity.Build != expectedBuild) throw new ProtocolException();
             await framed.SendAsync(MessageKind.Ready, null, 0, Protocol.Body(new { accepted = true }), deadline.Token);
-            return new WorkerConnection(process, framed, epoch, ticks, identity.WorkerId, clock, [stdout, stderr], !native);
+            return new WorkerConnection(process, framed, epoch, ticks, identity.WorkerId, identity.Build, clock, [stdout, stderr], !native);
         }
         catch
         {
@@ -105,15 +105,21 @@ internal sealed class WorkerConnection : IWorkerConnection
     public int Pid { get; }
     public long StartTicks { get; }
     public string WorkerId { get; }
+    internal string Build { get; }
     public bool HasExited => process.HasExited;
     public bool Connected => Volatile.Read(ref connected) == 1;
     public DateTimeOffset LastHeartbeat => new(Interlocked.Read(ref heartbeatTicks), TimeSpan.Zero);
     public DateTimeOffset? LastProgress => Interlocked.Read(ref progressTicks) is var ticks && ticks > 0 ? new DateTimeOffset(ticks, TimeSpan.Zero) : null;
-    internal WorkerConnection(Process process, FramedConnection framed, Guid epoch, long ticks, string workerId, TimeProvider clock, Task[] outputDrains, bool synthetic)
+    internal WorkerConnection(Process process, FramedConnection framed, Guid epoch, long ticks, string workerId, string build, TimeProvider clock, Task[] outputDrains, bool synthetic)
     {
-        this.process = process; this.framed = framed; this.clock = clock; this.outputDrains = outputDrains; this.synthetic = synthetic; Epoch = epoch; Pid = process.Id; StartTicks = ticks; WorkerId = workerId;
+        this.process = process; this.framed = framed; this.clock = clock; this.outputDrains = outputDrains; this.synthetic = synthetic; Epoch = epoch; Pid = process.Id; StartTicks = ticks; WorkerId = workerId; Build = build;
         heartbeatTicks = clock.GetUtcNow().UtcTicks;
         reader = ReadLoop();
+    }
+    internal TiaBridge.Core.Discovery.DiscoveryResourceSample SampleResources()
+    {
+        process.Refresh();
+        return new TiaBridge.Core.Discovery.DiscoveryResourceSample(process.HandleCount, process.PrivateMemorySize64, process.WorkingSet64);
     }
     private async Task ReadLoop()
     {

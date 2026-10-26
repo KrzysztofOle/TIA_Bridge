@@ -68,7 +68,7 @@ Zamknięcie prac B-02D wymaga wykonania i jawnego raportu RT/NF, bez ukrywania F
 
 | ID | Zadanie / moduły | Kryterium commita |
 |---|---|---|
-| B-03A / MVP | `Worker.V19/Bootstrap,Session,Plc`, exact DLL loader, handshake, inspect | zbudowany net48/x64, nowy EXE ma właściwe prawa; PID/start/project/device i1 thread owner; odłączenie nie zamyka TIA |
+| B-03A / MVP | `Worker.V19` bounded Discovery/Inventory, Core DTO, Host projection, exact DLL loader, handshake | profile Device/DeviceItem ograniczone limitami; PID/start/project binding, IsModified, jawne rodziny/relacje/coverage; brak stabilnego ID pozostaje jawny; Engineering kwalifikacja nowych artefaktów osobno |
 | B-03B / MVP | `Core/Workspace`, `Worker.V19/Plc/Export`, manifest+staging | FC SCL native XML/generated source z hierarchy, hashami, Unsupported rows; brak overwrite W |
 | B-03C / REQUIRED | matrix DB/UDT/FB/OB/IDB/tag tables/groups | golden export fixtures i coverage per kind; brak reklamy importu na podstawie export |
 | B-03D / REQUIRED | `Worker.V19/HmiUnified,HmiClassic`, typed model | scripts/tags i read-only screen/event mapping z error coverage, native YAML zachowany; rodziny rozdzielone |
@@ -192,4 +192,4 @@ Każdy pakiet kończy się named-path diff, właściwymi testami i osobnym commi
 
 ## Wykonanie X-01 read-only
 
-Eksperymentalny [worker V19](../src/TiaBridge.Worker.V19/README.md) korzysta z istniejącego trwałego silnika i osobnego net48/x64. [Raport X-01](X01_TIA_V19_QUALIFICATION.md) jest źródłem faktycznych wyników obu instancji, a [harness Engineering](../tests/engineering/README.md) jest opt-in. Kod konieczny do eksperymentu obejmuje bootstrap/exact binding/Attach/bounded metadata/Dispose; nie oznacza realizacji całego B-03A ani B-03B. X-01 nie rozszerza D-11 na produkcję/exFAT, nie realizuje NF-11 lub funkcji mutacji. Przejście do B-03A wymaga osobnego zadania; nic nie uruchamia się automatycznie.
+Eksperymentalny [worker V19](../src/TiaBridge.Worker.V19/README.md) korzysta z istniejącego trwałego silnika i osobnego net48/x64. [Raport X-01](X01_TIA_V19_QUALIFICATION.md) pozostaje źródłem wyłącznie historycznych wyników dwóch instancji. [Raport B-03A](B03A_DISCOVERY_QUALIFICATION.md) opisuje implementację offline oraz brak nowej Engineering kwalifikacji; [harness Engineering](../tests/engineering/README.md) jest opt-in i nie uruchamia się automatycznie. B-03A nie rozszerza D-11 na produkcję/exFAT, nie realizuje NF-11, eksportu lub mutacji.

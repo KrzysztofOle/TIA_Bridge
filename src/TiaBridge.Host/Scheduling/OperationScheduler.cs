@@ -188,6 +188,8 @@ public sealed class OperationScheduler : IAsyncDisposable
         if (history.Count > 1000) throw new InvalidOperationException("Bounded scheduler session exhausted.");
         if (call.Spec.V19Target is not null)
         {
+            if (worker is not WorkerConnection native) throw new ProtocolException();
+            call.WorkerResourcesBefore = native.SampleResources();
             await Send(MessageKind.Dispatch, b.OperationId.Value, b.Fence, Protocol.Body(new InspectDispatch(call.Request, b.Attempt, b.InputHash, null)), ct); return;
         }
         var command = new Ipc.Dispatch(call.Request, new(call.Spec.SuccessReport!.ArtifactId, call.Spec.SuccessReport.Sha256), call.Spec.Scenario, call.Spec.DelayMs, b.Attempt, b.InputHash, b.PlanHash, call.Spec.FailureCode.ToString());
@@ -252,7 +254,9 @@ public sealed class OperationScheduler : IAsyncDisposable
         if (receipt.Disposition == "Succeeded" && receipt.Report is { } reportJson && Encoding.UTF8.GetByteCount(reportJson) <= Protocol.MaxReceiptBytes)
         {
             var template = current.Spec.V19Target is { } target
-                ? V19InspectionProjection.Create(store, previousReport, target, reportJson)
+                ? V19InspectionProjection.Create(store, previousReport, target, reportJson,
+                    worker is WorkerConnection native ? native.Build : throw new ProtocolException(),
+                    current.WorkerResourcesBefore ?? throw new ProtocolException(), native.SampleResources())
                 : ContractJson.ReadReport(Encoding.UTF8.GetBytes(reportJson));
             if (template.Method != previousReport.Method || template.State != OperationState.SUCCEEDED) throw new ProtocolException();
             store.Complete(Owner, binding, previousReport with { State = OperationState.SUCCEEDED, Outcome = OperationOutcome.CONFIRMED, Phase = "COMPLETED", Result = template.Result, ArtifactRefs = template.ArtifactRefs, SessionEpoch = template.SessionEpoch ?? previousReport.SessionEpoch, CompletedAt = clock.GetUtcNow(), PollAfterMs = 0 });
@@ -289,5 +293,6 @@ public sealed class OperationScheduler : IAsyncDisposable
         public bool TimedOut { get; set; }
         public bool CancelSent { get; set; }
         public DateTimeOffset? RetryAt { get; set; }
+        public TiaBridge.Core.Discovery.DiscoveryResourceSample? WorkerResourcesBefore { get; set; }
     }
 }

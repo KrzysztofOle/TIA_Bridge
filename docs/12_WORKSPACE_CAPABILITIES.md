@@ -1,6 +1,6 @@
 # 12 — Workspace i Capabilities: B-01B
 
-Stan 2026-10-25: zaimplementowane i testowane offline modele Core .NET 10, walidacja oraz deterministyczne algorytmy. Nie ma adaptera, eksportera, synchronizacji, normalizatora Siemens ani autoryzacji sesji. Dokument rozwija format opisany w [04](04_SYNCHRONIZATION.md), nie zmienia definicji SYNCED ani sagi Apply. [B-01A](../src/TiaBridge.Core/README.md) pozostaje źródłem ProjectKey, ObjectId, ObjectIdentity i OperationMethod.
+Stan 2026-10-26: zaimplementowane offline modele Core .NET 10, walidacja i deterministyczne algorytmy; X-01/B-03A dodały osobny Worker V19 i typed read-only Discovery. Nie ma eksportera, synchronizacji, normalizatora Siemens ani autoryzacji sesji. B-03A snapshot zachowuje oryginalne nazwy i relacje obserwacji, ale brak publicznego trwałego ID oznacza brak `ObjectId` oraz PARTIAL INVENTORY. Dokument rozwija format opisany w [04](04_SYNCHRONIZATION.md), nie zmienia definicji SYNCED ani sagi Apply. [Modele Core](../src/TiaBridge.Core/README.md) pozostają niezależne od Siemens.
 
 ## Modele i granica walidacji
 
