@@ -1,5 +1,19 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-26 — ponowna kwalifikacja D-11, zatrzymanie na preflight
+
+**Wejście:** po fetch `HEAD=main=origin/main=de9f20ffd4057e8afe28a25b4d4067d086a852a8`, worktree clean. Preflight `bab2cef275194d4583894a569ead636c`, UTC 14:07:18–14:09:19; nie nadano qualification run ID i nie uruchomiono runnera.
+
+**Wynik:** D-11 CURRENT LIMITED GATE **BLOCKED**. Punkty 6/9 bieżącego zadania wymagają kompletnych, zachowanych próbek NF-02/NF-03; aktualne ApiPerformanceTests i ResiliencePerformanceTests serializują tylko N/percentyle/max, nie tablice czasów. Zastosowano jawne polecenie z punktu 7, aby wstrzymać kwalifikację przy ograniczeniu harnessu, oraz punkt 12 zakazujący poprawki kodu i ponowienia bez odrębnej decyzji. Nie uruchamiano testu, który z góry nie wytworzy wymaganych dowodów. Nie zmieniono progów, liczby próbek, flush/replace ani reguł D-11.
+
+**Środowisko:** X:/C: lokalne Fixed/NTFS, dostępna przestrzeń i runtime .NET/Python potwierdzone; 16 sprawdzonych katalogów/ancestorów bez reparse. Brak locków/operacji merge/rebase w repo. Widocznych 7 żywych git.exe bez dostępnej klasyfikacji polecenia; CPU/I/O delta 0 przez 1 s nie wystarcza do potwierdzenia braku aktywnych operacji Git. ENVIRONMENT BLOCKED dla tego warunku, bez twierdzenia, że procesy zmieniają repo. Nie zabijano ich i nie zmieniano Windows/AV. Wykonano tylko odczyty środowiska i analizę kodu, zachowano hashe zastanych binariów/źródeł oraz historii.
+
+**Dowody i statusy:** [nowy raport](tests/resilience/D11_REQUALIFICATION_2026-10-26.md) zawiera audyt runnera z odwołaniami do kodu, macierz RT/NF NOT_RUN, konfigurację, dokładne blockers, hashe i propozycję osobnego zadania harnessu. Wszystkie wymagane RT/NF, idle i 1000 operacji NOT_RUN; functional i full offline qualification NOT_RUN w tej próbie, ostatni pełny FAIL zachowany. NF-11 NOT_RUN nie jest powodem blokady ograniczonej D-11. Historyczne X-01 93/93 PASS, D-11 PASS, NF-03 exFAT FAIL, NF-08 NTFS FAIL, B-03A COMPLETE_OFFLINE/Engineering BLOCKED i Worker Handle Risk UNKNOWN bez zmian. B-03A Engineering readiness BLOCKED, B-03B NOT_READY. Lokalny manifest i środowisko wyłącznie w ignorowanym `.tia-bridge/d11-requalification/bab2cef275194d4583894a569ead636c/`.
+
+**Ocena obu instrukcji i specyfikacji:** AGENTS: zakres/stan, role/hierarchia, granice, autoryzacja/testy/D-11, dyscyplina, Git i dane nieufne; Instrukcja_ChatGPT: role/stan, hierarchia/źródła, architektura, standard zadania, kontrola wyników, bezpieczeństwo/recovery, spójność, Git/dokumentacja i styl. Pozostają bez zmian: raport dokumentuje zatrzymanie wymagane bieżącym zadaniem i brak dowodów, nie ustanawia nowego normatywnego progu D-11. ADR 0001–0003, wymagania 02, architektura/sync/interface/integracja 03–06, strategia 07, backlog 08, D-11/ryzyka 09, resilience 16 i kontrakty API/IPC/capabilities pozostają bez zmian. Brak implementacji B-03A/provider, Engineering, Runtime, TIA i poprawki harnessu.
+
+**Kontrola jakości:** audyt PASS (51 Markdown, 443 lokalne odnośniki, zero błędów); dokumentacyjne testy D-11 PASS 6/6; hashe 144 źródeł/kontraktów/skryptów, 12 historycznych raportów, 3 zastanych working reports i 6 DLL bez zmian; `git diff --check` PASS. Kontrole dokumentacji nie są functional execution kwalifikacji. Dostawa dokumentacyjna: tylko nowy raport i ten wpis, selektywny staging, kontrola diffu i normalny push bez force.
+
 ## 2026-10-26 — diagnostyka NF-03/NF-02 na X:/NTFS
 
 **Wejście i zakres:** Zadanie A zakończone i zapisane w commicie `ea3d4ff061340d5569290bbe247cbfc050b64a7b`, raporcie B-03A i poprzednim wpisie tego rejestru. Po fetch `HEAD=origin/main`, worktree clean. Wykonano tylko offline filesystem/Host/Fake, bez Siemens Attach, projektów, Engineering i Runtime. Nie zmieniono kodu funkcjonalnego B-03A, testów, progów, reportera ani ustawień Windows/AV/dysku.
