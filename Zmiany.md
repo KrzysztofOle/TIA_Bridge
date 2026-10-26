@@ -1,5 +1,12 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-26 — redakcja Instrukcja_ChatGPT.md (instrukcja przenośna)
+
+- Skrócono `Instrukcja_ChatGPT.md` z 17 466 do 7 554 znaków (redukcja 56,75%; limit 8 000 PASS), usuwając ścieżki i historyczne szczegóły lokalnej instalacji. Zachowano rolę ChatGPT i CODEX, wymagania ADR 0001–0002, D-11, autoryzację, SYNCED, recovery i rozdział poziomów testów.
+- Ocena spójności obu instrukcji: `AGENTS.md` pozostawiono bez zmian. Dostosowano tylko instrukcję ChatGPT, z odesłaniami do aktualnych specyfikacji. W źródłowym main nie było ADR 0003 ani D-12; nie wprowadzono nowych decyzji. Bez zmian kodu, kontraktów, testów, X-01 i rzeczywistych projektów TIA.
+- Pomiar dokładny Unicode, łącznie z białymi znakami; odnośniki sprawdzono z drzewem repozytorium. Testy lokalne/Siemens: NOT_RUN (praca wyłącznie przez GitHub).
+
+
 ## 2026-10-26 — D-11: ograniczona bramka X-01 read-only i pełna kwalifikacja
 
 Stan wejściowy: czysty main/origin main `51d859f5b361b614672ccf9abb59a05606c461c5`. Użytkownik zatwierdził propozycję z dokumentu 16: ograniczony X-01 read-only i pełna kwalifikacja stabilności mają oddzielne kryteria. Zadanie wyłącznie dokumentacyjne; bez X-01, uruchamiania TIA/Openness, procesów Host/Fake, zmian kodu produkcyjnego, dysków, przenoszenia baz, cleanup B-02C lub dostępu do projektów na X:.
