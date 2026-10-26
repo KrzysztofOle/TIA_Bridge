@@ -1,5 +1,12 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-26 — D-12 / ADR 0003: kanoniczny model HMI i granica artefaktów Siemens
+
+Zatwierdzono dokumentacyjnie sześć reguł HMI: niezależny kanoniczny model, nienaruszalne NATIVE w ExchangeUnit, zakaz zastępowania nieznanych pól z częściowego odczytu, precyzyjne capabilities, kwalifikacja ryzykownego importu i rozwój na podstawie dowodów. Zmieniono wyłącznie ADR 0003, 03/04/06/08/09, README i ten rejestr. D-11, PLC MVP, X-01, istniejące kontrakty, kod, testy i historyczne dowody bez zmian.
+
+Ocena instrukcji sekcja po sekcji: AGENTS.md (zakres/role/granice/autoryzacja/testy/dyscyplina/kontrakty) i Instrukcja_ChatGPT.md (stan/role/hierarchia/workflow/zadania/bezpieczeństwo/ocena wyników) nie wymagają modyfikacji: nowy ADR konkretyzuje już wymagane deny-by-default, coverage, izolację vendor i zakaz nieuprawnionej rekonstrukcji, bez nowych uprawnień i bez zmiany ich semantyki. ADR 0001/0002, dokument 12 i contracts/v1 zachowane. Ryzyka częściowego HMI i częściowego importu są już ujęte w R-04/R-02, bez dublowania. Nie wykonywano testów TIA, Engineering/Runtime; audyt skryptem lokalnym pozostaje NOT_RUN (brak repo/terminala lokalnego).
+
+
 ## 2026-10-26 — D-11: ograniczona bramka X-01 read-only i pełna kwalifikacja
 
 Stan wejściowy: czysty main/origin main `51d859f5b361b614672ccf9abb59a05606c461c5`. Użytkownik zatwierdził propozycję z dokumentu 16: ograniczony X-01 read-only i pełna kwalifikacja stabilności mają oddzielne kryteria. Zadanie wyłącznie dokumentacyjne; bez X-01, uruchamiania TIA/Openness, procesów Host/Fake, zmian kodu produkcyjnego, dysków, przenoszenia baz, cleanup B-02C lub dostępu do projektów na X:.

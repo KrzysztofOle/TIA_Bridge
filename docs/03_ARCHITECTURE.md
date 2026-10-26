@@ -122,3 +122,7 @@ docs/                            projekt, ADR i kontrolowane dowody
 ```
 
 Istniejące trzy katalogi src zachowujemy; dodatkowe powstaną wraz z konkretnymi zadaniami, bez pustego szkieletu pozorującego implementację. Pakiety host/worker/test tools wersjonowane niezależnie z matrix compatibility. Vendor DLL nie są kopiowane do Git ani dystrybuowane bez sprawdzenia warunków; instalator odszukuje i waliduje lokalną instalację. Konfiguracja runtime/sekrety/DB/spool/logi są poza drzewem powyżej.
+
+## Granica HMI Canonical / Source / Native (D-12)
+
+[ADR 0003](decisions/0003-hmi-canonical-model-and-native-artifacts.md) zatwierdza niezależny model semantyczny **CANONICAL** (nie nowa rola pliku w kontrakcie v1), edytowalne **SOURCE** oraz zachowane bajtowo **NATIVE** Siemens powiązane z ExchangeUnit i SHA-256. Niepewny odczyt Unified nie daje podstaw do całkowitej rekonstrukcji; wersje V19/V21 kwalifikuje się oddzielnie. Bez implementacji lub zmiany kontraktów.

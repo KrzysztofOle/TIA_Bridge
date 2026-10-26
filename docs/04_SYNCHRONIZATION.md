@@ -100,3 +100,7 @@ Po powrocie API wykonaj read-only reconciling z nowym epoch i inventory. Każdy 
 Rollback: preferowana odwracalność plikowego stagingu i plan przed importem. Kompensujący reimport wcześniejszej treści jest nową mutacją i może zawieść. Przywrócenie archiwum tylko do **nowej ścieżki testowej**, z jawną decyzją, a nie nadpisanie aktywnego projektu. Publiczne Transaction/CommitOnDispose istnieją w V19, ale ich zakres względem importu/compile/Save/Archive wymaga X-02; MVP nie opiera na nich obietnicy rollbacku.
 
 Wersjonowanie: schema major zmienia semantykę i wymaga jawnej migracji z backupem metadanych; minor może dodawać opcjonalne dane. Unknown required feature blokuje starego klienta. Normalizer/capability update nie przepisuje dawnych baseline; wymaga re-verify i nowej rewizji. Stare sesje Bridge importujemy wyłącznie jako historical evidence, nie jako świeży stan ani autoryzację.
+
+## Ograniczenia dowodowe odczytu HMI
+
+Zgodnie z [ADR 0003](decisions/0003-hmi-canonical-model-and-native-artifacts.md), niepełny publiczny odczyt Unified nie potwierdza zgodności właściwości, których API nie ujawnia. Brak odczytu nie jest wartością pustą; podgląd, hash lub częściowy readback nie upoważnia do regeneracji ani utraty nieznanych pól. Nie zmienia to definicji `SYNCED`, sagi Apply i zakresów kwalifikacji zapisanych wyżej.
