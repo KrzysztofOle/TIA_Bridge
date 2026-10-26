@@ -29,6 +29,12 @@ WORKER HANDLE RISK: UNKNOWN
 B-03A READINESS: READY (bounded read-only only)
 ```
 
+## 2026-10-26 — D-12 / ADR 0003: kanoniczny model HMI i granica artefaktów Siemens
+
+Zatwierdzono dokumentacyjnie sześć reguł HMI: niezależny kanoniczny model, nienaruszalne NATIVE w ExchangeUnit, zakaz zastępowania nieznanych pól z częściowego odczytu, precyzyjne capabilities, kwalifikacja ryzykownego importu i rozwój na podstawie dowodów. Zmieniono wyłącznie ADR 0003, 03/04/06/08/09, README i ten rejestr. D-11, PLC MVP, X-01, istniejące kontrakty, kod, testy i historyczne dowody bez zmian.
+
+Ocena instrukcji sekcja po sekcji: AGENTS.md (zakres/role/granice/autoryzacja/testy/dyscyplina/kontrakty) i Instrukcja_ChatGPT.md (stan/role/hierarchia/workflow/zadania/bezpieczeństwo/ocena wyników) nie wymagają modyfikacji: nowy ADR konkretyzuje już wymagane deny-by-default, coverage, izolację vendor i zakaz nieuprawnionej rekonstrukcji, bez nowych uprawnień i bez zmiany ich semantyki. ADR 0001/0002, dokument 12 i contracts/v1 zachowane. Ryzyka częściowego HMI i częściowego importu są już ujęte w R-04/R-02, bez dublowania. Nie wykonywano testów TIA, Engineering/Runtime; audyt skryptem lokalnym pozostaje NOT_RUN (brak repo/terminala lokalnego).
+
 ## 2026-10-26 — weryfikacja klonu X: i audyt odwołań
 
 **Stan repozytorium:** checkout `X:\Projects\TIA_Bridge`; przed fetch i po nim HEAD `9e8b7bfadb1f4e7b0fc3a793d01cbb82f54e5c07`, `origin/main` ten sam SHA; `main` śledzi `origin/main`, różnica 0/0. Remote fetch/push: `git@github.com:KrzysztofOle/TIA_Bridge.git`, ten sam projekt co zadany URL HTTPS. `git fetch origin` zakończył się bez aktualizacji; brak lokalnych commitów do wysłania, zmian wejściowych, dodatkowych gałęzi/worktree, konfliktów i stanów operacji Git. Submoduły nie są używane; Git LFS jest zainstalowany, ale repo nie ma plików LFS.

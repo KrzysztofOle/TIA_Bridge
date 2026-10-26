@@ -76,6 +76,10 @@ Port TCP 102 lokalnie należy do `s7oiehsx64`, co nie dowodzi dostępnej CPU Sna
 
 ## Eksperymenty potrzebne przed reklamowaniem wsparcia
 
+## Zatwierdzona polityka HMI Unified (D-12)
+
+[ADR 0003](decisions/0003-hmi-canonical-model-and-native-artifacts.md) oddziela semantyczny model Bridge od artefaktów vendorowych i wymaga kwalifikowania wersji/builda, rodziny Unified/Classic, rodzaju obiektu, operacji, reprezentacji i scope/coverage osobno. READ/EXPORT nie kwalifikują WRITE/IMPORT ani lossless round-trip. Reader HMI po X-01 i X-04 bazuje na jawnych, sprawdzonych profilach; pełny eksport ekranów Unified V19/V21 pozostaje UNKNOWN, nie jest przyjmowany z istnienia API. Potencjalnie zastępujące importy wymagają niezależnych eksperymentów i readbacku. Brak rozszerzenia X-01.
+
 X-01 worker attach/dispose/apartment i parent loss; X-02 transaction scope/partial import; X-03 PLC round-trip wszystkich pól pierwszej FC; X-04 publiczny natywny reader HMI API/structure; X-05 Advanced instance/API/license + TCP isolation; X-06 Runtime Manager status/start/stop i TLS/UMC; X-07 OPC subscriptions/quality/namespace mapping; X-08 Snap7 test DB i layout. Każdy ma zakres, dowody i kryteria w [09](09_RISKS_AND_DECISIONS.md). Żaden nie jest ukrytą zgodą na bieżące zmiany dirty projektu T05.
 
 ## X-01 — rzeczywisty worker read-only, 2026-10-26
