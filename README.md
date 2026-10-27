@@ -27,6 +27,12 @@ wzrost handles Workera. E2-G READY i jawny B0 poprzedziły test; grant FINISHED,
 20 cykli zużytych, release potwierdzony. B2 i real E1 enrollment NOT_RUN;
 przygotowanie dokumentacji samo nie aktywuje deploymentu ani praw Engineering.
 
+[Dochodzenie E2-B1-R](docs/B03A_E2_B1_RESOURCE_INVESTIGATION.md) potwierdza przyrosty
+także podczas Attach, lecz pozostawia ROOT_CAUSE_UNEXPLAINED. Dostarcza domyślnie
+wyłączoną instrumentację faz Windows/CLR, regresje bez Siemens i propozycję osobno
+autoryzowanej diagnostyki. Historyczny B1 BLOCKED i Worker Handle Risk UNKNOWN
+pozostają bez zmian; nie wykonano nowych Attach ani grantu.
+
 | Dokument | Zawartość |
 |---|---|
 | [01 — Audyt](docs/01_AUDIT_OLD_BRIDGE.md) | kod, historia, rejestr problemów i środki zaradcze |

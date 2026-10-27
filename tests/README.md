@@ -5,6 +5,14 @@ jest częścią pełnego Host suite: SQLite/ACL/CLI, 20 syntetycznych cykli istn
 schedulera, drift/revoke/expiry/dirty/replay, prawdziwy exit StorageProbe po rezerwacji
 i pakiet dowodowy bez auto enrollment. Nie uruchamia Workera V19 ani vendor DLL.
 
+[E2-B1-R](../docs/B03A_E2_B1_RESOURCE_INVESTIGATION.md) dodaje testy tego samego
+VendorReader skompilowanego z jawnymi syntetycznymi typami API: finally Dispose,
+enumeratory przy wyjątku, null service, timeout obserwatora bez abort, 20 odczytów
+bez korzeni syntetycznych sesji, kolejność i błędy/limity loggera. Weak-reference
+test używa kontrolowanego GC wyłącznie w procesie testowym. Net48 FrameworkProbe
+sprawdza 20 sekwencyjnych dispatch/heartbeat/receipt i identyfikatory trace, bez
+Siemens DLL. To regresje własnego kodu, nie dowód usunięcia historycznego wzrostu.
+
 Wymagania: .NET SDK 10.0.4xx (global.json dopuszcza najnowszy patch tego pasma), Python 3.12. Zależności .NET są przypięte w csproj/packages.lock.json; QA Python w [requirements-qa.txt](../scripts/requirements-qa.txt). Pierwszy restore/install wymaga dostępu do repozytoriów pakietów; testy B-02C łączą się wyłącznie z własnym lokalnym Host; nie łączą się z Siemens lub obcymi endpointami.
 
 ## Pełny przebieg offline jednym poleceniem

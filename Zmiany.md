@@ -1,5 +1,87 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-27 — B-03A/E2-B1-R: analiza uchwytów i instrumentacja offline
+
+Baza `30011c9774cda09c3d8d2ffbb3ae1be7e0506678` na gałęzi raportu B1;
+po fetch `origin/main=16916d4`. Czyste worktree, osobna gałąź diagnostyczna bez
+merge/rebase/cherry-pick. Ponownie zweryfikowano 1069 oryginalnych plików B1,
+manifest/bytes/SHA/count PASS, bez modyfikacji dowodów lub odczytu starej SQLite.
+Nowy lokalny run analizy `a0509f55e2c94f94a5bbfcd8613024ec` przechowuje wyniki.
+
+[Raport dochodzenia](docs/B03A_E2_B1_RESOURCE_INVESTIGATION.md) zawiera wszystkie
+20 delt, cold/warm, pamięć, idle, korelację UTC z audit i wykres. 15/20 okien Attach
+ma dodatnie delty rzeczywistych próbek, przed traversal; w Dispose brak próbek,
+inventory nie rozdziela GetService i klasyfikacji. Nie interpolowano braków.
+Zweryfikowano SHA obu historycznych qualification.json X-01 (STA 462→702,
+MTA 456→602); inne buildy/profile nie są ilościową próbą kontrolną.
+Wynik ROOT_CAUSE_UNEXPLAINED, nie potwierdzono naprawy. Historyczny raport B1
+i jego BLOCKED pozostają niezmienione.
+
+Metadane API odczytano PEReader bez ładowania Siemens. TiaPortalProcess.Dispose
+zamyka Portal, więc nie jest poprawką cleanup. Nie znaleziono podstaw do traktowania
+Device/DeviceItem/SoftwareContainer jako RCW lub stosowania ReleaseComObject.
+Własne using/finally, event callback, procesy/tokeny, enumeratory, mutex, audit,
+IPC i bounded replay dictionaries przejrzano; nie przypisano im potwierdzonej winy.
+
+Dodano WorkerResourceTrace: domyślnie off, lokalny jawny switch startowy,
+create-new we własnym NTFS ArtifactRoot, limit 4096 / 1 MiB, Operation ID/epoch,
+handles/PB/WS/threads/managed bytes/GC0–2 i fazy istniejącego odczytu.
+Bez nowych getterów, forced GC, DTO lub grantu; koszt diagnostyki jawny,
+błąd trace nie omija finally Dispose. Bootstrap-report nie dołącza go automatycznie;
+plan wymaga osobnego seal. Produkcyjny owner zachowuje CheckProcess; wewnętrzny
+seam pozwala kompilować tę samą metodę z syntetycznymi typami API w testach.
+Nowe testy obejmują wyjątki/dispose/enumeratory/dirty/null, timeout bez abort,
+20 odczytów/weak references, log/limits/Operation ID i net48 IPC 20 cykli.
+Kontrolowany GC występuje tylko w teście syntetycznej retencji.
+
+**Ocena instrukcji sekcja po sekcji:** AGENTS: zakres/stan, hierarchia, niezmienniki,
+autoryzacja/testy, dyscyplina zmian, Git, dane nieufne; Instrukcja_ChatGPT: cel,
+odpowiedzialność, źródła, architektura, zadania, kontrola wyników, bezpieczeństwo,
+decyzje, GitHub i styl. Obie bez zmian: nie poszerzono prawa Engineering, nie
+zmieniono kryteriów PASS/STOP, modelu async/owner/timeout lub synchronizacji.
+ADR 0001–0003 i kontrakty API/IPC/Core/E1/B0 bez zmian. Specyfikacje 03–08/16/19/21
+sprawdzono; aktualizacja dotyczy raportu, README Workera/testów i indeksu README.
+Oryginalne plany B1/E2-A pozostają byte-identical. Nowy krótszy plan live nie jest
+automatycznie dopuszczony przez B0: raport jawnie opisuje sztywny plan/budżet 20
+i wymagane osobne rozstrzygnięcie proceduralnego 3/20 lub trwałego limitu 3.
+
+Nowe Siemens Attach/Discovery, grant, B2, E1 enrollment, Runtime i NF-11 NOT_RUN.
+Worker Handle Risk UNKNOWN. Nowy build nie może używać historycznej kwalifikacji
+jako dowodu aktualnego. Pełny runner SHARED_WORKSTATION uruchomiono ze względu na
+zmiany Worker/net48/procesowych regresji; zapisano oddzielne wyniki wszystkich
+prób, bez dobierania PASS z podzbiorów i bez wymazywania prób nieudanych.
+
+Pierwszy run `415d726f40294e7eb8391fb3dccc1c76` zachowano jako FAIL:
+wszystkie kroki i 941/941 .NET + 67/67 Python PASS, ale nowy plik próbnika
+trafił do zamkniętego zbioru root scenariuszy i reporter odmówił agregacji.
+Potwierdzony błąd integracji dowodu naprawiono przenosząc pomocnicze obserwacje
+do resource-diagnostics/framework-ipc.json, nadal pod rekurencyjnym manifestem.
+Nie zmieniono reportera, zbioru wymaganych scenariuszy ani progów; wykonano nowe
+pełne przebiegi dla zmienionych źródeł, bez przepisywania pierwszego wyniku.
+
+Celowane 15/15 PASS po poprawce. Run `11e41648380f4b3bbbe8c51448b19e06`
+pozostał BLOCKED przed testami: chwilowy brak C: w Get-Volume. Trzy niezależne
+odczyty systemowe ponownie potwierdziły lokalne NTFS C:/X:, bez zmian konfiguracji.
+Nowy run `4c2126f5b218444ea4323c653e2a1d11` używa niezmienionego preflightu.
+Zakończył się FAIL: Core 564/564, Host 376/377, Python 67/67, performance PASS.
+Jeden test API odebrał reset TCP przy równoczesnym uploadzie oversize body
+i wczesnej odmowie Content-Length. Nie uznano resetu za PASS. Test deklarowanej
+długości stosuje teraz Expect: 100-continue; chunked nadal wysyła body. Oba nadal
+wymagają 413/LIMIT_EXCEEDED i zero operacji. Host/limity/kontrakt bez zmian,
+bez retry lub akceptowania wyjątku transportu. Celowane ApiSecurityTests 15/15 PASS;
+pełna regresja dla zmienionych źródeł otrzymała nowy run, stare wyniki są zachowane.
+
+Końcowy `93610f4b329a48878e636641d6957708`: OFFLINE/test execution/performance
+PASS; Core 564/564, Host 377/377, Python 67/67, bez skip. Resilience 52/52,
+B0 49/49, Local Trusted + dispatch 47/47, Core evidence 18/18,
+V19Offline 47/47 i WorkerResource 13/13. Build Release 0 warnings/errors,
+format obu solution, dokumentacja i diff PASS; self-test net48 x64 bez Siemens.
+Verifier odtworzył manifest 78 plików, pełne TRX, fingerprint i hashe buildów.
+Idle 305,930 s / CPU 0,953164% PASS; pełny NF-08 NOT_RUN, pełny NF-11 NOT_RUN
+i qualification_status BLOCKED. Nie nadano nowej autoryzacji. Dodatkowy PE odczyt
+HW.Software/PLC/Unified nie wykazał IDisposable/Import; cztery vendor DLL są
+byte-identical z B1. ROOT_CAUSE_UNEXPLAINED i Worker Handle Risk UNKNOWN.
+
 ## 2026-10-27 — B-03A/E2-B1: 20 odczytów, kwalifikacja BLOCKED
 
 Baza `16916d4f392b639a7936494a1c85f899fa4f3e0a`, po fetch HEAD=origin/main,

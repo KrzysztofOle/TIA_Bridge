@@ -16,9 +16,16 @@ try
     using var own = Process.GetCurrentProcess();
     await framed.SendAsync(MessageKind.Hello, null, 0, Protocol.Body(new Hello(own.Id, own.StartTime.ToUniversalTime().Ticks, bootstrap.Nonce, "framework-probe", "1.0")));
     if ((await framed.ReadAsync()).Kind != MessageKind.Ready) return 74;
-    var dispatch = await framed.ReadAsync(); var body = Protocol.Read<InspectDispatch>(dispatch.Body);
-    await framed.SendAsync(MessageKind.Heartbeat, null, 0, Protocol.Body(new HeartbeatBody(false)));
-    await framed.SendAsync(MessageKind.Receipt, dispatch.OperationId, dispatch.Fence, Protocol.Body(new WorkerReply(body.Attempt, body.InputHash, null, new Receipt("Rejected", null, "UNSUPPORTED", 0, true))));
+    bool repeated = args.SequenceEqual(new[] { "--resource-ipc-probe" });
+    var resourceTrace = repeated ? TiaBridge.Worker.V19.WorkerResourceTrace.Open(bootstrap.ArtifactRoot, bootstrap.WorkerEpoch, "1") : null;
+    for (int cycle = 0; cycle < (repeated ? 20 : 1); cycle++)
+    {
+        var dispatch = await framed.ReadAsync(); var body = Protocol.Read<InspectDispatch>(dispatch.Body);
+        resourceTrace?.Record(dispatch.OperationId, "cycle.enter");
+        await framed.SendAsync(MessageKind.Heartbeat, null, 0, Protocol.Body(new HeartbeatBody(false)));
+        await framed.SendAsync(MessageKind.Receipt, dispatch.OperationId, dispatch.Fence, Protocol.Body(new WorkerReply(body.Attempt, body.InputHash, null, new Receipt("Rejected", null, "UNSUPPORTED", 0, true))));
+        resourceTrace?.Record(dispatch.OperationId, "cycle.returned");
+    }
     return (await framed.ReadAsync()).Kind == MessageKind.Stop ? 0 : 74;
 }
 catch { return 74; }

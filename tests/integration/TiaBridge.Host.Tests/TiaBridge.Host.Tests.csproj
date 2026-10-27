@@ -19,5 +19,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../../../src/TiaBridge.Worker.V19/InventoryFamily.cs" Link="SyntheticInventory/InventoryFamily.cs" />
+    <Compile Include="../../../src/TiaBridge.Worker.V19/VendorReader.cs" Link="SyntheticInventory/VendorReader.cs" />
+    <Compile Include="../../../src/TiaBridge.Worker.V19/WorkerResourceTrace.cs" Link="SyntheticInventory/WorkerResourceTrace.cs" />
   </ItemGroup>
 </Project>
