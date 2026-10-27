@@ -93,7 +93,11 @@ public class ApiSecurityTests
         using var request = new HttpRequestMessage(HttpMethod.Post, "/v1/operations");
         request.Content = chunked ? new StreamContent(new MemoryStream(new byte[ContractJson.MaxRequestBytes + 1])) : new ByteArrayContent(new byte[ContractJson.MaxRequestBytes + 1]);
         request.Content.Headers.ContentType = new("application/json"); if (chunked) request.Headers.TransferEncodingChunked = true;
-        var response = await client.SendAsync(request); Assert.Equal(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
+        // Test the declared-length refusal before uploading the rejected body.
+        // Otherwise HTTP/1.1 upload/close can race and mask the typed 413 with a reset.
+        // The chunked case still sends its body and verifies the streaming limit.
+        if (!chunked) request.Headers.ExpectContinue = true;
+        using var response = await client.SendAsync(request); Assert.Equal(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
         Assert.Equal(ErrorCode.LIMIT_EXCEEDED, ContractJson.ReadError(await response.Content.ReadAsByteArrayAsync()).Code); Assert.Equal(0, f.Files.Count("operations"));
     }
     [Fact]
