@@ -1,12 +1,12 @@
 # 20 — Profile wydajnościowe kwalifikacji offline
 
-Status: kandydat implementacyjny D-11-P, 2026-10-27. `STRICT` zachowuje dotychczasowe progi i jest domyślny. `SHARED_WORKSTATION` jest jawnym profilem dla normalnie używanego komputera developerskiego z lokalnym NTFS. Wersja `1.0.0-candidate` nie zatwierdza zmiany bramki E2-B1 ani nie nadaje uprawnień Siemens.
+Status: zatwierdzony profil `SHARED_WORKSTATION 1.0.0`, B-03A/E2-G, 2026-10-27. Komputer jest współdzielonym stanowiskiem pracy; użytkownik może normalnie pracować podczas CODEX i testów. `STRICT` pozostaje domyślny i zachowuje dotychczasową definicję. Zatwierdzenie profilu dotyczy ograniczonego Engineering read-only E2-B1, nie pełnej kwalifikacji ani produkcji i nie nadaje uprawnień Siemens.
 
 ## Profile i progi
 
 Progi są wersjonowane w [`performance-profiles.json`](../tests/resilience/performance-profiles.json). Kod pomiarowy Host i walidator Python czytają tę samą definicję. Każdy nowy run zapisuje nazwę i wersję profilu, hash definicji, Git SHA, run ID, czas UTC, środowisko, wszystkie próbki, agregaty, progi, ich przekroczenia i hashe artefaktów. Percentyle używają nearest rank, bez interpolacji. Żaden pomiar nie jest odrzucany ani zastępowany wynikiem z innego uruchomienia.
 
-| Wymaganie i mierzona wielkość | STRICT | SHARED_WORKSTATION (kandydat) | Klasyfikacja i uzasadnienie |
+| Wymaganie i mierzona wielkość | STRICT | SHARED_WORKSTATION 1.0.0 | Klasyfikacja i uzasadnienie |
 |---|---:|---:|---|
 | NF-01 status/health, 1 i 8 klientów, p95 | ≤100 ms | ≤250 ms | KPI responsywności. Status pozostaje dostępny przy zawieszeniu workera; 250 ms nadal daje interaktywną odpowiedź. |
 | NF-01 status/health, p99 | ≤250 ms | ≤500 ms | KPI ogona; pełne p95/p99/max są raportowane, żaden wolny odczyt nie jest usuwany. |
@@ -14,11 +14,11 @@ Progi są wersjonowane w [`performance-profiles.json`](../tests/resilience/perfo
 | NF-02 durable submit, p99 | ≤500 ms | ≤1000 ms | KPI ogona; zaakceptowane zlecenie nadal musi być utrwalone przed 202. Nie zmienia to timeoutów operacji. |
 | NF-03 replace pliku 1 MiB, p95 | ≤100 ms | ≤500 ms | KPI niezależnej edycji Workspace. Dotychczasowy pomiar na NTFS osiągnął max 256,3424 ms; 500 ms daje około 2× zapasu względem zaobserwowanego maksimum. Atomowość, SHA-256 i zachowanie oryginału przy odmowie są bezwarunkowe. |
 | NF-05 startup/history, p95 | ≤5000 ms | ≤10000 ms | KPI czasu startu. Podwojenie daje zapas na cold start i współdzielenie zasobów. Bezpieczny read po recovery ≤30 s pozostaje niezmienionym warunkiem funkcjonalnym. |
-| NF-08 średni CPU procesu Host przy pustej kolejce przez 300 s | <1% | <2% | Budżet zasobów, nie bezczynność całego komputera. 1,0288% zakończyło historyczny STRICT FAIL; kandydat 2% zostawia mały margines dla schedulingu. CPU innych aplikacji jest rejestrowany, nie doliczany do CPU Host. |
+| NF-08 średni CPU procesu Host przy pustej kolejce przez 300 s | <1% | <2% | Budżet zasobów, nie bezczynność całego komputera. 1,0288% zakończyło historyczny STRICT FAIL; profil 2% zostawia mały margines dla schedulingu. CPU innych aplikacji jest rejestrowany, nie doliczany do CPU Host. |
 | NF-08 RAM Host / Fake Worker | ≤200 / ≤250 MiB | ≤200 / ≤250 MiB | Limity zasobów bez zmian. Szczyt Host 512 MiB, worker soft alert 1 GiB i zachowanie przy wzroście są niezmienione. |
 | Tylko harness: oczekiwanie testu na fazę `EXECUTING` Fake Worker | 10 s | 30 s | Czas obserwacji w jednym teście synchronizującym proces, nie operation/queue/IPC/native timeout. Ostatni shared run wykazał, że 10 s bywa zbyt krótkie dla process scheduling; awaria asercji nie dowodzi złamania safety property. Pozostałe asercje i jeden dispatch pozostają identyczne. |
 
-NF-03 p95 500 ms jest kandydatem, nie wnioskiem o bieżącym PASS. p99, maximum i liczba przekroczeń są zachowane, by wykryć długie ogony. Limit p95 nie jest dopuszczeniem do delete+copy, retry, osłabienia flush, wyłączenia AV ani nadpisania pliku przy braku bezpiecznego replace. Dla tych przypadków test nadal wymaga poprawności i zachowania starej wersji.
+NF-03 p95 500 ms jest zatwierdzonym progiem; bieżący PASS wymaga nowego dowodu. p99, maximum i liczba przekroczeń są zachowane, by wykryć długie ogony. Limit p95 nie jest dopuszczeniem do delete+copy, retry, osłabienia flush, wyłączenia AV ani nadpisania pliku przy braku bezpiecznego replace. Dla tych przypadków test nadal wymaga poprawności i zachowania starej wersji.
 
 ### Historyczne porównanie — bez przeliczania wyników
 
@@ -65,12 +65,30 @@ Wykonanie:
 
 Bez `--profile` wybierany jest `STRICT`. Profile nie wpływają na API/IPC, kontrakty, grant qualification-only, E1, capability ani rzeczywisty worker.
 
-## E2-B1 — propozycja do zatwierdzenia, nieaktywna
+## E2-B1 — zatwierdzona ograniczona bramka E2-G
 
-Ta implementacja nie zmienia normatywnego warunku wejścia E2-B1. Do decyzji użytkownika przedstawiam następujący warunek: (1) PASS wszystkich obowiązkowych testów bezpieczeństwa/poprawności; (2) jeden świeży run `SHARED_WORKSTATION` z preflight `PASS` lub `PASS_WITH_LOAD` i PASS dla wszystkich wymaganych KPI; (3) zatwierdzony i dokładnie ograniczony bootstrap qualification-only; (4) exact binding projektu, PID/start procesu, executable/build, planu i okna; (5) osobna, jawna zgoda na live Engineering; (6) niezależny odczyt `IsModified=false` przed i po dozwolonym read-only cyklu. Każda zmiana bindingu lub dirty state blokuje wykonanie.
+Dopuszczono `SHARED_WORKSTATION 1.0.0` jako podstawę wydajnościową ograniczonej D-11:
+RT-03/05/06/15/16 i NF-01/02/03/04/05/06/12/14/15 wymagają PASS, rzeczywisty idle
+Host ≥300 s i ≥1000 operacji, wszystkie wymagane testy safety/integrity/correctness
+bez FAIL/SKIP. Zwykłe obciążenie komputera i `PASS_WITH_LOAD` nie blokują tej oceny.
+Pełny NF-08 może pozostać NOT_RUN: runner zachowuje osobny pomiar idle i jego wynik,
+ale nie nazywa go pełnym NF-08 PASS. Wykonany negatywny podtest nie jest ukrywany.
+NF-11 NOT_RUN nie blokuje ograniczonej D-11; blokuje pełną kwalifikację offline.
+Produkcja pozostaje NOT_RUN. Progi CPU dotyczą procesu Host, nie całego komputera.
 
-Kolejność projektów, po osobnym zatwierdzeniu bramki i live zakresu: `T05_RecipeSim_V19_Testowy`, następnie `T04_T05-000_Testowy`. Profil nie zapewnia identity, capability, permission, enrollment ani zgody na Attach. Dotychczas zatwierdzona ograniczona bramka D-11 i jej warunek idle pozostają obowiązujące do chwili wyraźnej decyzji użytkownika; żaden wynik SHARED nie uruchamia E2-B1 samoczynnie.
+Jeden [deterministyczny walidator E2-G](21_E2_B1_READINESS_GATE.md) sprawdza pełny
+manifest, odtwarza próbki/RT/NF, weryfikuje testy, preflight, fingerprint źródeł i
+exact build Host/Worker. Potem ocenia dossier B1: plan/hash, exact binding, czysta
+kopia, jeden target, monitoring i bezpieczny STOP. Zwraca READY_FOR_OPERATOR_AUTHORIZATION,
+BLOCKED lub REVIEW_REQUIRED z kodami przyczyn. READY nie tworzy ani nie aktywuje
+lokalnej autoryzacji B0 i nie dopuszcza Attach. Operator osobno przegląda/aktywuje B0;
+Host nadal ponownie sprawdza ACL, okno, budżet i live binding przed dispatch, a Worker
+w dozwolonym cyklu IsModified=false/false. Bez operatora nie ma live Engineering.
+
+Pierwszy projekt to `T05_RecipeSim_V19_Testowy`. `T04_T05-000_Testowy`/E2-B2 pozostaje
+poza zakresem; wymaga pełnego PASS B1 i oddzielnej decyzji, nowych bindingów i dowodów.
+Historyczne X-01 nie kwalifikuje getterów B1 i nie jest przeliczane według nowego profilu.
 
 ## Ponowna ocena
 
-Przed kolejnym przeglądem progów zbierz minimum trzy niezależne, pełne runy rozłożone na zwykłe okresy pracy; zachowaj także FAIL/partial i profile/env per run. To rekomendacja do oceny stabilności, nie dodatkowy warunek bieżącego profilu ani zasada wybierania najlepszego wyniku. Przeanalizuj rozkłady, p99/max, proporcję przekroczeń, różne obciążenia, filesystem i bezpieczeństwo atomowego replace. Nie przypisuj przyczynowości AV/CPU bez pomiaru. Kandydat może zostać zatwierdzony lub zmieniony wyłącznie przez nową wersję definicji; stare manifesty, SHA i kwalifikacje pozostają takie, jak zapisano.
+Przed kolejnym przeglądem progów zbierz minimum trzy niezależne, pełne runy rozłożone na zwykłe okresy pracy; zachowaj także FAIL/partial i profile/env per run. To rekomendacja do oceny stabilności, nie dodatkowy warunek bieżącego profilu ani zasada wybierania najlepszego wyniku. Przeanalizuj rozkłady, p99/max, proporcję przekroczeń, różne obciążenia, filesystem i bezpieczeństwo atomowego replace. Nie przypisuj przyczynowości AV/CPU bez pomiaru. Zatwierdzony profil może zostać zmieniony wyłącznie przez nową wersję definicji; stare manifesty, SHA i kwalifikacje pozostają takie, jak zapisano.

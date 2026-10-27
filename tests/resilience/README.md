@@ -51,3 +51,11 @@ RT-15 pozostawia własny testowy child/lock, wykrywa anomaly i quarantine, a har
 Raporty .tia-bridge/resilience/<run-id> zawierają scenario IDs, RT/NF, status, czas, PID/epoch, journal i hashe. Pełny run.json, środowisko CPU/RAM/AV, metryki i TRX są ignorowane przez Git. [Snapshot](qualification.json) zawiera tylko syntetyczne, zredagowane podsumowanie i hashe dowodów. Nie drukuj chronionego discovery, tokenów ani bootstrapu IPC. Surowe logi i DB nie trafiają do repo.
 
 Test drugiego SID i rzeczywistego power-loss: NOT_RUN, brak zatwierdzonego środowiska. Uszkodzenie końcówki ostatniej transakcji wyniku WAL nie dowodzi odzyskania całkowicie zniszczonej bazy. Brak testów Engineering/Runtime. X-01 pozostaje osobnym zadaniem z odrębną autoryzacją i weryfikacją środowiska. Konserwatywne pola gate/x01_readiness reportera i missing_blocks_x01 z matrix.json opisują dawną agregację całego B-02D; aktualną interpretację zatwierdzonej D-11 zawiera osobny raport. Nie należy przepisywać dawnych pomiarów ani wnioskować PASS dla nowego przebiegu z tej oceny archiwalnych dowodów. [Kontrola zgodności dokumentacyjnej](../README.md#kontrola-dokumentacji) nie uruchamia procesów testowych.
+
+## B-03A/E2-G — ograniczona bramka B1
+
+Zatwierdzony SHARED_WORKSTATION 1.0.0 i [walidator E2-G](../../docs/21_E2_B1_READINESS_GATE.md)
+oddzielają safety, ograniczoną D-11 i gotowość do autoryzacji operatora od pełnej
+kwalifikacji BLOCKED/NF-11 NOT_RUN. READY nie aktywuje bootstrapu ani Siemens Attach.
+Nowe shared runy wiążą także exact offline build Host/Worker; historyczne raporty
+powyżej pozostają bez zmian. Pełny NF-08 NOT_RUN nie jest PASS zmierzonego scale.

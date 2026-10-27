@@ -74,7 +74,7 @@ class PerformanceEvidenceTests(unittest.TestCase):
         environment = os.environ.copy(); environment["TIA_BRIDGE_QUALIFICATION_PROFILE"] = "SHARED_WORKSTATION"
         probe = "import json,sys; sys.path.insert(0,'scripts'); import performance_evidence as e; print(json.dumps({'name':e.PROFILE_NAME,'version':e.PROFILE_VERSION,'nf03':e.PROFILES['workspace-replace']['nf03-ntfs-save-replace']}))"
         result = subprocess.run([sys.executable, "-B", "-c", probe], cwd=ROOT, env=environment, capture_output=True, text=True, check=True)
-        self.assertEqual({"name": "SHARED_WORKSTATION", "version": "1.0.0-candidate", "nf03": [100, 500, None]}, json.loads(result.stdout))
+        self.assertEqual({"name": "SHARED_WORKSTATION", "version": "1.0.0", "nf03": [100, 500, None]}, json.loads(result.stdout))
 
     def test_performance_threshold_failure_and_integrity_failure_remain_distinct(self):
         with tempfile.TemporaryDirectory() as directory:

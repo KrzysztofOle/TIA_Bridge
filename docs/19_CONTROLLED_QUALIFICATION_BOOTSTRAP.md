@@ -270,3 +270,14 @@ ADR 0001–0003 pozostają bez zmian: brak mutacji, drugiego wykonawcy, canonica
 nowych publicznych IDs lub SYNCED. Nowa ścieżka realizuje bieżącą jawną decyzję
 użytkownika o qualification-only; nie uznaje niekwalifikowanej capability za enabled.
 Końcowe liczby i ograniczenia walidacji są w [Zmiany.md](../Zmiany.md).
+
+## E2-G — gotowość przed lokalną autoryzacją
+
+[Walidator E2-G](21_E2_B1_READINESS_GATE.md) ocenia aktualne safety/ograniczoną D-11
+na zatwierdzonym SHARED_WORKSTATION 1.0.0 i dossier odbiorcy. Jego READY_FOR_OPERATOR_AUTHORIZATION
+nie jest BootstrapPermit, wpisem SQLite, aktywną konfiguracją ani zgodą na Attach.
+W tej fazie B0 pozostaje INACTIVE; operator osobno sprawdza i zatwierdza dokument,
+exact hash/plan/window/binding/buildy. Mechanizmy Validate/VerifyLiveBinding, chronione
+ACL i trwałe 20 cykli pozostają bez zmian. Dossier to review claims, nie live proof.
+IsModified=false jest sprawdzane dopiero w autoryzowanym odczycie i false/false
+w każdym cyklu. Nie aktywowano rzeczywistego B0, nie dodano auto enrollment ani kluczy.

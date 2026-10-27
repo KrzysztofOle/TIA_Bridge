@@ -45,7 +45,7 @@ Regresja 1001 wykryła zatrzymanie schedulera po wyczerpaniu per-worker historii
 
 NF-03 ma dwa jawne profile. Lokalny NTFS: 100 zapisów i replace 1 MiB co 100 ms podczas fake Hang, z kontrolą SHA. Historyczny profil repo na exFAT: 100 niezależnych prób replace 1 MiB bez Host i 100 podczas zawieszenia; odmowa musi pozostawić oryginał. Wynik negatywnego testu izolacji nie oznacza kwalifikacji NF-03 PASS. Nie stosujemy delete+copy, retry ani usuwania ochrony jako pozoru safe replace. Dokładny błąd i wpływ na bramkę są w raporcie.
 
-Profil wydajnościowy NF-03 jest osobnym wymiarem od NTFS/exFAT. STRICT zachowuje p95 ≤100 ms; SHARED_WORKSTATION candidate używa p95 ≤500 ms tylko dla kolejnej jawnie wybranej kwalifikacji. Lokalizacja filesystemu, odmowy, integralność i historia exFAT FAIL nie są zmieniane.
+Profil wydajnościowy NF-03 jest osobnym wymiarem od NTFS/exFAT. STRICT zachowuje p95 ≤100 ms; zatwierdzony SHARED_WORKSTATION 1.0.0 używa p95 ≤500 ms tylko dla kolejnej jawnie wybranej kwalifikacji. Lokalizacja filesystemu, odmowy, integralność i historia exFAT FAIL nie są zmieniane.
 
 NF-07, pełny NF-08 scale/worker alert, NF-09/10 retention, rzeczywisty planer NF-13, live soak oraz testy sprzętowe nie są pozornie zaliczone. NF-14 dotyczy obecnego default deny i braku fizycznego wykonawcy; przyszły adapter wymaga własnej kwalifikacji.
 

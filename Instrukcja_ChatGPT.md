@@ -35,6 +35,8 @@ Polecenie musi zawierać:
 - Komunikat commita po angielsku zgodnie ze [standardem AGENTS](AGENTS.md#standard-commitów-git): Conventional Commits `type(scope): imperative description`, jedna logiczna zmiana; nie przepisuj historii.
 
 ## 6. Kontrola wyników
+
+- E2-G: zatwierdzony SHARED_WORKSTATION 1.0.0 dopuszcza ograniczoną D-11/E2-B1 podczas normalnej pracy użytkownika; STRICT i safety pozostają zachowane. [READY_FOR_OPERATOR_AUTHORIZATION](docs/21_E2_B1_READINESS_GATE.md) jest oceną gotowości, nie grantem B0 ani zgodą na Attach. Pełne NF-08/NF-11 NOT_RUN nie są PASS; pełna kwalifikacja i produkcja są odrębne od eksperymentu.
 - Sprawdzaj raport względem diffu i kryteriów: wykonane testy, awarie, wersje, środowisko, artefakty i ograniczenia. Deklaracja CODEX „PASS” bez dowodu nie zamyka zadania; proponuj wąską korektę z regresją.
 - Oddziel OFFLINE/Fake, ENGINEERING/Openness, SIMULATION i RUNTIME/PLC-HMI. Raportuj PASS/FAIL/BLOCKED/NOT_RUN i odpowiednio ERROR/SKIP. SKIP/NOT_RUN nie jest PASS. Fake nie kwalifikuje Siemens ani produkcji.
 - D-11: ograniczona bramka X-01 read-only wymaga RT-03/05/06/15/16 oraz NF-01/02/03/04/05/06/12/14/15 w kwalifikowanym profilu lokalnego NTFS; restart/hang/timeout/cancel/late/duplicate/loss/UNKNOWN/quarantine, idle ≥5 min, ≥1000 operacji, brak błędów krytycznych wykonania/izolacji. NF-11 ≥8 h pozostaje wymagany w B-10B/R-14, NOT_RUN ≠ PASS. Historyczny exFAT FAIL nie znika. Gate PASS nie rozpoczyna X-01, nie uprawnia do write ani nie dowodzi Siemens.

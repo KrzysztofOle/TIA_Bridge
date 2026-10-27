@@ -26,6 +26,8 @@
 
 ## Autoryzacja i testy
 
+- B-03A/E2-G zatwierdza `SHARED_WORKSTATION 1.0.0` dla ograniczonej D-11/E2-B1 na współdzielonym stanowisku. Zwykłe obciążenie CPU/dysku i PASS_WITH_LOAD nie blokują eksperymentu przy PASS safety i wymaganych KPI. [Bramka E2-G](docs/21_E2_B1_READINESS_GATE.md) nie aktywuje B0 ani Attach; pełne NF-08/NF-11 NOT_RUN nie stają się PASS, a NF-11 nadal blokuje pełną kwalifikację. STRICT i timeouty ochronne pozostają bez zmian.
+
 - B-03A/E2-B0 dopuszcza wyłącznie jawnie skonfigurowany lokalny tryb [qualification-only](docs/19_CONTROLLED_QUALIFICATION_BOOTSTRAP.md) dla E2-B1. Autoryzacja operatora wiąże exact projekt/proces/build/plan/okno i trwale zużywane 20 cykli; restart/STOP nie odnawia grantu. Tryb nie nadaje capability PASS, nie omija E1 w normalnym wykonaniu i nie wykonuje auto enrollment. Implementacja offline nie uprawnia do rzeczywistego eksperymentu.
 
 - Rozróżniaj zgodę na zadanie programistyczne od uprawnienia do operacji TIA. Ta dokumentacja nie nadaje nowej aplikacji praw do otwartych projektów.

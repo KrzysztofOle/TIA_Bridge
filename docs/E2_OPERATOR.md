@@ -41,3 +41,21 @@ i zapisz operator-after. Dirty/drift/niepewność → STOP bez Save. Zachowaj ot
 zwolnienie zasobów dotyczy wyłącznie własnej sesji Bridge i Workera.
 Przejście do [B2](E2-B2_TEST_PLAN.md) wymaga udokumentowanego B1 qualification PASS,
 hashów, release, trend review, osobnej decyzji i całkiem nowego preflightu B2.
+
+## E2-G — przed zgodą na rzeczywisty test
+
+Komputer jest współdzielonym stanowiskiem: normalna praca poza projektem testowym
+jest dozwolona. Tylko kolizja Siemens, niespełnione safety lub rzeczywista presja
+uniemożliwiająca wiarygodną pracę wymagają STOP. Zwykły CPU/dysk i PASS_WITH_LOAD
+nie blokują [SHARED_WORKSTATION 1.0.0](20_PERFORMANCE_QUALIFICATION_PROFILES.md).
+
+Najpierw sprawdź [raport E2-G](21_E2_B1_READINESS_GATE.md) dla jednego bieżącego runu
+i uzupełnij dossier exact bindingu z niezależnie przejrzanych danych Windows/UI.
+Bez dossier wynik pozostaje BLOCKED. READY_FOR_OPERATOR_AUTHORIZATION oznacza,
+że można świadomie rozpatrzyć autoryzację; nie wykonuj na jego podstawie Attach.
+Następnie wykonaj kroki 1–7 powyżej w osobno zatwierdzonym zadaniu B1, w tym wybór
+okna/operatora, sprawdzenie ACL, bootstrap-inspect i jawne bootstrap-authorize.
+Przed inventory pierwszy autoryzowany odczyt potwierdza IsModified=false, każdy
+cykl wymaga false/false. Nie pozyskuj tej wartości przez nieautoryzowany Attach.
+Pełna kwalifikacja offline BLOCKED/NF-11 NOT_RUN i Worker Handle Risk UNKNOWN
+pozostają odrębne od gotowości do ograniczonego eksperymentu. B2 nie ma autoryzacji.

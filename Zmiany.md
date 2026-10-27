@@ -1,5 +1,80 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-27 — B-03A/E2-G: SHARED_WORKSTATION i bramka E2-B1
+
+Baza: `3e0785556902c0ef10d6983f17ea0743997e8e6c`, HEAD=origin/main po fetch,
+worktree czyste. Zatwierdzono SHARED_WORKSTATION 1.0.0 dla ograniczonej D-11/E2-B1;
+STRICT, progi bezpieczeństwa i timeouty ochronne bez zmian. Stanowisko współdzielone:
+normalne obciążenie i PASS_WITH_LOAD dopuszczone. NF-08 dotyczy procesu Host.
+
+Dodano [deterministyczną bramkę](docs/21_E2_B1_READINESS_GATE.md) opartą o istniejące
+manifesty/próbki, reporter RT/NF i kontrolę TRX. Rozdziela safety, performance,
+integralność i readiness B0. READY_FOR_OPERATOR_AUTHORIZATION nie jest grantem,
+nie uruchamia Siemens i nie zapisuje autoryzacji. Dossier wymaga exact B1/scope/
+ProjectKey/AP19/PID/start/EXE/SID/API/Host/Worker, czystej kopii/UI, monitoringu,
+bezpiecznego STOP i braku kolizji. B2 odrzucane. IsModified dopiero w autoryzowanym
+odczycie; false/false w każdym cyklu pozostaje bez zmian.
+
+Aktualność dowodu: run ID/Git SHA/profile version/hash, fingerprint źródeł,
+Release Host/Worker SHA-256, środowisko/NTFS/preflight, RT/NF, komplet artefaktów i
+końcowy status. Runner dodaje offline build Worker i niezmienny build manifest.
+Nie wprowadzono TTL, dodatkowego soak ani nowej kryptografii. NF-11 NOT_RUN blokuje
+pełną kwalifikację, nie ograniczoną D-11. Pełny NF-08 pozostaje NOT_RUN bez fałszywego
+PASS; wykonane negatywne podtesty nie są ukrywane. Historyczne raporty bez zmian.
+
+**Ocena spójności sekcja po sekcji:** AGENTS: zakres/stan, hierarchia, niezmienniki,
+autoryzacja/testy, dyscyplina zmian, Git i dane nieufne; Instrukcja_ChatGPT: cel,
+odpowiedzialność, źródła, architektura, zadania, kontrola, bezpieczeństwo, decyzje,
+GitHub i styl. Zaktualizowano tylko autoryzację/testy i kontrolę wyników o decyzję
+E2-G; reszta zachowana. ADR 0001–0003 i API/IPC/Core/E1/B0 pozostawiono bez zmian:
+brak nowego wykonawcy, capability, grantu, semantyki synchronizacji lub HMI.
+Właściwe specyfikacje 02/07/08/16/19/20, plan B1, operator i odniesienie E2-A uaktualnione.
+
+Pierwszy pełny run `0877675091694b60ad2c246b8b254052` zachowano jako FAIL:
+Core 564/564, Host 362/363, Python 67/67, wymagane próbki KPI PASS. Jeden przypadek
+Missing_heartbeat... nie zaobserwował EXECUTING przed QUARANTINED; pierwotny komunikat
+nie zachował kodu przyczyny, więc nie przypisujemy potwierdzonej przyczynowości CPU
+lub IPC. Bramka poprawnie zwróciła SAFETY_TESTS_NOT_PASS i B1_DOSSIER_MISSING.
+Nie uznano zielonych podzbiorów za aktualną D-11 PASS.
+
+Korekta harnessu: SchedulerTests i SchedulerSafetyTests używają istniejącej wyłącznej
+kolekcji procesowej, ograniczając równoczesny load własnych testów. Normalna praca
+użytkownika pozostaje dozwolona. Running fail-fast zachowuje terminalny state/phase/
+error zamiast maskować go oczekiwaniem; test heartbeat sprawdza RUNNING przed progiem,
+quarantine po progu i jeden attempt. Brak zmiany watchdogu, IPC lub timeoutów ochronnych,
+brak retry Siemens i brak wymazywania pierwszego FAIL. Nowy pełny run jest wymagany
+dla zmienionych źródeł; celowany test nie zastępuje D-11.
+
+**Końcowa walidacja OFFLINE:** nowy kanoniczny run
+`bdca23b132664a2b84bf2d225d0e707d`, SHARED_WORKSTATION 1.0.0, preflight PASS,
+build Release rozwiązania i Worker PASS (0 warningów/błędów), Core 564/564,
+Host 363/363, Python 67/67; bez FAIL/SKIP. Resilience 52/52, bootstrap 49/49,
+E1 LocalTrusted 44/44 + dispatch 3/3 + Core evidence 18/18, V19Offline 46/46.
+Regresja celowana schedulera 42/42 przed tym runem. API/IPC/schema/OpenAPI,
+generatory kontraktów/wektorów, audyt linków/dokumentacji, format i diff check PASS.
+
+Bramka E2-G niezależnie odtworzyła wyniki i sprawdziła 77 artefaktów. Manifest SHA-256:
+`9ae079b04d0ecaf5bce553154052fc7ae55843c44f8e19396edc321cbdb2bf02`.
+Hash definicji profilu:
+`855e5c952aeece7bfa165676fbe9f15eb61151fd1ded00c89abd0c4228becdd2`.
+Git SHA runu identyfikuje bazę powyżej; dokładne zmienione źródła wiąże fingerprint
+`86b92b4d237a62f9faedc93219925db0c7dca7190fbc88f1b46e315260e9d15b`.
+D-11 ograniczona PASS, safety/performance/evidence PASS. Idle 307,955 s,
+CPU procesu Host 0,872692%, RAM Host 94,504 MiB / Fake 37,965 MiB;
+1001 operacji PASS. NF-03 repo bez/z Workera p95 51,0899/11,643 ms, Workspace
+2,5704 ms. Wszystkie próbki i wcześniejszy FAIL zachowane; bez dobierania podzbiorów.
+
+E2-G IMPLEMENTATION COMPLETE_OFFLINE. Rzeczywista E2-B1 READINESS BLOCKED:
+B1_DOSSIER_MISSING — brak exact aktualnego ProjectKey/AP19/PID/start/EXE/SID/API
+bindingu, review czystej kopii/UI i gotowości monitoringu/STOP. Nie pozyskiwano ich
+przez Openness. Operator musi uzupełnić dossier według dokumentu 21, zweryfikować
+READY, potem osobno zatwierdzić live B1, okno i lokalny dokument B0, sprawdzić ACL,
+bootstrap-inspect i jawnie bootstrap-authorize. READY nie jest zgodą ani grantem.
+ENGINEERING B1/B2 NOT_RUN, OPERATOR AUTHORIZATION NOT_GRANTED. Pełna kwalifikacja
+offline BLOCKED przez NF-11 NOT_RUN; pełny NF-08 NOT_RUN (idle podtest PASS),
+produkcja/Runtime NOT_RUN, Worker Handle Risk UNKNOWN. Brak klucza produkcyjnego,
+zmian rzeczywistych ACL, TIA start/Attach/enumeration lub rzeczywistej aktywacji B0.
+
 ## 2026-10-27 — D-11-P: SHARED_WORKSTATION performance profile
 
 Dodano jedną wersjonowaną definicję progów z domyślnym `STRICT` i kandydackim

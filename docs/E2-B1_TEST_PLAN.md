@@ -42,17 +42,23 @@ innych użytkowników, zamykania obcej TIA, auto napraw ani Runtime/symulacji/OP
 7. Działający zewnętrzny sampler Windows oraz metadane projektu przed odczytem,
    gotowe miejsce na wszystkie dowody i wypełniony authorization.md z hashami planów.
 
-## D-11-P — propozycja, nieobowiązująca dla tego planu
+## Zatwierdzona bramka E2-G
 
-Kandydacki profil `SHARED_WORKSTATION` został opisany w [D-11-P](20_PERFORMANCE_QUALIFICATION_PROFILES.md).
-Nie zastępuje punktu 3 ani nie aktywuje B1. Do zatwierdzenia przez użytkownika jest
-ewentualna przyszła reguła wejścia wymagająca PASS obowiązkowych testów bezpieczeństwa,
-PASS jednego świeżego shared performance run, preflight `PASS`/`PASS_WITH_LOAD`,
-zatwierdzonego qualification-only bootstrap, exact project/process/build/plan/window
-bindingu, osobnej zgody na live Engineering i niezależnego `IsModified=false` przed
-i po dozwolonym read-only cyklu. Projekty pozostają w kolejności
-`T05_RecipeSim_V19_Testowy`, następnie `T04_T05-000_Testowy`. Profil nie nadaje
-uprawnień, capability ani grantów; bieżący warunek D-11 pozostaje normatywny.
+Punkt 3 dopuszcza zatwierdzony [SHARED_WORKSTATION 1.0.0](20_PERFORMANCE_QUALIFICATION_PROFILES.md).
+Aktualność oznacza zgodność źródeł, profilu/hash, buildów, środowiska i planu z
+kompletnym jednym runem, bez arbitralnego limitu wieku. NF-11 NOT_RUN blokuje pełną
+kwalifikację, ale nie ograniczoną D-11/B1. Pełny NF-08 pozostaje NOT_RUN, jeśli nie
+wykonano pełnego zakresu; rzeczywisty idle ≥300 s i ≥1000 operacji nadal wymagane.
+`PASS_WITH_LOAD` jest akceptowany; normalna praca użytkownika poza testowanym projektem
+nie jest powodem STOP. Wykonane negatywne safety/KPI pozostają blokadą.
+
+Przed decyzją operatora uruchom [walidator E2-G](21_E2_B1_READINESS_GATE.md).
+READY_FOR_OPERATOR_AUTHORIZATION oznacza gotowość do przeglądu i osobnej lokalnej
+autoryzacji B0, nigdy zgodę na Attach. Brak aktywnego grantu w tej fazie jest prawidłowy.
+Brak dossier/bindingu blokuje READY, nie wymusza nieautoryzowanego odczytu Siemens.
+IsModified przed startem może mieć PENDING_AUTHORIZED_READ: operator potwierdza czysty
+stan UI, a pierwszy autoryzowany odczyt musi potwierdzić false przed inventory.
+Każdy cykl nadal wymaga false/false; true lub niepewność oznacza STOP bez Save.
 
 ## Kroki testowe po spełnieniu wejścia
 
@@ -129,7 +135,7 @@ nie deklaruj ich jako COMPLETE. PASS dotyczy tylko zadanego read scope.
 
 STOP: drift PID/start/path/SID/build, dirty/unknown IsModified, błąd gettera/limit,
 timeout/hang/IPC loss, brak Dispose.Returned/release, dialog bez rozstrzygnięcia,
-presja zasobów, nieoczekiwane działania innego użytkownika, uszkodzony/brakujący artefakt.
+presja zasobów zagrażająca poprawności lub bezpieczeństwu (zwykłe CPU/disk load nie wystarcza), kolidujące działania innego użytkownika, uszkodzony/brakujący artefakt.
 Nie wysyłaj następnego requestu ani retry. Zachowaj intent, audit, receipt i procesy;
 timeout/śmierć procesu/lease nie dowodzą końca Siemens call. Nie kasuj quarantine.
 Potwierdzona niezamierzona modyfikacja lub negatywny test → FAIL; brak dowodu,

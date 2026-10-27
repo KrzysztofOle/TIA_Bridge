@@ -20,6 +20,19 @@ def capture_environment(root: Path, run_id: str):
     performance_evidence.write_new_json(folder / "environment.json", value)
 
 
+def source_fingerprint(root):
+    sources = {}
+    for path in root.iterdir():
+        if path.is_file() and (path.suffix in {".props", ".targets", ".slnx"} or path.name in {"global.json", "NuGet.Config", "nuget.config"}):
+            sources[path.name] = hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+    for directory in ["src", "tests", "contracts", "scripts", "config"]:
+        for path in (root / directory).rglob("*"):
+            if path.is_file() and not {"bin", "obj", "__pycache__"}.intersection(path.parts) and path.suffix in {".cs", ".csproj", ".py", ".ps1", ".sql", ".json", ".props", ".targets"} and path.name != "qualification.json":
+                sources[path.relative_to(root).as_posix()] = hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+    source_hash = hashlib.sha256(json.dumps(sources, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return source_hash, sources
+
+
 def qualification(root: Path, run_id: str, started_at: str, *, allow_legacy=False):
     if not re.fullmatch(r"[0-9a-f]{32}", run_id):
         raise ValueError("Invalid resilience run ID.")
@@ -28,6 +41,8 @@ def qualification(root: Path, run_id: str, started_at: str, *, allow_legacy=Fals
     records = {}
     minimum = datetime.fromisoformat(started_at)
     for path in folder.glob("*.json"):
+        if path.name == "evidence-manifest.json":
+            continue
         value = json.loads(path.read_text(encoding="utf-8"))
         name = value.get("scenario")
         if name in records or value.get("schema_version") != "1.0" or value.get("run_id") != run_id or value.get("status") not in {"PASS", "FAIL"} or value.get("elapsed_ms", 0) <= 0 or datetime.fromisoformat(value["started_at"]) < minimum:
@@ -92,7 +107,7 @@ def qualification(root: Path, run_id: str, started_at: str, *, allow_legacy=Fals
     nf["NF-03"] = {"status": "PASS" if repo_ok else "FAIL", "ntfs_save_replace_status": "PASS" if ntfs_ok else "FAIL", "repository_volume_control": repo_replace,
                    "scope": "100 paced 1 MiB save/replace samples on local NTFS; repository volume replace is independently tested without/with worker. No unsafe fallback or retry."}
     gate = "FAIL" if not repo_ok else "PASS" if full_soak else "BLOCKED"
-    blockers = [] if full_soak else ["NF-11 eight-hour soak is NOT_RUN by explicit user decision and belongs to B-10B/R-14. AGENTS.md refers to required tests in document 07, whose eight-hour profile is not explicitly excluded from X-01. Gate clarification proposal awaits approval; no waiver is inferred."]
+    blockers = [] if full_soak else ["NF-11 eight-hour soak is NOT_RUN and blocks full qualification (B-10B/R-14). Limited D-11/E2-B1 is assessed separately; no production waiver is inferred."]
     if not repo_ok:
         blockers.append("NF-03 availability/latency on the repository volume is not qualified; compare independent without/with-worker replace samples and in-place edit SLO. Only the local NTFS profile is qualified.")
     failed_scenarios = [name for name, value in records.items() if value["status"] == "FAIL"]
@@ -110,12 +125,7 @@ def qualification(root: Path, run_id: str, started_at: str, *, allow_legacy=Fals
     environment = json.loads(environment_path.read_text(encoding="utf-8"))
     if environment.get("run_id") != run_id:
         raise ValueError("Environment does not belong to this run.")
-    sources = {}
-    for directory in ["src", "tests", "contracts", "scripts", "config"]:
-        for path in (root / directory).rglob("*"):
-            if path.is_file() and not {"bin", "obj", "__pycache__"}.intersection(path.parts) and path.suffix in {".cs", ".csproj", ".py", ".sql", ".json"} and path.name != "qualification.json":
-                sources[path.relative_to(root).as_posix()] = hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
-    source_hash = hashlib.sha256(json.dumps(sources, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    source_hash, sources = source_fingerprint(root)
     performance_keys = ["NF-01", "NF-02", "NF-03", "NF-05", "NF-08"]
     performance_values = [nf[key]["status"] for key in performance_keys[:-1]] + [nf["NF-08"]["measured_idle_status"]]
     performance_status = "FAIL" if "FAIL" in performance_values else "PASS" if all(value == "PASS" for value in performance_values) else "BLOCKED"

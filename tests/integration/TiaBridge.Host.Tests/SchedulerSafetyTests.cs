@@ -12,6 +12,7 @@ using Xunit;
 
 namespace TiaBridge.Host.Tests;
 
+[Collection("HTTP API process")]
 public class SchedulerSafetyTests
 {
     [Fact]

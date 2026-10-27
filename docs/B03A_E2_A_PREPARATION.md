@@ -366,11 +366,8 @@ portal. To wyłącznie kontekst producenta, **nie potwierdzenie getterów V19**.
 exact zakresu jest kod V19; zachowanie live pozostaje NOT_RUN. Timeout nie kończy call;
 zachowaj UNKNOWN/quarantine, bez retry, rollbacku, Save lub automatycznej naprawy.
 
-D-11-P dodaje kandydacki profil kwalifikacji wydajnościowej `SHARED_WORKSTATION`; jego
-progi i PASS_WITH_LOAD nie zmieniają D-11 PASS związanego z tym historycznym buildem ani
-nie stanowią wejścia do E2-B1. Propozycja wymaga osobnej decyzji: obowiązkowe testy
-bezpieczeństwa PASS, świeży shared profile PASS, zatwierdzony bootstrap qualification-only,
-exact project/process binding, jawna zgoda live Engineering oraz niezależne
-`IsModified=false` przed i po read-only cyklu. Kolejność projektów pozostaje
-`T05_RecipeSim_V19_Testowy`, potem `T04_T05-000_Testowy`; nic nie jest uruchamiane przez
-wybór profilu.
+Późniejsze B-03A/E2-G zatwierdza `SHARED_WORKSTATION 1.0.0` dla ograniczonej D-11
+E2-B1 według [20](20_PERFORMANCE_QUALIFICATION_PROFILES.md) i dodaje
+[walidator readiness](21_E2_B1_READINESS_GATE.md). Historyczne wyniki E2-A i X-01
+pozostają bez zmian. Pełne NF-08/NF-11 NOT_RUN nie stają się PASS; pełna kwalifikacja
+pozostaje BLOCKED. READY nie aktywuje B0 ani nie autoryzuje Engineering.

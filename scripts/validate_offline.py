@@ -161,7 +161,7 @@ def main(argv=None):
     run_folder.mkdir(parents=True, exist_ok=False)
     OUTPUT = run_folder / "validation"
     OUTPUT.mkdir()
-    report = {"schema_version": "1.1", "scope": "B-01A-C/B-02A-D OFFLINE", "status": "FAIL", "qualification_status": "NOT_RUN", "performance_status": "NOT_RUN", "qualification_profile": profile, "profile_version": "1.0.0" if profile == "STRICT" else "1.0.0-candidate", "started_at": datetime.now(timezone.utc).isoformat(), "steps": [], "engineering": "NOT_RUN", "runtime": "NOT_RUN"}
+    report = {"schema_version": "1.1", "scope": "B-01A-C/B-02A-D OFFLINE", "status": "FAIL", "qualification_status": "NOT_RUN", "performance_status": "NOT_RUN", "qualification_profile": profile, "profile_version": "1.0.0", "started_at": datetime.now(timezone.utc).isoformat(), "steps": [], "engineering": "NOT_RUN", "runtime": "NOT_RUN"}
     try:
         for dependency in ["jsonschema", "openapi_spec_validator"]:
             if importlib.util.find_spec(dependency) is None:
@@ -185,9 +185,13 @@ def main(argv=None):
         resilience_report = load_reporter(ROOT)
         resilience_report.capture_environment(ROOT, run_id)
         resilience_report.performance_evidence.write_new_json(OUTPUT / "run-metadata.json", {"run_id": run_id, "started_at": report["started_at"], "git_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), "python": sys.version, "qualification_profile": profile, "profile_version": resilience_report.performance_evidence.PROFILE_VERSION, "profile_definition_sha256": resilience_report.performance_evidence.PROFILE_SHA256, "applied_test_harness_limits": resilience_report.performance_evidence.TEST_HARNESS_LIMITS, "preflight_status": report["preflight"]["status"], "scope": report["scope"]})
+        source_fingerprint, _ = resilience_report.source_fingerprint(ROOT)
+        report["profile_definition_sha256"] = resilience_report.performance_evidence.PROFILE_SHA256
         steps = [
             ("01-restore", ["dotnet", "restore", "TiaBridge.slnx", "--locked-mode", "--source", str(feed), "-p:NuGetAudit=false"]),
+            *([("01b-worker-restore", ["dotnet", "restore", "src/TiaBridge.Worker.V19/TiaBridge.Worker.V19.csproj", "--locked-mode", "--source", str(feed), "-p:NuGetAudit=false"])] if profile == "SHARED_WORKSTATION" else []),
             ("02-build", ["dotnet", "build", "TiaBridge.slnx", "-c", "Release", "--no-restore"]),
+            *([("02b-worker-build", ["dotnet", "build", "src/TiaBridge.Worker.V19/TiaBridge.Worker.V19.csproj", "-c", "Release", "--no-restore"])] if profile == "SHARED_WORKSTATION" else []),
             ("03-dotnet", ["dotnet", "test", "TiaBridge.slnx", "-c", "Release", "--no-build", "--no-restore", "-m:1", "--logger", "trx", "--results-directory", str(test_results)]),
             ("04-json-schema-openapi", [sys.executable, "-B", "-m", "unittest", "discover", "-s", "tests/contracts", "-p", "test_*.py", "-v"]),
             ("05-contract-generator", [sys.executable, "-B", "scripts/generate_contracts.py"]),
@@ -198,6 +202,13 @@ def main(argv=None):
         ]
         for name, command in steps:
             result = run_step(name, command, report["steps"], collect_test_failure=name in {"03-dotnet", "04-json-schema-openapi"})
+            if name == "02b-worker-build":
+                # This metadata is finalized once, before any test executes; never overwrite a run artifact.
+                resilience_report.performance_evidence.write_new_json(OUTPUT / "build-metadata.json", {
+                    "run_id": run_id, "source_fingerprint_lf_sha256": source_fingerprint,
+                    "builds_sha256": {key: resilience_report.performance_evidence.digest(ROOT / relative) for key, relative in {
+                        "host": "src/TiaBridge.Host/bin/Release/net10.0/TiaBridge.Host.dll",
+                        "worker": "src/TiaBridge.Worker.V19/bin/Release/net48/TiaBridge.Worker.V19.exe"}.items()}})
             if name == "03-dotnet":
                 report["dotnet"] = check_trx(test_results, host_required=True, scheduler_required=True, api_required=True, resilience_required=True, allow_failures=True)
                 report["test_results"] = str(test_results.relative_to(ROOT))

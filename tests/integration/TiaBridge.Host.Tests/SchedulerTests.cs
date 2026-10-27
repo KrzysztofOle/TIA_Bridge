@@ -99,12 +99,20 @@ internal sealed class SchedulerFixture : IAsyncDisposable
             await Scheduler.PumpOnceAsync(); await Task.Delay(10);
         }
     }
-    internal async Task Running(OperationId id) => await Until(() => Store.Read(id).Report.Phase == "EXECUTING");
+    internal async Task Running(OperationId id) => await Until(() =>
+    {
+        var report = Store.Read(id).Report;
+        if (OperationLifecycle.IsTerminal(report.State))
+            throw new InvalidOperationException($"Synthetic dispatch ended before EXECUTING: {report.State}/{report.Phase}/{report.Error?.Code}");
+        return report.Phase == "EXECUTING";
+    });
     internal async Task Advance(int seconds)
     { for (int i = 0; i < seconds; i++) { Clock.Advance(TimeSpan.FromSeconds(1)); await Scheduler.PumpOnceAsync(); } }
     public async ValueTask DisposeAsync() { await Scheduler.DisposeAsync(); Files.Dispose(); }
 }
 
+// Real process startup/IPC probes share the existing exclusive process lane. External user load remains allowed.
+[Collection("HTTP API process")]
 public class SchedulerTests
 {
     [Theory]
@@ -174,9 +182,14 @@ public class SchedulerTests
     public async Task Missing_heartbeat_is_detected_separately_from_the_execution_deadline()
     {
         await using var f = new SchedulerFixture(); var id = f.Admit(FakeScenario.NoHeartbeat, mutation: true, timeout: 30);
-        await f.Running(id); await f.Advance(7);
+        await f.Running(id);
+        await f.Advance(5);
+        Assert.Equal(OperationStatusResult_State.RUNNING, f.Store.ReadStatus(id).State);
+        Assert.Null(f.Store.Read(id).Report.Error);
+        await f.Advance(2);
         Assert.Equal(ErrorCode.WORKER_UNAVAILABLE, f.Store.Read(id).Report.Error!.Code);
         Assert.Equal(OperationState.RECONCILIATION_REQUIRED, f.Store.Read(id).Report.State);
+        Assert.Equal(1, f.Store.AttemptCount(id)); Assert.True(f.Store.OwnerBlocked);
     }
 
     [Theory]

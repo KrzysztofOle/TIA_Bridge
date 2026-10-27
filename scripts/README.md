@@ -38,7 +38,7 @@ Zależności niezależnej walidacji QA określa [requirements-qa.txt](requiremen
 
 ## Walidacja offline B-01C
 
-[validate_offline.py](validate_offline.py) korzysta z istniejących dotnet/unittest/generator/audit narzędzi. Wymagania: Python 3.12 z requirements-qa.txt w izolowanym venv, .NET SDK z global.json, Git i wypełniony lokalny cache pakietów z lockfiles. Polecenie domyślne: `& $b01Python -B scripts/validate_offline.py` (`STRICT`). Profil kandydujący wybiera się jawnie `--profile SHARED_WORKSTATION`. Wersja, hash definicji i zastosowane progi trafiają do run-bound evidence. Nie instaluje pakietów i nie uruchamia API/Siemens; locked restore ma wyłącznie pusty lokalny feed oraz NuGetAudit=false, bez sieciowego fallbacku. Przechodzi wszystkie bramki z [instrukcji testów](../tests/README.md), odrzuca niepełny TRX/skip/fail i zapisuje ignorowany `.tia-bridge/offline/run.json`. Sprawdzenie zależności obejmuje Core csproj, locked transitive packages, source imports i testowane assembly refs; nie jest skanerem dowolnej przyszłej refleksji/pluginów.
+[validate_offline.py](validate_offline.py) korzysta z istniejących dotnet/unittest/generator/audit narzędzi. Wymagania: Python 3.12 z requirements-qa.txt w izolowanym venv, .NET SDK z global.json, Git i wypełniony lokalny cache pakietów z lockfiles. Polecenie domyślne: `& $b01Python -B scripts/validate_offline.py` (`STRICT`). Zatwierdzony profil SHARED_WORKSTATION 1.0.0 wybiera się jawnie `--profile SHARED_WORKSTATION`. Wersja, hash definicji i zastosowane progi trafiają do run-bound evidence. Nie instaluje pakietów i nie uruchamia API/Siemens; locked restore ma wyłącznie pusty lokalny feed oraz NuGetAudit=false, bez sieciowego fallbacku. Przechodzi wszystkie bramki z [instrukcji testów](../tests/README.md), odrzuca niepełny TRX/skip/fail i zapisuje ignorowany `.tia-bridge/offline/run.json`. Sprawdzenie zależności obejmuje Core csproj, locked transitive packages, source imports i testowane assembly refs; nie jest skanerem dowolnej przyszłej refleksji/pluginów.
 
 B-02A rozszerza ten sam przebieg o Host/Storage i lokalne testy SQLite na Windows NTFS. Oddzielne TRX w katalogu UUID przebiegu są agregowane, z obowiązkowymi przypadkami restartu, awarii, idempotencji i artefaktów. StorageProbe jest tylko procesem testowym; B-02A sam nie uruchamia serwera ani schedulera. Baza testowa powstaje poza repo w lokalnym katalogu aplikacji, a raporty pozostają w `.tia-bridge/offline/`.
 
@@ -58,3 +58,13 @@ B-02D: validate_offline.py rozszerza ten sam pipeline o wymagane process/crash/s
 ## Audyt środowiska V19 przed X-01
 
 [audit_v19_environment.ps1](audit_v19_environment.ps1) wymaga Windows PowerShell/PowerShell na Windows, standardowych Win32/CIM/.NET i uprawnienia do odczytu lokalnej instalacji. Nie instaluje pakietów, nie zmienia grup/ACL/rejestru Siemens, nie wykonuje Attach i nie czyta kluczy licencyjnych. Parametry `-OutputDirectory` i `-ProjectRoot` wskazują uprzednio utworzony własny root StorageLocation pod LOCALAPPDATA/TIA_Bridge2/dev/x01 na NTFS oraz zatwierdzony katalog projektów. Wynik environment.json powstaje z CreateNew poza repo; powtórzenie nie nadpisuje dowodu. Skrypt zbiera wersje Windows/Framework/SDK, publiczne pliki i SHA, PID/start/SID, typy dysków i metadata AP19. Nie commituj prywatnego raportu. Gdy execution policy odmawia uruchomienia z exFAT, nie zmieniaj polityki: użyj zatwierdzonej kopii tego samego skryptu na własnym lokalnym NTFS z kontrolą SHA. Szczegóły i ograniczenia: [Engineering](../tests/engineering/README.md).
+
+## Bramka E2-G
+
+[e2_gate.py](e2_gate.py) wymaga Python 3.12/std library. Polecenie:
+`py -3 -B scripts/e2_gate.py --run-id <run-id> --dossier <reviewed-local-json> --output .tia-bridge/e2-g-reviewed.json`.
+Bez dossier ocenia dowody offline i raportuje brak bindingu. Nie uruchamia procesów
+Siemens ani nie aktywuje bootstrapu. Format, kody i znaczenie trzech statusów są w
+[21](../docs/21_E2_B1_READINESS_GATE.md). Runner z jawnym SHARED_WORKSTATION buduje także Worker V19 Release
+z lokalnych referencji i cache (locked offline restore), bez uruchamiania Workera;
+CreateNew build-metadata wiąże exact Host/Worker z dowodem i źródłami.

@@ -20,7 +20,7 @@
       }
     },
     "SHARED_WORKSTATION": {
-      "version": "1.0.0-candidate",
+      "version": "1.0.0",
       "test_harness": {
         "fake_worker_phase_observation_s": 30
       },
