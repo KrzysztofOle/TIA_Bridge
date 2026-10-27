@@ -1,5 +1,51 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-27 — B-03A/E2-B1: 20 odczytów, kwalifikacja BLOCKED
+
+Baza `16916d4f392b639a7936494a1c85f899fa4f3e0a`, po fetch HEAD=origin/main,
+worktree czyste. Osobne jawne zlecenie użytkownika objęło autonomiczne read-only B1,
+nowy lokalny deployment/ACL, B0, monitoring i Computer Use A. Nie rozszerzono zakresu
+o drugi projekt, mutacje Siemens lub E1 enrollment.
+
+[Raport B1](tests/engineering/E2_B1_2026-10-27_06cbfec6.md) rozdziela funkcjonalne
+20/20 PASS od qualification BLOCKED / RESOURCE_REVIEW_REQUIRED. Run
+`06cbfec6107d4627b015a0c5e5f433bd`: Windows/UI/NTFS/build binding, dossier,
+E2-G READY na ponownie zweryfikowanej D-11 `bdca23b132664a2b84bf2d225d0e707d`,
+bootstrap-inspect i jawne authorize poprzedziły Attach. 20 sekwencyjnych cykli STA
+na jednym Workerze, bez retry/restart; wszystkie IsModified false/false,
+graf i coverage zgodne, wszystkie Dispose.Returned. Host i Worker zakończone
+kontrolowanie, TIA nadal żywa. Grant FINISHED/BUDGET_COMPLETED, used 20, released true.
+
+Worker handles after cold 456 → warm 20 620; slope warm +9,589474/cykl,
+mediany okien 489,5/557/616. Idle 30,032 s nie potwierdził powrotu do wczesnego
+poziomu warm. Przyczyna nierozstrzygnięta; brak automatycznego PASS, nowego progu
+lub tezy o potwierdzonym leak. Bootstrap review jawnie odmówione
+(plan_checks_passed=false, GROWING). 112 metadanych plików i hash AP19 bez zmian;
+brak deklaracji pełnego porównania zawartości pozostałych plików/pamięci TIA.
+684 rekordy samplera i wszystkie outliery zachowane. Pakiet 1069 plików,
+manifest `a16d14f9e88deefd60b434e7e74e9a99ff3b8c566530135bcc8b955c844a0200`,
+niezależny PowerShell Get-FileHash/bytes/count PASS. Prywatne surowe dowody, bindingi,
+projekty, oryginalna SQLite, konfiguracja i lokalne skrypty pozostają poza Git.
+
+**Ocena spójności sekcja po sekcji:** AGENTS: zakres/stan (historyczna data pozostaje),
+hierarchia, niezmienniki, autoryzacja/testy, dyscyplina zmian, Git i dane nieufne;
+Instrukcja_ChatGPT: cel, odpowiedzialność, źródła, architektura, zadania, kontrola,
+bezpieczeństwo/recovery, decyzje, GitHub i styl. Obie instrukcje bez zmian:
+wykonano już zdefiniowany, osobno autoryzowany eksperyment; nie zmieniono zasad,
+kryteriów lub praw i nie stwierdzono konfliktu normatywnego.
+ADR 0001–0003, specyfikacje 03–07/17–20 i kontrakty API/IPC/Core/E1/B0 bez zmian:
+brak nowego adaptera, gettera, security workflow, SYNCED lub kwalifikowanej capability.
+Dokładne bajty zatwierdzonego planu B1 i E2-A zachowano. README, bieżące odniesienia
+08/21 i nowy raport aktualizują wyłącznie stan wykonania; historyczne dowody X-01,
+STRICT FAIL, NF-03 exFAT FAIL i wcześniejsze E2 przygotowanie pozostają zachowane.
+
+Engineering B2, real E1 enrollment, Runtime, NF-11 i produkcja NOT_RUN;
+pełna kwalifikacja offline BLOCKED przez NF-11, Worker Handle Risk UNKNOWN.
+Zmieniono wyłącznie dokumentację wynikową; build Host/Worker i źródła kodu bez zmian.
+Walidacja dokumentacji PASS: audit_quality.py sprawdził 66 Markdown i 604 lokalne
+odnośniki, errors=[]; git diff --check PASS. Nie uruchamiano kolejnej serii Siemens
+ani testów tworzących nowy binding. Zewnętrznych 28 linków nie sprawdzano live.
+
 ## 2026-10-27 — B-03A/E2-G: SHARED_WORKSTATION i bramka E2-B1
 
 Baza: `3e0785556902c0ef10d6983f17ea0743997e8e6c`, HEAD=origin/main po fetch,

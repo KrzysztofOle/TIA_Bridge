@@ -81,13 +81,16 @@ Uszczegółowienie przygotowania B-03A, 2026-10-27: [E2-A](B03A_E2_A_PREPARATION
 przygotowuje offline [B1](E2-B1_TEST_PLAN.md) `T05_RecipeSim_V19_Testowy`, następnie
 [B2](E2-B2_TEST_PLAN.md) `T04_T05-000_Testowy`. B2 wymaga B1 qualification PASS,
 hashowanych dowodów, release, trend review i osobnej decyzji/świeżego preflightu.
-Engineering obu NOT_RUN, real evidence NOT_REGISTERED; bootstrap wymagający decyzji
-opisano w pakiecie. To nie otwiera B-03B, Etapu 4 ani praw do mutacji.
+Historyczne przygotowanie nie uruchamiało Engineering. Późniejszy osobno autoryzowany
+[B1](../tests/engineering/E2_B1_2026-10-27_06cbfec6.md) wykonał 20/20 odczytów PASS,
+lecz qualification BLOCKED przez rosnące handles; B2 i real E1 enrollment NOT_RUN.
+To nie otwiera B-03B, Etapu 4 ani praw do mutacji.
 
 [E2-B0](19_CONTROLLED_QUALIFICATION_BOOTSTRAP.md) implementuje offline zatwierdzony
 Controlled Qualification Bootstrap dla B1: jawny lokalny grant qualification-only,
 exact binding/build/read scope i trwale zużywany budżet 20; restart/STOP zamyka grant.
-Normalny tryb nadal wymaga E1. Nie aktywowano realnego grantu i nie uruchomiono Engineering.
+Normalny tryb nadal wymaga E1. Implementacja offline nie aktywowała grantu;
+późniejszy grant B1 został osobno autoryzowany i zakończony po zużyciu 20 cykli.
 
 ## Etap 4 — Pliki i CODEX→TIA [MVP]
 

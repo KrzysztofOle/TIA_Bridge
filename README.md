@@ -21,8 +21,11 @@ Bieżące przygotowanie B-03A/E2: [pakiet E2-A](docs/B03A_E2_A_PREPARATION.md),
 [plan B1 — T05_RecipeSim_V19_Testowy](docs/E2-B1_TEST_PLAN.md),
 [plan B2 — T04_T05-000_Testowy](docs/E2-B2_TEST_PLAN.md),
 [instrukcja operatora](docs/E2_OPERATOR.md). Testy jednego projektu naraz, B1 przed B2.
-Engineering obu NOT_RUN; real evidence NOT_REGISTERED. Przygotowanie nie aktywuje
-deploymentu i nie rozstrzyga bootstrapu kwalifikacji bez decyzji użytkownika.
+[Wykonany B1, 2026-10-27](tests/engineering/E2_B1_2026-10-27_06cbfec6.md):
+20/20 odczytów funkcjonalnych PASS, qualification BLOCKED przez niewyjaśniony
+wzrost handles Workera. E2-G READY i jawny B0 poprzedziły test; grant FINISHED,
+20 cykli zużytych, release potwierdzony. B2 i real E1 enrollment NOT_RUN;
+przygotowanie dokumentacji samo nie aktywuje deploymentu ani praw Engineering.
 
 | Dokument | Zawartość |
 |---|---|
@@ -65,4 +68,4 @@ Pierwotne opracowania [architecture](docs/architecture.md), [sync-model](docs/sy
 
 Osobne [rozwiązanie Engineering](TiaBridge.Engineering.slnx) buduje worker net48/x64 z PublicAPI V19 z Program Files, bez kopiowania vendor DLL. Standardowy build/test offline nie wymaga Siemens. [Jawny harness live](tests/engineering/README.md) wykorzystuje istniejący Host, API, CLI, SQLite, scheduler i IPC 1.1; dopuszcza wyłącznie exact binding i `project.inspect`, bounded inventory oraz Detach. Pozostałe operacje TIA pozostają UNSUPPORTED. Nie ma eksportera, importu, Save, Compile, Download lub Runtime. PASS tego eksperymentu nie oznacza kwalifikacji produkcyjnej ani całego B-03A.
 
-Końcowy X-01: oba projekty przeszły Attach/read/Dispose; Engineering 93/93 PASS w historycznym zakresie. D-11 LIMITED GATE ma PASS. Aktualna pełna kwalifikacja offline NTFS ma FAIL (NF-08: 1,0288% > 1,0%); historyczny exFAT FAIL pozostaje, NF-11 jest NOT_RUN, a ryzyko wzrostu handles Workera UNKNOWN. B-03A ma implementację offline; nowe Engineering Discovery nie było uruchomione i wymaga osobnej zgody oraz świeżego potwierdzenia bindingów. Nie jest to pełna kwalifikacja ani gotowość produkcyjna.
+Końcowy X-01: oba projekty przeszły Attach/read/Dispose; Engineering 93/93 PASS w historycznym zakresie. D-11 LIMITED GATE ma PASS. Historyczna pełna kwalifikacja offline NTFS STRICT ma FAIL (NF-08: 1,0288% > 1,0%); historyczny exFAT FAIL pozostaje. Późniejszy SHARED_WORKSTATION ma ograniczoną D-11 PASS i pełną kwalifikację BLOCKED przez NF-11 NOT_RUN. Nowy [Engineering Discovery B1](tests/engineering/E2_B1_2026-10-27_06cbfec6.md) wykonał 20 odczytów, lecz qualification pozostaje BLOCKED przez zasoby; Worker Handle Risk UNKNOWN. Nie jest to pełna kwalifikacja ani gotowość produkcyjna.

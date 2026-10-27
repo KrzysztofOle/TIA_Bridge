@@ -1,8 +1,11 @@
 # 21 — E2-G: deterministyczna gotowość E2-B1
 
 Status: implementacja OFFLINE. `SHARED_WORKSTATION 1.0.0` zatwierdzony 2026-10-27.
-Engineering B1/B2 NOT_RUN, autoryzacja operatora NOT_GRANTED. Profil, D-11 i pełna
-kwalifikacja to osobne wyniki. Historyczne raporty X-01 pozostają niezmienione.
+Stan przygotowania E2-G: Engineering B1/B2 NOT_RUN, autoryzacja NOT_GRANTED.
+Późniejsze osobno autoryzowane [wykonanie B1](../tests/engineering/E2_B1_2026-10-27_06cbfec6.md)
+uzyskało READY, wykonało 20/20 odczytów i zakończyło grant; kwalifikacja BLOCKED
+przez zasoby, B2 NOT_RUN. Profil, D-11 i pełna kwalifikacja to osobne wyniki.
+Historyczne raporty X-01 pozostają niezmienione.
 
 ## Jedno narzędzie i trzy wyniki
 
