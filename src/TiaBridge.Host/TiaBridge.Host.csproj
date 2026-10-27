@@ -15,5 +15,6 @@
     <EmbeddedResource Include="Storage/Migrations/*.sql" />
     <InternalsVisibleTo Include="TiaBridge.Host.Tests" />
     <InternalsVisibleTo Include="TiaBridge.StorageProbe" />
+    <InternalsVisibleTo Include="TiaBridge.Qualification" />
   </ItemGroup>
 </Project>

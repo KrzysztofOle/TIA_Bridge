@@ -188,6 +188,12 @@
       },
       "tiabridge.ipc": {
         "type": "Project"
+      },
+      "tiabridge.qualification": {
+        "type": "Project",
+        "dependencies": {
+          "TiaBridge.Host": "[1.0.0, )"
+        }
       }
     }
   }

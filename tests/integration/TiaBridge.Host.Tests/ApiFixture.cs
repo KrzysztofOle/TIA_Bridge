@@ -26,14 +26,15 @@ internal sealed class ApiFixture : IAsyncDisposable
     internal string ProbeBinary => Path.Combine(Files.Repository, "tests", "integration", "TiaBridge.StorageProbe", "bin", new DirectoryInfo(AppContext.BaseDirectory).Parent!.Name, "net10.0", "TiaBridge.StorageProbe.dll");
     private Task<string>? stdout, stderr;
     internal string Binary(string project) => Path.Combine(Files.Repository, "src", project, "bin", new DirectoryInfo(AppContext.BaseDirectory).Parent!.Name, "net10.0", project + ".dll");
-    internal async Task Start(FakeScenario scenario = FakeScenario.Success, bool mutation = false, int delay = 0, bool fakeEnabled = true, int rate = 2048, string? workerDllOverride = null, string? resilienceMode = null)
+    internal async Task Start(FakeScenario scenario = FakeScenario.Success, bool mutation = false, int delay = 0, bool fakeEnabled = true, int rate = 2048, string? workerDllOverride = null, string? resilienceMode = null, QualificationTrustConfiguration? qualificationTrust = null)
     {
         _ = Files.Location;
         string method = mutation ? "sync.apply" : "project.inspect";
         using var report = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "response." + method + ".json")));
         var config = new HostConfiguration("1.0", Files.Root, Files.Repository, ["11111111-1111-4111-8111-111111111111"], fakeEnabled ? workerDllOverride ?? Binary("TiaBridge.FakeWorker") : null,
-            fakeEnabled ? [new FakeApiProfile(method, scenario, delay, !mutation, report.RootElement.Clone())] : [], mutation, RequestsPerSecond: rate);
+            fakeEnabled ? [new FakeApiProfile(method, scenario, delay, !mutation, report.RootElement.Clone())] : [], mutation, RequestsPerSecond: rate, QualificationTrust: qualificationTrust);
         File.WriteAllText(ConfigPath, JsonSerializer.Serialize(config, HostConfiguration.Json), new System.Text.UTF8Encoding(false));
+        if (qualificationTrust is not null) LocalTrustedFixture.ProtectConfig(ConfigPath);
         var info = new ProcessStartInfo("dotnet") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
         foreach (string argument in resilienceMode is null ? new[] { Binary("TiaBridge.Host"), "--config", ConfigPath, "--stdio" } : new[] { ProbeBinary, Files.Root, Files.Repository, "http-resilience", resilienceMode }) info.ArgumentList.Add(argument);
         info.Environment["ASPNETCORE_URLS"] = "http://0.0.0.0:6553"; // explicit loopback binding must ignore environment URLs.

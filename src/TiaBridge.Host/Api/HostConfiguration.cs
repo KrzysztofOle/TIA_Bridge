@@ -11,7 +11,7 @@ using TiaBridge.Ipc;
 namespace TiaBridge.Host.Api;
 
 public sealed record FakeApiProfile(string Method, FakeScenario Scenario, int DelayMs, bool QualifiedEffectFreeRead, JsonElement SuccessReport);
-public sealed record QualificationTrustConfiguration(string[] TrustedSignerKeys);
+public sealed record QualificationTrustConfiguration(string[] TrustedSignerKeys, string? OperatorSid = null, string? HostSid = null);
 public sealed record HostConfiguration(string SchemaVersion, string StatePath, string RepositoryRoot, string[] RegisteredProjects,
     string? FakeWorkerDll = null, FakeApiProfile[]? FakeProfiles = null, bool EnableSyntheticMutations = false,
     int RequestsPerSecond = 2048, int SubmitsPerSecond = 256, int MaxInFlight = 64,
@@ -27,16 +27,25 @@ public sealed record HostConfiguration(string SchemaVersion, string StatePath, s
     };
     public static HostConfiguration Read(string path)
     {
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Windows required.");
         using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         if (file.Length > 256 * 1024) throw new ArgumentException("Host configuration exceeds limit.");
         byte[] bytes = new byte[checked((int)file.Length)]; file.ReadExactly(bytes); Protocol.CheckJson(bytes);
         var config = JsonSerializer.Deserialize<HostConfiguration>(bytes, Json) ?? throw new ArgumentException("Invalid Host configuration.");
         if (config.SchemaVersion != "1.0" || config.RegisteredProjects is null || config.RegisteredProjects.Length > 1000 || config.RequestsPerSecond is < 1 or > 2048 || config.SubmitsPerSecond is < 1 or > 256 || config.MaxInFlight is < 1 or > 64) throw new ArgumentException("Invalid Host configuration.");
         config = config with { StatePath = Environment.ExpandEnvironmentVariables(config.StatePath), RepositoryRoot = Path.GetFullPath(config.RepositoryRoot), FakeWorkerDll = config.FakeWorkerDll is null ? null : Path.GetFullPath(config.FakeWorkerDll) };
+        if (config.QualificationTrust is { TrustedSignerKeys: null }) throw new ArgumentException("Invalid qualification trust anchors.");
         if (config.QualificationTrust?.TrustedSignerKeys is { } signers
-            && (signers.Length > 32 || signers.Any(s => string.IsNullOrWhiteSpace(s) || s.Length > 4096)
+            && (signers.Length > 1 || signers.Any(s => string.IsNullOrWhiteSpace(s) || s.Length > 4096)
                 || signers.Distinct(StringComparer.Ordinal).Count() != signers.Length)) throw new ArgumentException("Invalid qualification trust anchors.");
         _ = StorageLocation.Validate(config.StatePath, config.RepositoryRoot);
+        if (config.QualificationTrust?.TrustedSignerKeys.Length > 0)
+        {
+            Qualification.LocalTrustAcl.Configuration(path, config.QualificationTrust);
+            try { _ = QualificationEvidenceProvider.ReadAnchors(config.QualificationTrust); }
+            catch (Exception e) when (e is FormatException or System.Security.Cryptography.CryptographicException)
+            { throw new ArgumentException("Invalid qualification public key."); }
+        }
         foreach (string project in config.RegisteredProjects) _ = new ProjectKey(UuidIdentity.ParseValue(project));
         var methods = new HashSet<OperationMethod>();
         foreach (var fake in config.FakeProfiles ?? [])

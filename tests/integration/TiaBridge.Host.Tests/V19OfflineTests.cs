@@ -12,6 +12,7 @@ using Xunit;
 
 namespace TiaBridge.Host.Tests;
 
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class V19OfflineTests
 {
     [Theory]
@@ -48,8 +49,8 @@ public class V19OfflineTests
         var entry = new TiaBridge.Core.Capabilities.CapabilityEntryV2(key, true, true, "1.0", V19DiscoveryProfile.Id,
             TiaBridge.Host.Scheduling.V19InspectionProfile.DiscoveryReadScope, [], new TiaBridge.Core.Workspace.Coverage([new(TiaBridge.Core.Workspace.CoverageDimension.STRUCTURE, TiaBridge.Core.Workspace.CoverageState.COMPLETE)]), [qualification]);
         var registry = new TiaBridge.Core.Capabilities.CapabilityRegistry(new TiaBridge.Core.Capabilities.CapabilityConfigurationV2("2.0", "synthetic-v2", [entry]));
-        var signer = System.Security.Cryptography.ECDsa.Create(System.Security.Cryptography.ECCurve.NamedCurves.nistP256);
-        byte[] publicKey = signer.ExportSubjectPublicKeyInfo();
+        using var local = new LocalTrustedFixture(files);
+        var signer = local.Signer;
         string artifactContent = "synthetic qualification sample";
         string artifactHash = Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(artifactContent)));
         var evidence = new TiaBridge.Core.Capabilities.QualificationEvidence(qualification, 1,
@@ -65,14 +66,11 @@ public class V19OfflineTests
             PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower,
             Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter(allowIntegerValues: false) }
         };
-        byte[] payload = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(evidence, evidenceOptions);
-        byte[] signature = signer.SignData(payload, System.Security.Cryptography.HashAlgorithmName.SHA256);
-        string evidenceRoot = Path.Combine(files.Root, "qualification-evidence");
-        Directory.CreateDirectory(Path.Combine(evidenceRoot, qualification));
-        File.WriteAllText(Path.Combine(evidenceRoot, qualification, "sample.txt"), artifactContent);
-        File.WriteAllBytes(Path.Combine(evidenceRoot, qualification + ".signed.json"), System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(
-            new TiaBridge.Host.Scheduling.SignedQualificationEnvelope("synthetic", Convert.ToBase64String(payload), Convert.ToBase64String(signature)), evidenceOptions));
-        config = config with { QualificationTrust = new(["synthetic=" + Convert.ToBase64String(publicKey)]) };
+        local.WritePackage(evidence);
+        local.Tool.Approve(qualification, 1, local.Tool.Inspect(qualification, 1).PackageSha256, true);
+        local.Tool.Enroll(qualification, 1, signer);
+        string evidenceRoot = Path.Combine(local.Root, "records", qualification, "1");
+        config = config with { QualificationTrust = local.Config.QualificationTrust };
         var provider = new TiaBridge.Host.Scheduling.QualificationEvidenceProvider(config);
         TiaBridge.Host.Scheduling.V19InspectionProfile Profile(string? tia = null, string? worker = null, bool withEvidence = true, TiaBridge.Core.Capabilities.CapabilityRegistry? selected = null) =>
             new(config, selected ?? registry,
@@ -91,12 +89,12 @@ public class V19OfflineTests
         var v1 = new TiaBridge.Core.Capabilities.CapabilityRegistry(new TiaBridge.Core.Capabilities.CapabilityConfiguration("1.0", "synthetic-v1", []));
         Assert.Null(Profile(selected: v1).Resolve(operation));
         Assert.True(qualifiedProfile.Revalidate(operation, admitted!));
-        string artifactPath = Path.Combine(evidenceRoot, qualification, "sample.txt");
+        string artifactPath = Path.Combine(evidenceRoot, "sample.txt");
         File.AppendAllText(artifactPath, "tampered");
         Assert.Null(qualifiedProfile.Resolve(operation));
         Assert.False(qualifiedProfile.Revalidate(operation, admitted!));
         File.WriteAllText(artifactPath, artifactContent);
-        string signedPath = Path.Combine(evidenceRoot, qualification + ".signed.json");
+        string signedPath = Path.Combine(evidenceRoot, "evidence.signed.json");
         var signedEnvelope = System.Text.Json.JsonSerializer.Deserialize<TiaBridge.Host.Scheduling.SignedQualificationEnvelope>(File.ReadAllBytes(signedPath), evidenceOptions)!;
         byte[] changedSignature = Convert.FromBase64String(signedEnvelope.SignatureBase64); changedSignature[0] ^= 1;
         File.WriteAllBytes(signedPath, System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(signedEnvelope with

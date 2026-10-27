@@ -32,6 +32,10 @@ Pełna walidacja: [tests/README.md](../../tests/README.md). OFFLINE jest odrębn
 
 `Api/HostApi.cs` binduje wyłącznie 127.0.0.1, publikuje token w chronionym discovery, wymaga bearer/SID ownership, sprawdza Origin/Host i limity. `Operations/ApiStorage.cs` korzysta z tego samego journalu/outbox także dla szybkich metod metadata. Token nie jest grantem TIA. Uruchomienie, przykład konfiguracji, pełny cykl CODEX i ograniczenia: [dokument 15](../../docs/15_HTTP_API_CLI.md).
 
+## E1 Local Trusted v1
+
+Host korzysta z istniejącego providera E1 rozszerzonego o rzeczywiste Windows ACL, jawne SID operatora/Host i trwały journal aktywacji/odwołań w tym samym `qualification-evidence`. Każda ocena i rewalidacja przed dispatch sprawdza bieżącą aktywność, dokładny podpis/revision/build/project/scope oraz hashe artefaktów. Klucz prywatny i komendy enrollment należą wyłącznie do osobnego lokalnego [narzędzia operatora](../TiaBridge.Qualification/README.md); nie ma endpointów administracyjnych HTTP ani automatycznej naprawy ACL. [Model](../../docs/17_TRUSTED_QUALIFICATION_EVIDENCE.md), [procedura](../../docs/18_LOCAL_TRUSTED_ENROLLMENT.md), [raport](../../docs/B03A_E1_L_LOCAL_TRUSTED.md). Mechanizm pozostaje domyślnie wyłączony bez anchorów, a rzeczywiste dowody Engineering nie zostały zarejestrowane. Grant Siemens i B-03A/E2 wymagają osobnego zadania.
+
 ## Profil X-01
 
 `v19_worker_exe` i `v19` są zaufaną konfiguracją operatora, nigdy parametrem HTTP. [Instrukcja workera](../TiaBridge.Worker.V19/README.md) opisuje exact binding, lokalny NTFS, assembly resolution i zakres deny. Profil jest rozłączny z Fake i syntetycznymi mutacjami. Native dispatch nie ma szablonu sukcesu; dopiero rzeczywista odpowiedź po Dispose jest walidowana względem bindingu i zamieniana na istniejący ProjectInspectResult. Raw observation i częściowe Coverage są dwoma immutable artefaktami z kontrolą SHA-256. Brak pełnego modelu obiektów jest jawny, a coverage_refs zawiera wyłącznie identyfikatory zweryfikowanych artefaktów. Native read nie podlega automatycznemu retry. [Kwalifikacja](../../docs/X01_TIA_V19_QUALIFICATION.md) nie rozszerza tokenu API o mutacje.

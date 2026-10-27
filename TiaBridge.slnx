@@ -13,4 +13,5 @@
     <Project Path="tests/integration/TiaBridge.Ipc.FrameworkProbe/TiaBridge.Ipc.FrameworkProbe.csproj" />
   </Folder>
   <Project Path="src/TiaBridge.Cli/TiaBridge.Cli.csproj" />
+  <Project Path="src/TiaBridge.Qualification/TiaBridge.Qualification.csproj" />
 </Solution>

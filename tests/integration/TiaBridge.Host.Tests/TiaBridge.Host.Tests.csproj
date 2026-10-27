@@ -9,6 +9,7 @@
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" PrivateAssets="all" />
     <ProjectReference Include="../../../src/TiaBridge.Host/TiaBridge.Host.csproj" />
+    <ProjectReference Include="../../../src/TiaBridge.Qualification/TiaBridge.Qualification.csproj" />
     <ProjectReference Include="../TiaBridge.StorageProbe/TiaBridge.StorageProbe.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../TiaBridge.Ipc.FrameworkProbe/TiaBridge.Ipc.FrameworkProbe.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
     <ProjectReference Include="../../../src/TiaBridge.FakeWorker/TiaBridge.FakeWorker.csproj" ReferenceOutputAssembly="false" />

@@ -18,7 +18,7 @@ internal static class HttpResilienceProbe
         if (Path.GetFullPath(config.StatePath) != Path.GetFullPath(root)) throw new ArgumentException("Probe ownership mismatch.");
         var control = new Control(root, mode);
         await HostApi.RunAsync(config, new HostRuntimeHooks(control,
-            Profile: profile => new Profile(profile, control), Supervisor: supervisor => new Supervisor(supervisor, control), Ready: () => control.Armed = true));
+            Profile: profile => new Profile(profile, control, config), Supervisor: supervisor => new Supervisor(supervisor, control), Ready: () => control.Armed = true));
     }
     internal static async Task<int> HoldLock(string root, string repository)
     {
@@ -66,13 +66,22 @@ internal static class HttpResilienceProbe
             throw new IOException("Synthetic storage statement failure.");
         }
     }
-    private sealed class Profile(IExecutionProfile inner, Control control) : IExecutionProfile
+    private sealed class Profile(IExecutionProfile inner, Control control, HostConfiguration config) : IExecutionProfile
     {
         private Guid? first;
         private readonly Dictionary<Guid, ArtifactDescriptor> artifactTemplates = new();
         public ExecutionSpec? Resolve(StoredOperation operation)
         {
             control.Hit("profile"); var spec = inner.Resolve(operation);
+            if (control.Mode == "qualification" && spec is not null)
+            {
+                if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+                // Synthetic HTTP/restart lane: real provider/revalidation, only the existing Fake executor.
+                var requirement = TiaBridge.Host.Qualification.LocalTrustStore.Parse<TiaBridge.Core.Capabilities.QualificationRequirement>(
+                    File.ReadAllBytes(Path.Combine(control.Root, "qualification-requirement.json")));
+                var decision = new QualificationEvidenceProvider(config).Assess(requirement);
+                return decision.Available ? spec with { QualificationDecisionHash = decision.SnapshotHash } : null;
+            }
             if (control.Mode == "artifact" && spec is not null)
             {
                 // Revalidation resolves the profile again. Keep the admitted proof/template pair;
