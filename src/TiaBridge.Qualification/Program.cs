@@ -4,6 +4,8 @@ using System.Text.Json;
 using TiaBridge.Host.Api;
 using TiaBridge.Host.Qualification;
 using TiaBridge.Host.Scheduling;
+using TiaBridge.Host.Operations;
+using TiaBridge.Host.Storage;
 using TiaBridge.Qualification;
 
 if (!OperatingSystem.IsWindows()) return 2;
@@ -12,7 +14,27 @@ try
 {
     if (args.Length < 3 || args[0] != "--config") throw new ArgumentException();
     var config = HostConfiguration.Read(Path.GetFullPath(args[1]));
-    var tool = new LocalEnrollment(config); string command = args[2];
+    string command = args[2];
+    if (command.StartsWith("bootstrap-", StringComparison.Ordinal))
+    {
+        var policy = config.QualificationBootstrap ?? throw new IOException("BOOTSTRAP_DISABLED");
+        var aclPolicy = new QualificationTrustConfiguration([], policy.OperatorSid, policy.HostSid);
+        LocalTrustAcl.Operator(aclPolicy);
+        string bootstrapRoot = Path.Combine(config.StatePath, "qualification-bootstrap");
+        LocalTrustAcl.Parents(bootstrapRoot, aclPolicy); LocalTrustAcl.Directory(bootstrapRoot, aclPolicy, protectedRoot: true);
+        var store = new SqliteOperationStore(StorageLocation.Open(config.StatePath, config.RepositoryRoot));
+        var bootstrap = new BootstrapLocal(config, store);
+        if (command == "bootstrap-inspect" && args.Length == 3)
+        { var package = bootstrap.Inspect(); Print(new { package.Authorization, package.Sha256 }); return 0; }
+        if (command == "bootstrap-authorize" && args.Length == 6 && args[3] == "--document-sha256" && args[5] == "--confirm-operator-approval")
+        { bootstrap.Authorize(args[4], true); Print(new { status = "AUTHORIZED_ONCE", config.QualificationBootstrap!.AuthorizationId }); return 0; }
+        if (command == "bootstrap-revoke" && args.Length == 3)
+        { bootstrap.Revoke(); Print(new { status = "REVOKED" }); return 0; }
+        if (command == "bootstrap-report" && args.Length == 3 || command == "bootstrap-review" && args.Length == 4 && args[3] == "--confirm-operator-review")
+        { Print(new BootstrapEvidence(config, store).Capture(command == "bootstrap-review")); return 0; }
+        throw new ArgumentException();
+    }
+    var tool = new LocalEnrollment(config);
     if (command == "list" && args.Length == 3)
     { Print(tool.List().Select(a => new { a.Evidence, a.EnvelopeSha256 })); return 0; }
     if (args.Length < 5 || !int.TryParse(args[4], out int revision)) throw new ArgumentException();

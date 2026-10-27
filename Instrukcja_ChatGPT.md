@@ -41,6 +41,7 @@ Polecenie musi zawierać:
 - Nie przepisuj historycznych wyników. Brak dowodu → BLOCKED, negatywny test → FAIL; status SYNCED ocenia się osobno.
 
 ## 7. Bezpieczeństwo i recovery
+- [Controlled Qualification Bootstrap E2-B0](docs/19_CONTROLLED_QUALIFICATION_BOOTSTRAP.md) jest oddzielnym eksperymentem qualification-only dla B1: lokalna jawna autoryzacja exact zakresu i budżet 20 cykli, trwale rozliczany bez odnawiania po restarcie. Nie jest capability PASS ani fallbackiem po E1 denial; normalne wykonanie nadal wymaga E1, a real experiment i późniejsze enrollment wymagają osobnych decyzji.
 - Badania domyślnie read-only; `deny-by-default`. Zgoda na kod ≠ prawa TIA. Project write wymaga indywidualnie zatwierdzonego planu albo zakresu istniejącego ograniczonego grantu testowego oraz właściwego uprawnienia TIA dla tej operacji. Sprawdź świeżą tożsamość odbiorcy, preconditions, capability i zweryfikowany backup przed pierwszą mutacją.
 - Fizyczny PLC/HMI download domyślnie zabroniony. RUN/STOP, transfer HMI, symulacja i OPC write wymagają osobnego grantu i dowodów izolacji/trasowania; SIM/localhost/IP nie wystarczają. OPC TEST/SECURE bez cichego fallbacku. Nie naruszaj cudzych sesji ani nie ujawniaj sekretów/danych klienta w Git.
 - Timeout, worker death i lease expiry nie dowodzą końca Siemens call. Niepewny efekt → UNKNOWN/RECONCILIATION_REQUIRED, trwała quarantine, odczyt stanu, nowy plan i decyzja. Bez auto replay/rollback/reimportu/Save. Idempotencja nie gwarantuje exactly-once.

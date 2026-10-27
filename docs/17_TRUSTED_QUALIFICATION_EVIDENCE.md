@@ -44,6 +44,12 @@ Local Trusted v1 enrollment is bounded to PASS, registered exact ProjectKey, PRO
 
 ## Admission, dispatch, restart and disabling
 
+The separately user-approved [Controlled Qualification Bootstrap](19_CONTROLLED_QUALIFICATION_BOOTSTRAP.md)
+adds an explicit local qualification-only mode for E2-B1, without an E1 PASS claim.
+It reuses this Host/scheduler/Worker route, with exact operator authorization and a
+durable twenty-cycle budget. It does not fall back from E1 denial, enable normal
+capabilities, or enroll results automatically. Normal mode still requires E1 below.
+
 The existing asynchronous admission/ledger does not create an enduring qualification grant. Host resolves the current active evidence, appends qualification decisions to the existing decision journal and compares decision hashes before preparing durable dispatch and again immediately before IPC send. Each assessment re-reads ACLs, lifecycle, signed payload and artifacts; lifecycle is read again after artifact hashing. Revocation after admission therefore denies a subsequent dispatch check. Retry uses the same revalidation; no second scheduler or operation engine was introduced.
 
 Revocation is not cancellation or rollback. A call that has crossed the final dispatch validation boundary may already be in flight; there is no atomic transaction between the operator journal and Siemens IPC. Do not claim that revocation stopped a Worker call. Existing deadline, epoch/fencing, UNKNOWN/quarantine and recovery rules remain authoritative.

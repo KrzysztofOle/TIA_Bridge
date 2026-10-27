@@ -42,9 +42,9 @@ public class MigrationAndPolicyTests
         using var f = new StoreFixture();
         var first = new SqliteOperationStore(f.Location, NoStorageFaults.Instance, TimeProvider.System, 1);
         var operation = f.Accept(first); Assert.Equal(1, f.Count("schema_migrations"));
-        var upgraded = f.Open(); Assert.Equal(3, f.Count("schema_migrations"));
+        var upgraded = f.Open(); Assert.Equal(4, f.Count("schema_migrations"));
         Assert.Equal(operation.Operation.Report.OperationId, f.Accept(upgraded).Operation.Report.OperationId);
-        _ = f.Open(); Assert.Equal(3, f.Count("schema_migrations"));
+        _ = f.Open(); Assert.Equal(4, f.Count("schema_migrations"));
         using var c = f.Connection(); using var command = c.CreateCommand();
         command.CommandText = "PRAGMA journal_mode"; Assert.Equal("wal", command.ExecuteScalar());
         command.CommandText = "PRAGMA foreign_keys"; Assert.Equal(1L, command.ExecuteScalar());
@@ -55,7 +55,7 @@ public class MigrationAndPolicyTests
         using var legacy = new StoreFixture();
         var v2 = new SqliteOperationStore(legacy.Location, NoStorageFaults.Instance, TimeProvider.System, 2);
         var old = legacy.Accept(v2); Assert.Equal(2, legacy.Count("schema_migrations"));
-        var v3 = legacy.Open(); Assert.Equal(3, legacy.Count("schema_migrations"));
+        var v3 = legacy.Open(); Assert.Equal(4, legacy.Count("schema_migrations"));
         var repeated = legacy.Accept(v3); Assert.True(repeated.AlreadyAccepted);
         Assert.Equal(old.Operation.Report.OperationId, repeated.Operation.Report.OperationId);
         Assert.Equal(old.Operation.RequestJson, v3.Read(old.Operation.Report.OperationId).RequestJson);

@@ -26,8 +26,11 @@ innych użytkowników, zamykania obcej TIA, auto napraw ani Runtime/symulacji/OP
 1. Osobna zgoda użytkownika na ten exact plan i odbiorcę; ograniczone okno sesji,
    operator i uprawnienie read-only. Przygotowanie E2-A nie jest taką zgodą.
 2. Rozstrzygnięty bootstrap z pakietu wspólnego: rzeczywisty exact source evidence
-   zatwierdzony/enrolled/verify albo osobno zaprojektowany i zatwierdzony eksperyment.
-   Obecnie brak dowodu; zwykły Host musi odmawiać. Żadnego synthetic PASS.
+   zatwierdzony/enrolled/verify albo jawny lokalny grant qualification-only według
+   [B0](19_CONTROLLED_QUALIFICATION_BOOTSTRAP.md), exact dokument/hash/plan/build/
+   ProjectKey/PID/start/path/SID/okno i jednorazowy limit 20. Implementacja B0 nie
+   jest grantem; rzeczywisty dokument nadal nie został wypełniony/aktywowany.
+   Bez niego zwykły Host wymaga E1. Żadnego synthetic PASS.
 3. Zweryfikowana właściwa ograniczona D-11 dla buildu/profilu NTFS i brak krytycznych
    błędów B-02A–D; NF-11 pozostaje NOT_RUN. Nie przepisuj dawnych FAIL lub X-01.
 4. Operator potwierdził kopię, brak edycji/aktywności kolidujących i czysty stan UI.
@@ -41,8 +44,10 @@ innych użytkowników, zamykania obcej TIA, auto napraw ani Runtime/symulacji/OP
 
 ## Kroki testowe po spełnieniu wejścia
 
-1. Zapisz preflight/binding/build manifest, wersje konfiguracji/registry i source
-   qualification verify. Nie uruchamiaj starego harnessu `--project-root --cycles`:
+1. Zapisz preflight/binding/build manifest, config i lokalną autoryzację/hash B0
+   (albo registry/E1 verify w normalnym trybie). Sprawdź READY, okno, plan hash,
+   exact buildy i pusty zużyty budżet przed pierwszym startem; restart zamyka grant.
+   Nie uruchamiaj starego harnessu `--project-root --cycles`:
    wymaga dwóch projektów, przeplata A/B, nie provisionuje Local Trusted.
 2. Uruchom istniejący Host `dotnet <Host.dll> --config <reviewed-config> --stdio`
    jako własny proces z kontrolowanym stdin. Nie uruchamiaj TIA z Bridge. Zachowaj
@@ -64,7 +69,8 @@ innych użytkowników, zamykania obcej TIA, auto napraw ani Runtime/symulacji/OP
    bez kill lub zamykania TIA. Sprawdź stan projektu/UI i metadane po teście.
 8. Zamknij pliki dowodowe, utwórz manifest/hash, niezależnie sprawdź integralność,
    opracuj trend review i raport. Ręczny reviewer wyznacza qualification_result.
-   Nie aktywuj enrollment i nie rozpoczynaj B2 automatycznie.
+   W B0 użyj bootstrap-report, następnie dopiero jawnego bootstrap-review z before/after,
+   plan checks i oceną zasobów. Nie aktywuj enrollment i nie rozpoczynaj B2 automatycznie.
 
 Instrukcyjne argumenty CLI (wszystkie zmienne muszą pochodzić z zatwierdzonej sesji,
 to nie komendy do wykonania w E2-A):

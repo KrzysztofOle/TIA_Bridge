@@ -34,6 +34,11 @@ Pełna walidacja: [tests/README.md](../../tests/README.md). OFFLINE jest odrębn
 
 ## E1 Local Trusted v1
 
+[Controlled Qualification Bootstrap](../../docs/19_CONTROLLED_QUALIFICATION_BOOTSTRAP.md)
+jest osobnym, jawnie skonfigurowanym trybem qualification-only dla B1. Domyślnie
+wyłączony; lokalny operatorowy grant i trwały budżet 20 nie zastępują E1 w normalnym
+trybie. Nie ma samodzielnego aktywowania go przez HTTP ani automatycznego enrollment.
+
 Host korzysta z istniejącego providera E1 rozszerzonego o rzeczywiste Windows ACL, jawne SID operatora/Host i trwały journal aktywacji/odwołań w tym samym `qualification-evidence`. Każda ocena i rewalidacja przed dispatch sprawdza bieżącą aktywność, dokładny podpis/revision/build/project/scope oraz hashe artefaktów. Klucz prywatny i komendy enrollment należą wyłącznie do osobnego lokalnego [narzędzia operatora](../TiaBridge.Qualification/README.md); nie ma endpointów administracyjnych HTTP ani automatycznej naprawy ACL. [Model](../../docs/17_TRUSTED_QUALIFICATION_EVIDENCE.md), [procedura](../../docs/18_LOCAL_TRUSTED_ENROLLMENT.md), [raport](../../docs/B03A_E1_L_LOCAL_TRUSTED.md). Mechanizm pozostaje domyślnie wyłączony bez anchorów, a rzeczywiste dowody Engineering nie zostały zarejestrowane. Grant Siemens i B-03A/E2 wymagają osobnego zadania.
 
 ## Profil X-01

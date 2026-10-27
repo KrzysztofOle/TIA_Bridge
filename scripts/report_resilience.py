@@ -112,7 +112,7 @@ def qualification(root: Path, run_id: str, started_at: str, *, allow_legacy=Fals
                 sources[path.relative_to(root).as_posix()] = hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
     source_hash = hashlib.sha256(json.dumps(sources, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     return {"schema_version": "1.1", "run_id": run_id, "sample_evidence_status": sample_state, "environment": environment, "generated_at": datetime.now(timezone.utc).isoformat(),
-            "versions": {"api_schema": "1.0", "ipc_protocol": "1.0", "fake_build": "1.0", "sqlite_schema": 3, "source_fingerprint_lf_sha256": source_hash, "source_file_count": len(sources)},
+            "versions": {"api_schema": "1.0", "ipc_protocol": "1.0", "fake_build": "1.0", "sqlite_schema": 4, "source_fingerprint_lf_sha256": source_hash, "source_file_count": len(sources)},
             "scope": "B-02D synthetic offline qualification; no Siemens activation or TIA state verification",
             "gate": gate, "x01_readiness": "READY" if gate == "PASS" else "NOT_READY",
             "gate_blockers": blockers,

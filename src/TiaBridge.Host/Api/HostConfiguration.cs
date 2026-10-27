@@ -15,8 +15,10 @@ public sealed record QualificationTrustConfiguration(string[] TrustedSignerKeys,
 public sealed record HostConfiguration(string SchemaVersion, string StatePath, string RepositoryRoot, string[] RegisteredProjects,
     string? FakeWorkerDll = null, FakeApiProfile[]? FakeProfiles = null, bool EnableSyntheticMutations = false,
     int RequestsPerSecond = 2048, int SubmitsPerSecond = 256, int MaxInFlight = 64,
-    string? V19WorkerExe = null, V19Settings? V19 = null, QualificationTrustConfiguration? QualificationTrust = null)
+    string? V19WorkerExe = null, V19Settings? V19 = null, QualificationTrustConfiguration? QualificationTrust = null,
+    Qualification.QualificationBootstrapConfiguration? QualificationBootstrap = null)
 {
+    [JsonIgnore] internal string? StartupConfigurationPath { get; init; }
     internal static readonly JsonSerializerOptions Json = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
@@ -59,6 +61,13 @@ public sealed record HostConfiguration(string SchemaVersion, string StatePath, s
         }
         if (config.FakeWorkerDll is not null && (Path.GetFileName(config.FakeWorkerDll) != "TiaBridge.FakeWorker.dll" || !File.Exists(config.FakeWorkerDll))) throw new ArgumentException("Built Fake Worker required.");
         V19InspectionProfile.Validate(config);
+        if (config.QualificationBootstrap is { } bootstrap)
+        {
+            if (config.V19?.Targets.Length != 1 || config.MaxInFlight != 1 || config.V19.Apartment != "STA"
+                || bootstrap.OperatorSid != bootstrap.HostSid || !Guid.TryParseExact(bootstrap.AuthorizationId, "D", out _)) throw new ArgumentException("Invalid qualification-only configuration.");
+            Qualification.LocalTrustAcl.Configuration(path, new([], bootstrap.OperatorSid, bootstrap.HostSid));
+        }
+        config = config with { StartupConfigurationPath = Path.GetFullPath(path) };
         return config;
     }
     public static OperationMethod ParseMethod(string name) => Enum.GetValues<OperationMethod>().SingleOrDefault(m => OperationCatalog.Name(m) == name, (OperationMethod)(-1)) is var method && Enum.IsDefined(method) ? method : throw new ArgumentException("Unknown method.");

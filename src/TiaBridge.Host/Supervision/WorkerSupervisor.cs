@@ -25,6 +25,13 @@ public interface IWorkerSupervisor
     Task<IWorkerConnection> StartAsync(CancellationToken ct);
 }
 
+// Internal testable projection of the existing authenticated V19 connection; no new transport or executor.
+internal interface IV19WorkerConnection : IWorkerConnection
+{
+    string Build { get; }
+    TiaBridge.Core.Discovery.DiscoveryResourceSample SampleResources();
+}
+
 /// <summary>Starts only the explicitly configured Fake Worker. No process discovery or Siemens activation.</summary>
 public sealed class FakeWorkerSupervisor(string workerDll, string artifactRoot, TimeProvider? time = null) : IWorkerSupervisor
 {
@@ -89,7 +96,7 @@ internal sealed class ProcessWorkerSupervisor(string workerDll, string artifactR
     }
 }
 
-internal sealed class WorkerConnection : IWorkerConnection
+internal sealed class WorkerConnection : IV19WorkerConnection
 {
     private readonly Process process;
     private readonly FramedConnection framed;
@@ -105,7 +112,7 @@ internal sealed class WorkerConnection : IWorkerConnection
     public int Pid { get; }
     public long StartTicks { get; }
     public string WorkerId { get; }
-    internal string Build { get; }
+    public string Build { get; }
     public bool HasExited => process.HasExited;
     public bool Connected => Volatile.Read(ref connected) == 1;
     public DateTimeOffset LastHeartbeat => new(Interlocked.Read(ref heartbeatTicks), TimeSpan.Zero);
@@ -116,7 +123,7 @@ internal sealed class WorkerConnection : IWorkerConnection
         heartbeatTicks = clock.GetUtcNow().UtcTicks;
         reader = ReadLoop();
     }
-    internal TiaBridge.Core.Discovery.DiscoveryResourceSample SampleResources()
+    public TiaBridge.Core.Discovery.DiscoveryResourceSample SampleResources()
     {
         process.Refresh();
         return new TiaBridge.Core.Discovery.DiscoveryResourceSample(process.HandleCount, process.PrivateMemorySize64, process.WorkingSet64);

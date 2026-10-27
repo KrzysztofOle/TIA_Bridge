@@ -35,7 +35,7 @@ public sealed class OperationScheduler : IAsyncDisposable
     {
         this.store = store; this.supervisor = supervisor; this.profile = profile; this.clock = clock ?? TimeProvider.System; this.jitter = jitter ?? new RandomJitter();
         singleton = store.LockScheduler();
-        try { Owner = store.BeginOwnership(); store.Recover(Owner); }
+        try { Owner = store.BeginOwnership(); store.Recover(Owner); profile.BeginSession(Owner); }
         catch { singleton.Dispose(); throw; }
         renewedAt = this.clock.GetUtcNow(); observation = new(renewedAt, null, null, null, "IDLE", null, null);
     }
@@ -124,6 +124,7 @@ public sealed class OperationScheduler : IAsyncDisposable
                 }
                 else if (worker.HasExited || !worker.Connected)
                 {
+                    profile.WorkerLost();
                     // A broken pipe alone is not proof of the end of a call; no active call exists here.
                     await worker.DisposeAsync(); worker = null;
                 }
@@ -153,6 +154,7 @@ public sealed class OperationScheduler : IAsyncDisposable
                         try { worker = await supervisor.StartAsync(ct); }
                         catch (Exception e) when (e is IOException or OperationCanceledException or System.ComponentModel.Win32Exception && !ct.IsCancellationRequested)
                         {
+                            profile.WorkerLost();
                             // Startup failed before any durable dispatch; the supervisor owns cleanup of that child.
                             breaker.Failure(clock.GetUtcNow()); PersistBreaker(spec, breaker);
                             FailQueued(operation, ErrorCode.WORKER_UNAVAILABLE); break;
@@ -203,8 +205,14 @@ public sealed class OperationScheduler : IAsyncDisposable
         if (history.Count > 1000) throw new InvalidOperationException("Bounded scheduler session exhausted.");
         if (call.Spec.V19Target is not null)
         {
-            if (worker is not WorkerConnection native) throw new ProtocolException();
+            if (worker is not IV19WorkerConnection native) throw new ProtocolException();
             call.WorkerResourcesBefore = native.SampleResources();
+            if (call.Spec.Bootstrap is { } permit)
+            {
+                var authorization = store.ReadBootstrap(permit.AuthorizationId) ?? throw new ProtocolException();
+                if (native.WorkerId != "tia-bridge.v19.read-only" || native.Build != authorization.Authorization.WorkerBuild) throw new ProtocolException();
+                store.BootstrapInitialTelemetry(b.OperationId, new { authorization_id = permit.AuthorizationId, operation_id = b.OperationId.ToString(), started_at_utc = clock.GetUtcNow(), worker_pid = native.Pid, worker_start_ticks = native.StartTicks, worker_epoch = native.Epoch, before = call.WorkerResourcesBefore });
+            }
             await Send(MessageKind.Dispatch, b.OperationId.Value, b.Fence, Protocol.Body(new InspectDispatch(call.Request, b.Attempt, b.InputHash, null)), ct); return;
         }
         var command = new Ipc.Dispatch(call.Request, new(call.Spec.SuccessReport!.ArtifactId, call.Spec.SuccessReport.Sha256), call.Spec.Scenario, call.Spec.DelayMs, b.Attempt, b.InputHash, b.PlanHash, call.Spec.FailureCode.ToString());
@@ -236,6 +244,7 @@ public sealed class OperationScheduler : IAsyncDisposable
             }
             return;
         }
+        if (active?.Spec.Bootstrap is not null) store.RecordReceipt(Owner, active.Binding, message, "RAW_BOOTSTRAP");
         var reply = Protocol.Read<WorkerReply>(message.Body);
         if (message.OperationId is not Guid id || !history.TryGetValue((id, reply.Attempt), out var binding)) throw new ProtocolException();
         bool valid = message.WorkerEpoch == binding.WorkerEpoch && message.Fence == binding.Fence && reply.InputHash == binding.InputHash && reply.PlanHash == binding.PlanHash;
@@ -249,12 +258,34 @@ public sealed class OperationScheduler : IAsyncDisposable
         if (!valid || current is null || current.Binding != binding || current.TimedOut || current.RetryAt is not null || OperationLifecycle.IsTerminal(Enum.Parse<OperationState>(store.ReadExecutionStatus(current.Binding.OperationId).State.ToString())))
         {
             store.RecordReceipt(Owner, binding, message, valid ? "LATE_OR_DUPLICATE" : "FENCED_REJECTED");
+            if (!valid && current?.Spec.Bootstrap is { } bootstrap)
+            {
+                store.StopBootstrap(bootstrap.AuthorizationId, "FENCED_RECEIPT"); current.TimedOut = true;
+                store.Complete(Owner, current.Binding, store.Failure(store.Read(current.Binding.OperationId).Report, false, ErrorCode.WORKER_UNAVAILABLE, "FENCED_RECEIPT"));
+            }
             if (valid && current?.TimedOut == true && !binding.Mutation && reply.Receipt.Quiescent) { store.RecordReceipt(Owner, binding, message, "QUIESCENT"); active = null; }
             return;
         }
         var receipt = reply.Receipt;
         if (!receipt.Quiescent || receipt.EffectCount is < 0 or > 1) throw new ProtocolException();
         var previousReport = store.Read(binding.OperationId).Report;
+        if (current.Spec.Bootstrap is { } measuredPermit && worker is IV19WorkerConnection measuredWorker)
+            store.BootstrapTelemetry(binding.OperationId, new
+            {
+                authorization_id = measuredPermit.AuthorizationId,
+                operation_id = binding.OperationId.ToString(),
+                worker_pid = measuredWorker.Pid,
+                worker_epoch = measuredWorker.Epoch,
+                worker_start_ticks = measuredWorker.StartTicks,
+                tia_pid = current.Spec.V19Target!.Pid,
+                received_at_utc = clock.GetUtcNow(),
+                total_ms = System.Diagnostics.Stopwatch.GetElapsedTime(current.MonotonicStart).TotalMilliseconds,
+                before = current.WorkerResourcesBefore,
+                after = measuredWorker.SampleResources(),
+                cleanup = receipt.Quiescent ? "QUIESCENT_RECEIPT" : "UNCONFIRMED",
+                disposition = receipt.Disposition,
+                error = receipt.ErrorCode
+            });
         if (receipt.Disposition == "Rejected" && receipt.EffectCount == 0 && Enum.TryParse<ErrorCode>(receipt.ErrorCode, out var error))
         {
             store.RecordReceipt(Owner, binding, message, "REJECTED_NO_EFFECT");
@@ -268,14 +299,22 @@ public sealed class OperationScheduler : IAsyncDisposable
         store.RecordReceipt(Owner, binding, message, "QUIESCENT");
         if (receipt.Disposition == "Succeeded" && receipt.Report is { } reportJson && Encoding.UTF8.GetByteCount(reportJson) <= Protocol.MaxReceiptBytes)
         {
+            if (current.Spec.Bootstrap is { } bootstrap)
+            {
+                using var raw = JsonDocument.Parse(reportJson); var observed = Protocol.Read<V19Observation>(raw.RootElement);
+                var authorization = store.ReadBootstrap(bootstrap.AuthorizationId)!.Authorization;
+                if (observed.IsModifiedBefore || observed.IsModifiedAfter)
+                    store.StopBootstrap(bootstrap.AuthorizationId, observed.IsModifiedBefore ? "DIRTY_PROJECT_BEFORE_READ" : "PROJECT_MODIFIED_DURING_READ");
+                if (observed.ApiBuild != authorization.TiaBuild || observed.ProjectName != authorization.ProjectName) throw new ProtocolException();
+            }
             var template = current.Spec.V19Target is { } target
                 ? V19InspectionProjection.Create(store, previousReport, target, reportJson,
-                    worker is WorkerConnection native ? native.Build : throw new ProtocolException(),
+                    worker is IV19WorkerConnection native ? native.Build : throw new ProtocolException(),
                     current.Spec.CapabilityBinding ?? throw new ProtocolException(),
                     current.WorkerResourcesBefore ?? throw new ProtocolException(), native.SampleResources())
                 : ContractJson.ReadReport(Encoding.UTF8.GetBytes(reportJson));
             if (template.Method != previousReport.Method || template.State != OperationState.SUCCEEDED) throw new ProtocolException();
-            store.Complete(Owner, binding, previousReport with { State = OperationState.SUCCEEDED, Outcome = OperationOutcome.CONFIRMED, Phase = "COMPLETED", Result = template.Result, ArtifactRefs = template.ArtifactRefs, SessionEpoch = template.SessionEpoch ?? previousReport.SessionEpoch, CompletedAt = clock.GetUtcNow(), PollAfterMs = 0 });
+            store.Complete(Owner, binding, previousReport with { State = OperationState.SUCCEEDED, Outcome = OperationOutcome.CONFIRMED, Phase = current.Spec.Bootstrap is null ? "COMPLETED" : "QUALIFICATION_ONLY_COMPLETED", Result = template.Result, ArtifactRefs = template.ArtifactRefs, SessionEpoch = template.SessionEpoch ?? previousReport.SessionEpoch, CompletedAt = clock.GetUtcNow(), PollAfterMs = 0 });
             var breaker = LoadBreaker(current.Spec); breaker.Success(); PersistBreaker(current.Spec, breaker);
         }
         else if (receipt.Disposition == "Cancelled" && receipt.EffectCount == 0)
@@ -300,12 +339,14 @@ public sealed class OperationScheduler : IAsyncDisposable
     {
         stop.Cancel(); if (loop is not null) await loop;
         await pump.WaitAsync();
-        try { if (worker is not null) await worker.DisposeAsync(); }
-        finally { singleton.Dispose(); pump.Release(); stop.Dispose(); }
+        bool released = false;
+        try { if (worker is not null) await worker.DisposeAsync(); released = active is null; }
+        finally { try { profile.EndSession(released); } finally { singleton.Dispose(); pump.Release(); stop.Dispose(); } }
         // RUNNING is deliberately left for restart recovery. Shutdown is not proof of native outcome.
     }
     private sealed record Active(AttemptBinding Binding, ExecutionSpec Spec, ArtifactPointer Request)
     {
+        public long MonotonicStart { get; } = System.Diagnostics.Stopwatch.GetTimestamp();
         public bool TimedOut { get; set; }
         public bool CancelSent { get; set; }
         public DateTimeOffset? RetryAt { get; set; }

@@ -218,7 +218,8 @@ public class V19OfflineTests
     [InlineData("no-dispose-proof")]
     [InlineData("negative-time")]
     [InlineData("modified-drift")]
-    public void Invalid_native_observation_is_rejected_before_artifact_or_success_commit(string fault)
+    [InlineData("already-dirty")]
+    public void Invalid_native_observation_retains_raw_before_rejecting_success_commit(string fault)
     {
         using var files = new StoreFixture(); var store = files.Open(); var previous = files.Accept(store, "project.inspect").Operation.Report;
         var target = new V19Target("11111111-1111-4111-8111-111111111111", 123, 456, "X:\\synthetic.ap19");
@@ -230,10 +231,12 @@ public class V19OfflineTests
             "no-dispose-proof" => observation with { PortalAliveAfterDispose = false },
             "negative-time" => observation with { DisposeMs = -1 },
             "modified-drift" => observation with { IsModifiedBefore = false, IsModifiedAfter = true },
+            "already-dirty" => observation with { IsModifiedBefore = true, IsModifiedAfter = true },
             _ => throw new ArgumentException()
         };
         Assert.Throws<ProtocolException>(() => Project(store, previous, target, observation));
         Assert.NotEqual(TiaBridge.Core.Operations.OperationState.SUCCEEDED, store.Read(previous.OperationId).Report.State);
+        Assert.Equal(1, files.Count("artifacts"));
     }
     [Theory]
     [InlineData("missing-parent")]

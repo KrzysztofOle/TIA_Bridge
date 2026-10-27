@@ -179,12 +179,14 @@ internal static class V19InspectionProjection
         Protocol.CheckJson(Encoding.UTF8.GetBytes(reportJson));
         using var doc = JsonDocument.Parse(reportJson);
         var observed = Protocol.Read<V19Observation>(doc.RootElement);
+        // Retain raw bytes even when identity/IsModified/structure validation subsequently fails.
+        var rawProof = store.Artifacts.Put(previous.OperationId, new MemoryStream(Encoding.UTF8.GetBytes(reportJson)));
         if (previous.Method != OperationMethod.ProjectInspect || observed.ProjectKey != target.ProjectKey || observed.TiaPid != target.Pid || observed.TiaStartTicks != target.StartTicks
             || !string.Equals(observed.ProjectPath, target.ProjectPath, StringComparison.OrdinalIgnoreCase) || observed.SessionEpoch == Guid.Empty || !observed.PortalAliveAfterDispose
             || observed.Devices is null || observed.Nodes is null || observed.Devices.Length > V19DiscoveryProfile.MaxDevices || observed.Nodes.Length > V19DiscoveryProfile.MaxNodes || observed.Apartment is not ("STA" or "MTA")
             || observed.Devices.Any(d => d is null || !Text(d.Name, 32768) || d.Family is not ("PLC" or "HMI" or "UNKNOWN"))
             || observed.Nodes.Any(n => n is null || !Text(n.Locator, 4096) || !Text(n.SoftwareType, 512))
-            || !Text(observed.ProjectName, 512) || !Text(observed.ApiBuild, 128) || observed.IsModifiedBefore != observed.IsModifiedAfter || observed.OwnerThreadId <= 0
+            || !Text(observed.ProjectName, 512) || !Text(observed.ApiBuild, 128) || observed.IsModifiedBefore || observed.IsModifiedAfter || observed.OwnerThreadId <= 0
             || workerBuild is null || !Regex.IsMatch(workerBuild, "\\A1\\.0\\+[0-9a-f]{64}\\z", RegexOptions.CultureInvariant)
             || capability is null || capability.Scope != OperationScope.PROJECT || capability.Profile != V19DiscoveryProfile.Id
             || string.IsNullOrWhiteSpace(capability.RegistryVersion) || string.IsNullOrEmpty(capability.CapabilitySetHash)
@@ -197,7 +199,6 @@ internal static class V19InspectionProjection
         var nodes = DecodeNodes(observed);
         ValidateRelations(observed, nodes);
         var devices = ProjectDevices(observed, nodes);
-        var rawProof = store.Artifacts.Put(previous.OperationId, new MemoryStream(Encoding.UTF8.GetBytes(reportJson)));
         var coverage = new Coverage([
             new(CoverageDimension.CONTENT, CoverageState.UNSUPPORTED, "B-03A does not read source content"),
             new(CoverageDimension.CONFIG, CoverageState.PARTIAL, "Project and public device metadata only"),

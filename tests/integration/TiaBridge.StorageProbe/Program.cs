@@ -12,6 +12,21 @@ if (mode == "lock-child") return await HttpResilienceProbe.HoldLock(root, reposi
 var faults = new ExitFault(checkpoint);
 var location = StorageLocation.Open(root, repository);
 var store = new SqliteOperationStore(location, faults);
+if (mode == "bootstrap-reservation-crash")
+{
+    var document = File.ReadAllBytes(Path.Combine(root, "qualification-bootstrap", "authorization.json"));
+    var authorization = TiaBridge.Host.Qualification.BootstrapAuthorization.Read(document);
+    var owner = store.BeginOwnership(); store.Recover(owner); store.BindBootstrap(authorization.AuthorizationId, owner);
+    var epoch = Guid.NewGuid(); store.RegisterWorker(owner, epoch, int.MaxValue, 123, "synthetic.v19");
+    byte[] requestBytes = JsonSerializer.SerializeToUtf8Bytes(new { schema_version = "1.0", method = "project.inspect", project_key = authorization.ProjectKey, idempotency_key = Guid.NewGuid().ToString(), @params = new { inventory_scope = "all_supported", fresh = true, timeout_s = 120, queue_timeout_s = 300 } });
+    var accepted = store.Accept("synthetic", requestBytes).Operation;
+    var spec = new TiaBridge.Host.Scheduling.ExecutionSpec("synthetic.bootstrap", "qualification-only.v19.discovery.v1", false, null,
+        V19Target: new(authorization.ProjectKey, authorization.TiaPid, authorization.TiaStartTicks, authorization.ProjectPath))
+    { Bootstrap = new(authorization.AuthorizationId, TiaBridge.Host.Qualification.BootstrapAuthorization.Sha(document)) };
+    _ = store.PrepareDispatch(owner, accepted.Report.OperationId, epoch, spec, DateTimeOffset.UtcNow.AddSeconds(120));
+    Console.WriteLine(accepted.Report.OperationId.ToString());
+    Environment.Exit(76); // Real process loss after committed reservation, before any IPC or vendor activation.
+}
 if (mode is "scheduler-crash" or "scheduler-crash-read")
 {
     string method = mode == "scheduler-crash" ? "sync.apply" : "project.inspect";

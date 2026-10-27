@@ -103,6 +103,7 @@ public sealed partial class SqliteOperationStore
             previous = Save(c, t, previous, previous.Report with { Phase = "RETRY_DISPATCH" });
         }
         string? plan = request.Parameters is SyncApplyParameters apply ? apply.ExpectedPlanSha256 : null;
+        ReserveBootstrap(c, t, owner, id, workerEpoch, spec, attempt);
         Exec(c, t, "INSERT INTO dispatch_attempts(operation_id,attempt,host_epoch,worker_epoch,fence,portal_key,capability,mutation,input_hash,plan_hash,deadline_at) VALUES($id,$a,$h,$w,$f,$p,$cap,$m,$hash,$plan,$d)", ("$id", id.ToString()), ("$a", attempt), ("$h", owner.Epoch.ToString()), ("$w", workerEpoch.ToString()), ("$f", owner.Fence), ("$p", spec.PortalKey), ("$cap", spec.Capability), ("$m", mutation ? 1 : 0), ("$hash", previous.BodySha256), ("$plan", plan), ("$d", At(deadline)));
         Exec(c, t, "INSERT INTO steps(step_id,operation_id,ordinal,intent_json) VALUES($step,$id,$a,$intent)", ("$step", id + ":attempt:" + attempt), ("$id", id.ToString()), ("$a", attempt), ("$intent", JsonSerializer.SerializeToUtf8Bytes(new { workerEpoch, owner.Fence, previous.BodySha256, plan })));
         if (request.Identity.Project is { } key)
@@ -130,6 +131,7 @@ public sealed partial class SqliteOperationStore
             CheckOwner(c, t, owner); var previous = ReadStored(c, t, binding.OperationId);
             if (ScalarLong(c, t, "SELECT count(*) FROM dispatch_attempts WHERE operation_id=$id AND attempt=$a AND worker_epoch=$e AND fence=$f AND host_epoch=$h", ("$id", binding.OperationId.ToString()), ("$a", binding.Attempt), ("$e", binding.WorkerEpoch.ToString()), ("$f", owner.Fence), ("$h", owner.Epoch.ToString())) != 1) throw new StorageException(ErrorCode.NOT_OWNER);
             var result = RecordCore(c, t, binding.OperationId, previous.Revision, report with { CancelRequested = previous.Report.CancelRequested }, bytes: ContractJson.WriteReport(report with { CancelRequested = previous.Report.CancelRequested }), proof);
+            CompleteBootstrap(c, t, report with { CancelRequested = previous.Report.CancelRequested });
             if (report.State == OperationState.RECONCILIATION_REQUIRED)
             {
                 Exec(c, t, "UPDATE quarantines SET worker_epoch=$e,fence=$f WHERE operation_id=$id", ("$e", binding.WorkerEpoch.ToString()), ("$f", binding.Fence), ("$id", binding.OperationId.ToString()));
@@ -151,6 +153,8 @@ public sealed partial class SqliteOperationStore
     });
     internal void Recover(OwnerToken owner) => database.Write((c, t) =>
     {
+        Exec(c, t, "UPDATE bootstrap_authorizations SET state='STOPPED',stop_reason='HOST_RESTART' WHERE host_epoch IS NOT NULL AND state='ACTIVE'");
+        Exec(c, t, "UPDATE bootstrap_cycles SET state='UNCERTAIN_AFTER_RESTART' WHERE state='RESERVED'");
         CheckOwner(c, t, owner); var ids = new List<OperationId>();
         using (var command = Command(c, t, "SELECT operation_id FROM operations WHERE state='RUNNING' OR operation_id IN (SELECT operation_id FROM outbox WHERE state IN ('CLAIMED','DISPATCH_RECORDED'))"))
         using (var reader = command.ExecuteReader()) while (reader.Read()) ids.Add(new(Guid.Parse(reader.GetString(0))));

@@ -20,12 +20,16 @@ Po osobnym zleceniu E2-B1 operator wykonuje ręcznie:
 4. Przegląda i zatwierdza wypełniony authorization.md: B1, hash planu, buildy,
    binding/ProjectKey, 13 getterów DiscoveryV1 + kontrole/release, 20 cykli STA,
    monitoring i STOP, okno i operator. To zgoda na B1, bez automatycznej zgody na B2.
-5. Rozstrzyga z użytkownikiem bootstrap **przed live**: istniejący exact rzeczywisty
-   dowód albo osobno zatwierdzony projekt eksperymentu. Brak rozwiązania → BLOCKED.
+5. Dopiero po osobnej decyzji przygotowuje konto desktopowe Host/operator, chronione
+   config/store/ACL według [18](18_LOCAL_TRUSTED_ENROLLMENT.md). Bootstrap nie potrzebuje
+   klucza CNG. Nic nie ustawia się automatycznie; odrębne konta/usługa nie są kwalifikowane.
+6. Po osobnej zgodzie na live przygotowuje grant
+   [qualification-only B0](19_CONTROLLED_QUALIFICATION_BOOTSTRAP.md): świeże exact
+   wartości, nowe Authorization ID, plan hash, Host/Worker/API build i okno sesji.
+   Przegląda bootstrap-inspect i jawnie bootstrap-authorize z exact document hash.
+   Bez aktywnego lokalnego grantu albo normalnego rzeczywistego E1 → BLOCKED.
    Nie podpisuje synthetic/nieuruchomionego PASS. Historyczne X-01 nie kwalifikuje B1.
-6. Dopiero po osobnej decyzji przygotowuje konto desktopowe Host/operator, chronione
-   config/store/ACL i jeden istniejący klucz CNG według [18](18_LOCAL_TRUSTED_ENROLLMENT.md).
-   Klucz, ACL i real enrollment są oddzielnymi decyzjami; nic nie ustawia się automatycznie.
+   Klucz i real enrollment do E1 są późniejszymi oddzielnymi decyzjami.
    Podpis/enrollment wymagają późniejszego prawdziwego source-run review.
 7. Jeśli Siemens pokaże dialog dostępu dla exact zatwierdzonego Workera, operator
    sam sprawdza tożsamość aplikacji i obsługuje dialog w zakresie grantu. CODEX nie

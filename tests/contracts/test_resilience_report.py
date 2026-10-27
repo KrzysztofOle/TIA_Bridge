@@ -1,6 +1,7 @@
 """Qualification must never promote stale/missing evidence or conflate short tests with an eight-hour soak."""
 import importlib.util
 import json
+import re
 from pathlib import Path
 import tempfile
 import unittest
@@ -37,6 +38,15 @@ def fixture(root):
 
 
 class ResilienceReportTests(unittest.TestCase):
+    def test_reported_sqlite_schema_matches_the_current_durable_store(self):
+        source = (ROOT / "src/TiaBridge.Host/Storage/SQLite/SqliteDatabase.cs").read_text(encoding="utf-8-sig")
+        current = int(re.search(r"const int SchemaVersion = (\d+);", source).group(1))
+        with tempfile.TemporaryDirectory(prefix="tia-bridge-resilience-version-") as directory:
+            root = Path(directory)
+            fixture(root)
+            result = module.qualification(root, RUN, START, allow_legacy=True)
+            self.assertEqual(current, result["versions"]["sqlite_schema"])
+
     def test_missing_failed_stale_and_wrong_run_evidence_is_rejected(self):
         for fault in ["missing", "skipped", "stale", "run", "duplicate", "short_idle"]:
             with self.subTest(fault=fault), tempfile.TemporaryDirectory(prefix="tia-bridge-resilience-report-") as directory:

@@ -10,7 +10,7 @@ namespace TiaBridge.Host.Storage.SQLite;
 internal sealed class SqliteDatabase
 {
     internal const int ApplicationId = 0x54494232;
-    internal const int SchemaVersion = 3;
+    internal const int SchemaVersion = 4;
     private static readonly ConcurrentDictionary<string, object> Gates = new(StringComparer.OrdinalIgnoreCase);
     internal StorageLocation Location { get; }
     internal IStorageFaults Faults { get; }

@@ -20,6 +20,11 @@ Wszystkie wyniki i czasy po rzeczywistym uruchomieniu są w snapshot, nie w dekl
 
 ## NTFS, SQLite, WAL i artefakty
 
+Aktualizacja B-03A/E2-B0 dodaje [bootstrap qualification-only](19_CONTROLLED_QUALIFICATION_BOOTSTRAP.md)
+i migrację 004 z autoryzacją/cyklami/release, zachowując bajty i hashe 001–003.
+Crash po rezerwacji nie odnawia budżetu; restart zamyka grant. To rozszerzenie offline
+tej samej ścieżki recovery, bez zmiany RT/NF, progów, UNKNOWN/quarantine i historii.
+
 Baza jest wyłącznie na własnym lokalnym NTFS poza repo. Nie zmieniono schematu/migracji v1–v3 ani kontraktów v1. Journal/outbox/disk-full injection nie zapełnia dysku i nie dotyka obcych baz. Walidacja B-02A nadal sprawdza niedozwolone lokalizacje, migracje, constraints, reparse i integrity.
 
 WAL fault obejmuje bit flip ostatniej ramki i ucięcie jej końca po commit wyniku, z zachowanym prawidłowym prefixem intent/dispatch/receipt. Żadne połączenie SQLite nie jest otwierane pomiędzy crash a uszkodzeniem własnego WAL, aby nie wywołać checkpoint. Recovery musi zachować operation_id i sklasyfikować niepotwierdzoną mutację UNKNOWN, nie odtworzyć zniszczony sukces. To nie test utraty całego storage ani zasilania.

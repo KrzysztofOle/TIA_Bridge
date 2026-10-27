@@ -116,13 +116,26 @@ Rotacja jest ręczna: odwołaj aktywne kwalifikacje starego signera, zachowaj hi
 
 ## Warunki rozpoczęcia E2
 
+Aktualizacja E2-B0: [qualification-only](19_CONTROLLED_QUALIFICATION_BOOTSTRAP.md)
+rozwiązuje bootstrap pierwszego B1 bez wcześniejszego PASS: lokalny dokument operatora,
+exact hash/binding/build/okno, trwałe zużycie maks. 20 cykli. Bez klucza CNG i bez
+aktywacji capability E1. W normalnym trybie nadal obowiązują real source evidence i
+enrollment. Rejestracja kandydackiego PASS po eksperymencie pozostaje osobną decyzją.
+
 Bieżący pakiet przygotowania i raport bootstrapu: [E2-A](B03A_E2_A_PREPARATION.md),
 [operator przed B1](E2_OPERATOR.md). Kolejność: [E2-B1](E2-B1_TEST_PLAN.md)
 `T05_RecipeSim_V19_Testowy`, dopiero po jego qualification PASS i osobnym preflight
 [E2-B2](E2-B2_TEST_PLAN.md) `T04_T05-000_Testowy`. Brak exact źródłowego dowodu
-blokuje zwykły dispatch; osobny projekt eksperymentu bootstrap wymaga decyzji użytkownika.
+blokuje zwykły dispatch; projekt eksperymentu B0 został zatwierdzony do implementacji
+offline, lecz rzeczywisty grant wymaga osobnej decyzji użytkownika.
 Pakiet E2-A nie zmienia polityki provider/enrollment i nie nadaje nowego wyjątku.
 
-Oddzielne zadanie i jawna autoryzacja bounded Engineering; aktualna ograniczona D-11 dla właściwego buildu/profilu; świeży preflight PID/start/executable/project path/ProjectKey/IsModified, exact DLL i Worker SHA; niezależny przegląd rzeczywistego dowodu źródłowego i operatorowe enrollment; sprawdzone ACL dla realnego konta Host; określony zakres odczytu, monitoring zasobów i zachowane reguły UNKNOWN/quarantine. Rozstrzygnij bootstrap rzeczywistej kwalifikacji na podstawie zatwierdzonych źródłowych dowodów przed live dispatch — nie fabrykuj nowego PASS, aby wykonać samą kwalifikację.
+W obu trybach wymagane są: oddzielne zadanie i jawna autoryzacja bounded Engineering,
+aktualna ograniczona D-11 dla właściwego buildu/profilu, świeży preflight
+PID/start/executable/project path/ProjectKey/IsModified, exact DLL i Worker SHA,
+sprawdzone ACL realnego konta Host, ograniczony odczyt, monitoring i UNKNOWN/quarantine.
+Normalny dispatch dodatkowo wymaga niezależnego review rzeczywistego source evidence
+i operatorowego enrollment. Qualification-only B0 wymaga zamiast wcześniejszego
+PASS jawnego lokalnego grantu z dokumentu 19; nie fabrykuje dowodu E1.
 
 E1-L nie jest takim zadaniem, nie tworzy grantu Siemens i nie rozstrzyga Worker Handle Risk UNKNOWN. Real Engineering evidence NOT_REGISTERED, B-03A Engineering BLOCKED/NOT_RUN, B-03B NOT_READY. NF-11 minimum 8 h pozostaje NOT_RUN.

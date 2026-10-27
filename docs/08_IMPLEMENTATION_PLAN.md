@@ -82,6 +82,11 @@ hashowanych dowodów, release, trend review i osobnej decyzji/świeżego preflig
 Engineering obu NOT_RUN, real evidence NOT_REGISTERED; bootstrap wymagający decyzji
 opisano w pakiecie. To nie otwiera B-03B, Etapu 4 ani praw do mutacji.
 
+[E2-B0](19_CONTROLLED_QUALIFICATION_BOOTSTRAP.md) implementuje offline zatwierdzony
+Controlled Qualification Bootstrap dla B1: jawny lokalny grant qualification-only,
+exact binding/build/read scope i trwale zużywany budżet 20; restart/STOP zamyka grant.
+Normalny tryb nadal wymaga E1. Nie aktywowano realnego grantu i nie uruchomiono Engineering.
+
 ## Etap 4 — Pliki i CODEX→TIA [MVP]
 
 **Cel:** mały, kontrolowany import bez utraty intencji CODEX. **Zależności:**3A/3B,2,5A/6A przed włączeniem Apply, X-02/X-03. **Pakiety:**

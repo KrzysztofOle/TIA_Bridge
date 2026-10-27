@@ -1,5 +1,170 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-27 — B-03A/E2-B0: Controlled Qualification Bootstrap
+
+**Wejście:** czyste `HEAD=main=origin/main=5d999023a799e91c90e54902504c5fa7108494ef`
+po fetch. Zakres: zatwierdzona implementacja i pełne testy offline, bez TIA/Openness,
+vendor enumeration/Attach, produkcyjnego klucza, ACL deploymentu, realnych dowodów,
+aktywnego grantu rzeczywistego projektu, E2-B1/B2 lub B-03B. Testowe lokalne granty,
+ACL i dokumenty istnieją wyłącznie we własnych syntetycznych UUID fixtures.
+
+**Implementacja:** jawna lokalna konfiguracja qualification-only wybiera profil B0
+na istniejącej ścieżce Host API → Durable Operations → Scheduler → Worker V19.
+Nie jest fallbackiem po E1 denial, nie tworzy capability PASS i nie zmienia Core
+policy/registry v1/v2, HTTP API v1 ani IPC 1.1. Normalne wykonanie nadal wymaga E1.
+Local operator CLI z exact reviewed document SHA i flagą confirmation zapisuje
+autoryzację raz w istniejącej SQLite; bez klucza CNG i bez enrollment. Chronione
+config/root/plik i SID są weryfikowane przez istniejące ACL helpery, bez auto-fix.
+
+**Autoryzacja i bezpieczeństwo:** tylko B1 `T05_RecipeSim_V19_Testowy`, jeden exact
+ProjectKey/PID/start/AP19/root/EXE/SID, Host/Worker/API build, hash planu E2-B1,
+okno i 13 getterów v19.discovery.v1. STA, all_supported/fresh, 120/300 s, 64/256/8
+i 20 cykli, bez native retry. Profil ponownie weryfikuje binding/grant/config przed
+PrepareDispatch i IPC; Worker po Attach potwierdza projekt. B2/WRITE/IMPORT/EXPORT
+nie mogą użyć grantu. HostBuild i WorkerBuild są SHA-256 odpowiednio Host DLL i
+Worker EXE; pozostałe zależności wymagają nadal build manifestu i preflightu B1.
+
+**Durability:** migracja 004 dodaje bootstrap_authorizations/cycles/release, bez
+zmiany migracji 001–003. Zużycie cyklu jest w transakcji intentu przed IPC; nie ma
+refund po commit, replay lub restarcie. ACTIVE wiąże się z jedną epoką Host,
+restart zamyka grant i oznacza RESERVED jako UNCERTAIN_AFTER_RESTART. Revoke,
+expiry, STOP, błąd walidacji i koniec budżetu blokują następne dispatch. Zachowano
+active-slot/quarantine/fencing i nie uznano timeoutu lub śmierci procesu za koniec
+Siemens call. Końcowa rewalidacja nie jest atomową transakcją z wysłaniem IPC.
+
+**IsModified i dowody:** Worker pomija inventory przy dirty wejściu i zwraca raw
+obserwację po Dispose; nie dodano gettera. Host odrzuca true/true i false/true;
+raw receipts zapisuje przed interpretacją bootstrapu, a poprawnie ukształtowaną
+raw observation przed walidacją projekcji. Telemetria przed IPC i przy receipt,
+epoch/PID/start/cycle/authorization/operation, czasy monotonic i faz V19, zasoby,
+wyniki/STOP/cleanup/release pozostają trwale skorelowane. Raport/bundle create-new
+zawiera pełne cykle, surowe odpowiedzi i manifest SHA-256 z niezależnym odczytem.
+20 poprawnych odczytów daje REVIEW_REQUIRED do release i jawnego review operatora
+stanu projektu, pełnego planu i trendu. GROWING/INCONCLUSIVE nie daje PASS. Brak
+nowego progu handles/NF, usuwania outlierów lub restartu dla spłaszczenia trendu.
+PASS to kandydat do późniejszego inspect/approve/enroll, nigdy auto enrollment.
+
+**Walidacja celowana przed końcowym przeglądem:** Bootstrap/V19Offline 89/89 PASS, zero skip;
+w tym 43 Bootstrap oraz 46 V19Offline. Wcześniejszy rozszerzony zestaw z migracjami
+97/97 PASS. Własny proces StorageProbe faktycznie kończy się po commit rezerwacji,
+przed dispatch; restart zachowuje użyty cykl i blokuje replay. Syntetyczny adapter
+korzysta z tego samego schedulera i DTO IPC, bez uruchamiania Workera V19 lub DLL
+Siemens. Początkowe błędy kompilacji brakującego using i nullable helpera testowego
+usunięto przed regresją. Pełne wyniki końcowego runnera i ograniczenia poniżej.
+Końcowy przegląd dodał regresję starego fenced receipt podczas kolejnego cyklu:
+STOP dotyczy bieżącej operacji, wcześniejszy terminalny wynik pozostaje bajtowo
+niezmieniony. Pakiet weryfikuje i dołącza audit Workera, Dispose.Returned per cykl,
+strukturę/binding telemetrii oraz zgodność cycle report z trwałym wynikiem operacji.
+Dodano negatywne przypadki missing audit i corrupt telemetry/initial/report.
+Utrata Workera na idle również zamyka grant zamiast uruchomić zastępczy proces;
+pełna seria wymaga jednej tożsamości Workera, aby nie maskować trendu zasobów.
+
+**Ocena instrukcji sekcja po sekcji:** AGENTS: zakres/stan, role/hierarchia,
+niezmienne granice, autoryzacja/testy/D-11/Computer Use, dyscyplina, Git, dane nieufne.
+Instrukcja_ChatGPT: cel/role, źródła/hierarchia, architektura, standard zadania,
+kontrola wyników, bezpieczeństwo/recovery, decyzje/spójność, Git/dokumentacja, styl.
+Obie zaktualizowano wyłącznie w autoryzacji: jawne qualification-only dla B1 nie jest
+normalną capability i wymaga osobnego live grantu; restart nie odnawia budżetu.
+Pozostałe sekcje pozostają zgodne i bez zmian. ADR 0001–0003 nie wymagają zmiany:
+ten sam Host/Worker/owner/IPC, bez mutacji, nowego canonical HMI, IDs lub SYNCED.
+Dokumenty 03–06/12, kontrakty i RT/NF pozostają normatywnie zgodne; 08/16/17/18,
+plany E2 i instrukcje wskazują zatwierdzony dodatek [19](docs/19_CONTROLLED_QUALIFICATION_BOOTSTRAP.md).
+Historyczne raporty X-01/D-11/E1-L i ich bajty/wyniki pozostają nietknięte.
+
+**Granice:** implementacja OFFLINE, rzeczywisty Engineering B1/B2 NOT_RUN, evidence
+NOT_REGISTERED, produkcja/Runtime/NF-11 NOT_RUN, Worker Handle Risk UNKNOWN.
+Bezpieczeństwo rzeczywistej kopii, UI, isolated receiver i pełna analiza zasobów
+wymagają operatora i dowodów B1; kod nie potwierdza prawdziwości arbitralnego review.
+Wspólny SID/administrator pozostaje granicą zaufania, bez wielokontowej usługi,
+testu power-loss lub nowej kwalifikacji vendor cleanup. B0 nie uruchamia eksperymentu.
+
+**Końcowa walidacja implementacji:** celowany zestaw po końcowym przeglądzie
+95/95 PASS (Bootstrap 49, Discovery/V19Offline 46). Pełny kanoniczny runner
+`21ae0844cc95404e869ce79ef45f42dc`: Release build 0 warnings/errors, Core 564/564,
+Host 361/361, łącznie .NET 925/925, Python 42/42, zero FAIL/SKIP. IPC 34/34,
+scheduler/IPC 76/76, E1 LocalTrusted 47/47 i zachowany pozytywny E1 ProjectInspect,
+resilience test execution 52/52. Generatory, format, audit (63 Markdown / 559 linków)
+i diff check PASS; wszystkie dziewięć kroków wykonania exit 0. Osobny Release build
+Workera net48/x64 PASS, bez uruchomienia EXE/Openness i bez kopiowania vendor DLL;
+kompilator użył wyłącznie referencji/metadanych zainstalowanego API.
+
+**Odrębna kwalifikacja FAIL:** runner exit 1, `test_execution_status=PASS`,
+`resilience_gate=FAIL`. NF-03 X:/NTFS replace podczas Fake Hang: p95 148,9617 ms
+przy niezmienionym limicie 100 ms (N=100), p99 312,0495 ms, max 661,6204 ms,
+zero odmów. Kontrola bez Workera p95 4,8431 ms; zapis/replace na state NTFS PASS,
+API NF-01/NF-02 PASS. Nie ustalono przyczyny i nie przypisano jej bootstrapowi,
+NTFS lub AV; bootstrap pozostaje wyłączony w tym profilu Fake. Nie ponawiano NF
+dla uzyskania PASS. NF-08 pełna skala NOT_RUN (idle 306,1636139 s, CPU 0,8752469%
+w tym oknie PASS); 1001 operacji w 471,158264 s nie zastępuje NF-11 ≥8 h.
+NF-11 NOT_RUN i produkcja NOT_RUN. **B0 COMPLETE_OFFLINE, wejście B1 BLOCKED**
+do właściwej pozytywnej bramki D-11/preflightu i osobnej zgody/grantu.
+
+**Integralność i metadane:** niezależnie zweryfikowano 73/73 pliki manifestu,
+trzy bundles i 464/464 próbek z aktualnym binary/source binding; zachowano wynik
+FAIL bundle repozytorium. SHA manifestu:
+`b3a29fda3188b4f05dd93cc2c41fd962b1c3e225981320a4baa3de0540f93a30`.
+20 hashy źródeł C#/SQL nie zmieniło się podczas finalnej regresji. Ledger hashes
+migracji 001–003 pozostają identyczne (zastane CRLF pozostawiono), historyczne
+raporty X-01/E1-L/D-11 mają identyczne bajty. Pierwszy runner
+`e6c2b34d87934fcc8d34b40e4ea69dde` dotyczył kodu sprzed końcowego przeglądu:
+919/919 .NET i 42/42 Python PASS, aggregate BLOCKED; zachowano go jako etap
+pośredni, bez użycia zamiast finalnego FAIL kwalifikacji.
+
+Reporter miał stałą metadaną SQLite schema=3 po dodaniu migracji 004. Poprawiono
+wyłącznie tę metadaną na 4 i dodano regresję zgodności z wersją rzeczywistego
+store. Finalne Python 43/43 PASS po tej korekcie; C#/SQL i binaria testowanego
+builda nie zmieniły się, więc nie powtarzano ich pełnego przebiegu. Zamkniętego
+raportu i manifestu z wartością 3 nie przepisano; korekta jest osobnym review note.
+Nie zmieniono metryk, scenariuszy, progów RT/NF lub interpretacji FAIL.
+
+Dokumentacja wykonawcza: [bootstrap 19](docs/19_CONTROLLED_QUALIFICATION_BOOTSTRAP.md).
+Surowe dowody tylko w ignorowanym `.tia-bridge/resilience/<run-id>/` oraz
+`.tia-bridge/e2-bootstrap/`; żadnego rzeczywistego grantu, source Engineering lub
+prywatnego materiału w Git. Przed dostawą wykonano selektywny staging, kontrolę
+całego diffu i normalny push bez force.
+
+**Lista 37 plików dostawy B0:**
+
+```text
+AGENTS.md
+Instrukcja_ChatGPT.md
+Zmiany.md
+docs/08_IMPLEMENTATION_PLAN.md
+docs/16_RESILIENCE_RECOVERY.md
+docs/17_TRUSTED_QUALIFICATION_EVIDENCE.md
+docs/18_LOCAL_TRUSTED_ENROLLMENT.md
+docs/19_CONTROLLED_QUALIFICATION_BOOTSTRAP.md
+docs/B03A_E2_A_PREPARATION.md
+docs/E2-B1_TEST_PLAN.md
+docs/E2-B2_TEST_PLAN.md
+docs/E2_OPERATOR.md
+scripts/report_resilience.py
+src/TiaBridge.Host/Api/HostApi.cs
+src/TiaBridge.Host/Api/HostConfiguration.cs
+src/TiaBridge.Host/Operations/BootstrapStorage.cs
+src/TiaBridge.Host/Operations/ExecutionStorage.cs
+src/TiaBridge.Host/Qualification/BootstrapAuthorization.cs
+src/TiaBridge.Host/Qualification/BootstrapEvidence.cs
+src/TiaBridge.Host/Qualification/BootstrapLocal.cs
+src/TiaBridge.Host/README.md
+src/TiaBridge.Host/Scheduling/BootstrapInspectionProfile.cs
+src/TiaBridge.Host/Scheduling/ExecutionModels.cs
+src/TiaBridge.Host/Scheduling/OperationScheduler.cs
+src/TiaBridge.Host/Scheduling/V19InspectionProfile.cs
+src/TiaBridge.Host/Storage/Migrations/004_qualification_bootstrap.sql
+src/TiaBridge.Host/Storage/SQLite/SqliteDatabase.cs
+src/TiaBridge.Host/Supervision/WorkerSupervisor.cs
+src/TiaBridge.Qualification/Program.cs
+src/TiaBridge.Qualification/README.md
+src/TiaBridge.Worker.V19/VendorReader.cs
+tests/README.md
+tests/contracts/test_resilience_report.py
+tests/integration/TiaBridge.Host.Tests/BootstrapTests.cs
+tests/integration/TiaBridge.Host.Tests/MigrationAndPolicyTests.cs
+tests/integration/TiaBridge.Host.Tests/V19OfflineTests.cs
+tests/integration/TiaBridge.StorageProbe/Program.cs
+```
+
 ## 2026-10-27 — B-03A/E2-A: przygotowanie sekwencyjnej kwalifikacji V19
 
 **Wejście i zakres:** baza `97e9f803a583d727e53fb366d13a316baaaaaab7`, po fetch

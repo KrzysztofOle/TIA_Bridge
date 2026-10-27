@@ -65,7 +65,8 @@ internal static class VendorReader
                 bool modified = project.IsModified;
                 var devices = new List<V19Device>(); var nodes = new List<V19Node>();
                 audit("Project.Devices.ReadBounded");
-                foreach (var device in project.Devices)
+                // Preserve a raw dirty-state observation and Dispose without continuing inventory.
+                if (!modified) foreach (var device in project.Devices)
                 {
                     if (devices.Count >= V19DiscoveryProfile.MaxDevices) throw new InvalidOperationException("LIMIT_EXCEEDED");
                     if (nodes.Count >= V19DiscoveryProfile.MaxNodes) throw new InvalidOperationException("LIMIT_EXCEEDED");

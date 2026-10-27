@@ -1,5 +1,10 @@
 # Testy offline B-01A–C, B-02A–D oraz Discovery B-03A — bez Siemens
 
+[Controlled Qualification Bootstrap B0](../docs/19_CONTROLLED_QUALIFICATION_BOOTSTRAP.md)
+jest częścią pełnego Host suite: SQLite/ACL/CLI, 20 syntetycznych cykli istniejącego
+schedulera, drift/revoke/expiry/dirty/replay, prawdziwy exit StorageProbe po rezerwacji
+i pakiet dowodowy bez auto enrollment. Nie uruchamia Workera V19 ani vendor DLL.
+
 Wymagania: .NET SDK 10.0.4xx (global.json dopuszcza najnowszy patch tego pasma), Python 3.12. Zależności .NET są przypięte w csproj/packages.lock.json; QA Python w [requirements-qa.txt](../scripts/requirements-qa.txt). Pierwszy restore/install wymaga dostępu do repozytoriów pakietów; testy B-02C łączą się wyłącznie z własnym lokalnym Host; nie łączą się z Siemens lub obcymi endpointami.
 
 ## Pełny przebieg offline jednym poleceniem

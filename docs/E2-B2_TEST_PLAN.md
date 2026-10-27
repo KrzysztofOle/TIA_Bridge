@@ -4,6 +4,8 @@ Status planu: PREPARED_OFFLINE. ENGINEERING: NOT_RUN. Zatwierdzenie: PENDING.
 Baza E2-A: `97e9f803a583d727e53fb366d13a316baaaaaab7`, 2026-10-27.
 To odrębny plan **drugiego** projektu. [Pakiet wspólny](B03A_E2_A_PREPARATION.md)
 jest jego integralną częścią; nie wolno użyć bindingu, store ani wyniku B1 jako B2.
+Implementacja [bootstrapu B0](19_CONTROLLED_QUALIFICATION_BOOTSTRAP.md) dopuszcza
+wyłącznie B1; B2 nie otrzymuje grantu ani ścieżki wykonania przez ten dodatek.
 
 ## Zakres i profil
 

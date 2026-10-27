@@ -2,6 +2,10 @@
 
 Data: 2026-10-27. Baza: `97e9f803a583d727e53fb366d13a316baaaaaab7`.
 Zakres wykonany: analiza kodu i konfiguracji, dokumentacja, syntetyczna regresja offline.
+Aktualizacja B-03A/E2-B0: [Controlled Qualification Bootstrap](19_CONTROLLED_QUALIFICATION_BOOTSTRAP.md)
+implementuje zatwierdzoną późniejszym zleceniem ścieżkę qualification-only. E2-A
+pozostaje historycznym pakietem przygotowania; bieżące wejście B1 może użyć lokalnego
+grantu B0 zamiast nieistniejącego wcześniejszego PASS. Nie jest to zgoda na live.
 Nie wykonano Openness, enumeracji vendor, Attach, uruchamiania TIA, rejestracji rzeczywistych
 dowodów, generowania klucza ani zmiany ACL deploymentu. Ten pakiet jest materiałem
 do zatwierdzenia, **nie grantem Engineering**.
@@ -40,7 +44,7 @@ Nie deklarować izolacji pomiędzy procesami wspólnego SID ani przed administra
 
 ## Otwarte wejście: bootstrap kwalifikacji — raport rozbieżności
 
-**E2 live start: BLOCKED do odrębnego rozstrzygnięcia.** Nie jest to błąd
+**Stan wykryty w E2-A: E2 live start BLOCKED do odrębnego rozstrzygnięcia.** Nie jest to błąd
 deny-by-default. [18, Warunki rozpoczęcia E2](18_LOCAL_TRUSTED_ENROLLMENT.md#warunki-rozpoczęcia-e2)
 wymaga źródłowego dowodu i rozstrzygniętego bootstrapu; profil Host wymaga już aktywnego
 PASS dla exact build/ProjectKey/profile/getters przed pierwszym odczytem. B-03A nie ma
@@ -52,10 +56,12 @@ takiego rzeczywistego dowodu. X-01 ma inny zakres i nie może go zastąpić.
 | Osobno zatwierdzić projekt i implementację ograniczonego eksperymentu bootstrap | Rekomendacja, gdy brak dowodu: przed live określić dopuszczalną ścieżkę qualification-only, ten sam Worker/owner/IPC/Host, pojedynczy binding, trwałą autoryzację i evidence; wymaga przeglądu dokumentu 17/18 i testów offline przed użyciem |
 | Podpisać nowy PASS bez przebiegu, użyć synthetic albo wyłączyć provider | Niedopuszczalne; fałszuje kwalifikację lub obchodzi deny |
 
-E2-A nie wybiera ani nie implementuje wyjątku, drugiego Attach/schedulera lub bypassu.
-Zależny live dispatch pozostaje wstrzymany; kompletne plany i pakiet decyzji mogą być
-przygotowane bez tej decyzji. Nie ma gotowego polecenia, które legalnie tworzy pierwszy
-dowód z niczego. Podpis i enrollment są etapem **po** rzeczywistym source run i review.
+E2-A nie wybrało ani nie implementowało wyjątku. Późniejsze jawne zlecenie E2-B0
+zatwierdziło drugi wariant: implementacja qualification-only działa offline na tej
+samej ścieżce Host/SQLite/scheduler/Worker, z lokalną autoryzacją i trwałym budżetem.
+Nie wymaga wcześniejszego PASS, nie tworzy go i nie wyłącza E1 w trybie normalnym.
+Źródłem aktualnych warunków jest dokument 19; rzeczywisty grant i source run nadal
+NOT_RUN. Podpis i enrollment są etapem po prawdziwym przebiegu i review.
 
 ## Pakiet autoryzacyjny do późniejszego wypełnienia
 
@@ -106,10 +112,10 @@ z konkretną czynnością, powodem i instrukcją ręczną (AGENTS); cisza nie da
 7. Po każdym cyklu i zakończeniu ponownie potwierdź tę samą instancję i stan UI,
    metadane plików oraz audit/release. Jeśli stan niepewny: zachowaj dowody i STOP.
 
-Ograniczenie kodu: [VendorReader](../src/TiaBridge.Worker.V19/VendorReader.cs) odczytuje
-IsModified przed Devices i po odczycie. Nie przerywa samego bounded read, gdy zastanie
-true; projekcja Host odrzuca różnicę bitów, lecz może zaakceptować true/true. Dlatego
-sam SUCCEEDED nie zalicza E2. True na wejściu → REVIEW_REQUIRED/BLOCKED; false→true
+Aktualizacja B0: [VendorReader](../src/TiaBridge.Worker.V19/VendorReader.cs) przy true
+na wejściu pomija inventory i zwraca raw dirty observation po Dispose. Host wymaga
+false/false; true/true jest odrzucane. Sam SUCCEEDED nadal nie zalicza całego E2.
+True na wejściu → REVIEW_REQUIRED/BLOCKED wejścia lub FAIL wykonanego cyklu; false→true
 lub inny niezamierzony drift → FAIL i STOP. Nigdy automatyczny Save/naprawa.
 Równość bitów i metadanych nie dowodzi niezmienności całego projektu w pamięci.
 
@@ -172,6 +178,8 @@ Nie twórz CANONICAL/NATIVE HMI i nie ogłaszaj SYNCED (ADR 0001–0003 bez zmia
 
 Nie utworzono deployment config ani store. Poniższy szablon zapisuje się dopiero po
 uzupełnieniu i zatwierdzeniu poza Git, pod per-user LOCALAPPDATA na fixed NTFS.
+Dla qualification-only wymagane dodatkowo pola konfiguracji i lokalny dokument B0
+z dokumentu 19. Sam poniższy szablon pozostaje deny-by-default.
 Jest celowo niewykonalny: liczby 0 i placeholdery mają powodować odmowę.
 
 ```json
