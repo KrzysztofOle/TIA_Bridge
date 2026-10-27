@@ -75,6 +75,13 @@ Zamknięcie prac B-02D wymaga wykonania i jawnego raportu RT/NF, bez ukrywania F
 
 **Ryzyka:** know-how/Safety/inconsistent blocks, brak API Unified screen round-trip, nieznane ID. **Testy:** fresh identity, export twice, rename/group/Unicode collisions, unsupported inventories. **Akceptacja:** każdy odkryty obiekt ma artifact lub jawny powód; pliki CODEX zachowane; brak setter/Compile/Save/Archive w R. **Rezultat:** Git-friendly pliki + obiektowe locatory. **Bramka:** pierwsza FC ma native i editable reprezentację oraz kwalifikowany comparison profile; HMI może nadal pozostać RO.
 
+Uszczegółowienie przygotowania B-03A, 2026-10-27: [E2-A](B03A_E2_A_PREPARATION.md)
+przygotowuje offline [B1](E2-B1_TEST_PLAN.md) `T05_RecipeSim_V19_Testowy`, następnie
+[B2](E2-B2_TEST_PLAN.md) `T04_T05-000_Testowy`. B2 wymaga B1 qualification PASS,
+hashowanych dowodów, release, trend review i osobnej decyzji/świeżego preflightu.
+Engineering obu NOT_RUN, real evidence NOT_REGISTERED; bootstrap wymagający decyzji
+opisano w pakiecie. To nie otwiera B-03B, Etapu 4 ani praw do mutacji.
+
 ## Etap 4 — Pliki i CODEX→TIA [MVP]
 
 **Cel:** mały, kontrolowany import bez utraty intencji CODEX. **Zależności:**3A/3B,2,5A/6A przed włączeniem Apply, X-02/X-03. **Pakiety:**

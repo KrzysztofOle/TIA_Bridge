@@ -116,6 +116,13 @@ Rotacja jest ręczna: odwołaj aktywne kwalifikacje starego signera, zachowaj hi
 
 ## Warunki rozpoczęcia E2
 
+Bieżący pakiet przygotowania i raport bootstrapu: [E2-A](B03A_E2_A_PREPARATION.md),
+[operator przed B1](E2_OPERATOR.md). Kolejność: [E2-B1](E2-B1_TEST_PLAN.md)
+`T05_RecipeSim_V19_Testowy`, dopiero po jego qualification PASS i osobnym preflight
+[E2-B2](E2-B2_TEST_PLAN.md) `T04_T05-000_Testowy`. Brak exact źródłowego dowodu
+blokuje zwykły dispatch; osobny projekt eksperymentu bootstrap wymaga decyzji użytkownika.
+Pakiet E2-A nie zmienia polityki provider/enrollment i nie nadaje nowego wyjątku.
+
 Oddzielne zadanie i jawna autoryzacja bounded Engineering; aktualna ograniczona D-11 dla właściwego buildu/profilu; świeży preflight PID/start/executable/project path/ProjectKey/IsModified, exact DLL i Worker SHA; niezależny przegląd rzeczywistego dowodu źródłowego i operatorowe enrollment; sprawdzone ACL dla realnego konta Host; określony zakres odczytu, monitoring zasobów i zachowane reguły UNKNOWN/quarantine. Rozstrzygnij bootstrap rzeczywistej kwalifikacji na podstawie zatwierdzonych źródłowych dowodów przed live dispatch — nie fabrykuj nowego PASS, aby wykonać samą kwalifikację.
 
 E1-L nie jest takim zadaniem, nie tworzy grantu Siemens i nie rozstrzyga Worker Handle Risk UNKNOWN. Real Engineering evidence NOT_REGISTERED, B-03A Engineering BLOCKED/NOT_RUN, B-03B NOT_READY. NF-11 minimum 8 h pozostaje NOT_RUN.

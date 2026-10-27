@@ -17,6 +17,13 @@ Rekomendacja: host C#/.NET 10, trwałe operacje i SQLite na lokalnym NTFS, wykon
 
 ## Dokumentacja projektu
 
+Bieżące przygotowanie B-03A/E2: [pakiet E2-A](docs/B03A_E2_A_PREPARATION.md),
+[plan B1 — T05_RecipeSim_V19_Testowy](docs/E2-B1_TEST_PLAN.md),
+[plan B2 — T04_T05-000_Testowy](docs/E2-B2_TEST_PLAN.md),
+[instrukcja operatora](docs/E2_OPERATOR.md). Testy jednego projektu naraz, B1 przed B2.
+Engineering obu NOT_RUN; real evidence NOT_REGISTERED. Przygotowanie nie aktywuje
+deploymentu i nie rozstrzyga bootstrapu kwalifikacji bez decyzji użytkownika.
+
 | Dokument | Zawartość |
 |---|---|
 | [01 — Audyt](docs/01_AUDIT_OLD_BRIDGE.md) | kod, historia, rejestr problemów i środki zaradcze |

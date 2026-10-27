@@ -24,6 +24,14 @@ Fake adapter wykonuje skrypty awarii w izolowanym procesie. Pozwala zablokować 
 
 ## Testy integracyjne Engineering
 
+Przygotowanie B-03A/E2 ma osobny [pakiet E2-A](B03A_E2_A_PREPARATION.md):
+[E2-B1](E2-B1_TEST_PLAN.md) `T05_RecipeSim_V19_Testowy` przed
+[E2-B2](E2-B2_TEST_PLAN.md) `T04_T05-000_Testowy`. Jeden projekt naraz, B2 dopiero po
+udokumentowanym B1 qualification PASS, release/trend review i nowym preflight/zgodzie.
+Plany dotyczą bounded read-only Discovery, bez operacji round-trip opisanych poniżej;
+przygotowanie offline nie uruchamia Engineering ani nie zmienia wymagań RT/NF.
+Bootstrap exact rzeczywistych dowodów pozostaje osobną decyzją, bez fikcyjnego PASS.
+
 Pierwszy projekt: czysta syntetyczna kopia AP19 na NTFS, jeden SCL FC bez Safety/hardware side effects. Fresh identity + backup → export → edycja → plan → Apply → Compile → Save → nowy Attach/eksport → compare W/P/B. Zweryfikuj także niezmieniony blok kontrolny i inventory. Pierwszy round-trip musi wykazać zachowanie komentarzy, atrybutów, version metadata i referencji, nie tylko ciała FC.
 
 Następnie grupy UDT→GlobalDB→FB→IDB i zależne FC/OB osobno, XML LAD początkowo read-only; wszystkie operacje macierzy testowane per kind/version/CPU/language. HMI: oddzielne rodziny klasyczne/Unified, natywne JS+YAML i publiczne struktury; brak readbacku required dimension blokuje capability. Import błędnego pliku, half-import, compile errors/warnings i utrata Save reply mają testy z receiptami.

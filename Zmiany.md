@@ -1,5 +1,70 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-27 — B-03A/E2-A: przygotowanie sekwencyjnej kwalifikacji V19
+
+**Wejście i zakres:** baza `97e9f803a583d727e53fb366d13a316baaaaaab7`, po fetch
+`HEAD=main=origin/main`, czyste worktree. Wyłącznie przygotowanie offline i odczyt
+środowiska Windows/plików dokumentacji API; bez uruchamiania TIA/Openness/Attach,
+testów Siemens, NF-11, nowego D-11, klucza produkcyjnego, ACL deploymentu lub real
+enrollment. Snapshot Windows zastał cztery już działające procesy Portal V19; nie
+identyfikowano ich projektów i nie sterowano nimi. C:/X: Fixed/NTFS; domyślny state
+Host nie istnieje. To nie jest potwierdzony deployment ani preflight Engineering.
+
+**Pakiet:** [E2-A](docs/B03A_E2_A_PREPARATION.md), osobne
+[B1](docs/E2-B1_TEST_PLAN.md) `T05_RecipeSim_V19_Testowy` i
+[B2](docs/E2-B2_TEST_PLAN.md) `T04_T05-000_Testowy` oraz
+[operator](docs/E2_OPERATOR.md). Jeden target naraz, 20 sekwencyjnych cykli STA,
+exact PID/start/executable/SID/AP19/ProjectKey/build/read scope, limity DiscoveryV1
+64/256/MaxDepth=8 z wyjaśnieniem depth=0 pierwszego DeviceItem. B1 qualification PASS,
+czysty stan, pełne hashe, release i review trendu są warunkiem osobnej decyzji oraz
+nowego preflightu B2. Brak sztucznego progu handles; pełne serie cold/warm/idle,
+delty/nachylenie/mediany i jawna ocena GROWING/INCONCLUSIVE zamiast dowodu stabilności.
+
+**Weryfikacja E1 i ograniczenia:** deny-by-default registry v2/PROJECT/project.inspect,
+podpis/ACL/lifecycle/artefact hash i exact matching oraz ponowne oceny przed dispatch
+pozostają zgodne z kodem. Mechanizm Local Trusted PASS offline, real evidence
+NOT_REGISTERED. Procedura ACL odpowiada wspólnemu SID desktop Host/operator;
+usługa z innym kontem niekwalifikowana. Plan wymaga false/false IsModified; Worker
+odczytuje bit przed/po, ale projekcja równości dopuszcza true/true — sam SUCCEEDED
+nie zalicza E2. Audit zawiera fazy, nie każdy getter. Publiczny artifact download
+nie jest zaimplementowany; plany wskazują odczyt exact lokalnych blobów po ID/SHA.
+Stary harness wymaga dwóch projektów, przeplata A/B i nie provisionuje E1, więc jest
+jawnie wyłączony dla E2. Plany używają istniejącego Host/API/CLI, bez nowej infrastruktury.
+
+**Raport rozbieżności/bootstrapu:** dokument 18 wymaga real source evidence przed
+live dispatch; obecny profil także wymaga takiego exact PASS przed pierwszym call,
+a brak nowej kwalifikacji B-03A. Pakiet opisuje źródła, skutki, warianty i rekomendację
+osobno zatwierdzonego projektu ograniczonego eksperymentu, gdy brak źródłowych dowodów.
+Nie wybrano wyjątku/bypassu i nie podpisano fikcyjnego PASS. E2-A przygotowanie COMPLETE;
+wejście live nadal BLOCKED do decyzji/bootstrapu, rzeczywistego deploymentu i preflightu.
+E2-B1/E2-B2 Engineering NOT_RUN, produkcja/Runtime NOT_RUN, B-03B NOT_READY,
+NF-11 NOT_RUN i historyczny Worker Handle Risk UNKNOWN bez zmiany.
+
+**Walidacja:** Build Release PASS, 0 warnings/errors; celowana regresja Host
+LocalTrusted/V19Offline 92/92 oraz Core Capability/QualificationEvidence 39/39 PASS,
+zero FAIL/SKIP. Python contracts/schema/IPC/gate/performance-reporter 42/42 PASS;
+generatory kontraktów i 100 wektorów PASS. Osobno porównano 13 getterów planu z kodem,
+sprawdzono oba requesty (placeholdery odrzucone, podstawienia syntetyczne zgodne ze
+schematem) i niezmienność SHA-256 11 źródeł produkcyjnych. Testy używają własnych syntetycznych UUID
+fixtures i efemerycznych kluczy, nie produkcyjnego CNG; dotychczasowe ACL testy
+modyfikują wyłącznie nowo utworzone własne fixtures, nie deployment/Windows/projekty.
+Nie uruchomiono pełnego runnera/NF, bo kod produkcyjny i wymagania nie uległy zmianie.
+Audyt dokumentów i linków PASS (62 Markdown, 537 lokalnych linków, 0 błędów), diff
+check PASS; przejrzano selektywny staged diff. Surowe dowody przygotowania wyłącznie
+w `.tia-bridge/e2-preparation/2d9c1300a6eb42869a5f1ad2d1fa4a15/`, z manifestem SHA-256.
+Przy edycji skorygowano lokalne EOL plików do stylu bazowego, bez masowego diffu.
+
+**Ocena obu instrukcji sekcja po sekcji:** AGENTS — zakres/stan, role/hierarchia,
+niezmienne granice, autoryzacja/testy/D-11/Computer Use, dyscyplina, Git i dane nieufne;
+Instrukcja_ChatGPT — cel/odpowiedzialność, źródła/hierarchia, architektura, zadanie,
+kontrola wyników, bezpieczeństwo/recovery, decyzje/spójność, Git/dokumentacja i styl.
+Obie pozostają bez edycji: plany konkretyzują nowe jawne zlecenie przygotowania,
+nie nadają grantów i zachowują obowiązek wstrzymania zależnej pracy przy bootstrapie.
+ADR 0001–0003, dokumenty 03–06/12/17, Core/HTTP/IPC/registry i semantyka SYNCED
+bez zmian; nie ma nowego Attach/owner/schedulera ani gettera. Strategia 07, backlog 08,
+procedura 18 i indeksy README/Engineering wskazują nową kolejność i warunki wejścia.
+Nie zmieniono RT/NF, kwalifikacji lub historycznych raportów X-01/D-11/E1-L.
+
 ## 2026-10-27 — B-03A/E1-L: Local Trusted v1
 
 **Zakres i implementacja:** baza `8aa01e01306650d18dcc834868e68aaf66ee5b48=origin/main`, worktree clean po fetch. Zatwierdzony model: jeden lokalny operator/klucz CNG P-256, ACL, jawne approve/enroll, trwałe manual revoke, ręczna rotacja i brak auto expiry; bez PKI. Nowy lokalny TiaBridge.Qualification wykonuje inspect/approve/enroll/list/revoke/verify. Ten sam qualification-evidence otrzymuje create-new approval i records per ID/revision oraz append/flush lifecycle; provider E1 wymaga aktywacji i ponownie sprawdza revocation, podpisy, hashe, project/build/read scope oraz rzeczywiste ACL/Host SID. Chronione pliki nie wystarczają bez bezpiecznych przodków — dodano kontrolę owner i DeleteChild/ownership/write rodzica. Narzędzie nie zmienia ACL i nie generuje kluczy; testy ustawiają ACL wyłącznie własnych syntetycznych UUID fixtures.

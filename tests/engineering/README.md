@@ -4,6 +4,13 @@ Ten katalog nie należy do standardowego discovery offline. Testy Engineering wy
 
 ## Build i kontrolowany przebieg
 
+**Dla B-03A/E2 nie uruchamiaj poniższego historycznego harnessu X-01.** Wymaga dwóch
+projektów, nadaje nowe klucze i przeplata A/B, a jego config nie provisionuje Local
+Trusted ani exact evidence. Bieżąca kolejność i procedura jednego targetu przez istniejący
+Host/API/CLI są w [E2-A](../../docs/B03A_E2_A_PREPARATION.md), [B1](../../docs/E2-B1_TEST_PLAN.md)
+i [B2](../../docs/E2-B2_TEST_PLAN.md). Bootstrap i autoryzacja są warunkiem wejścia,
+nie flagą obejścia providera. E2-A nie uruchamia żadnego z poniższych poleceń vendor.
+
 ```powershell
 dotnet restore TiaBridge.Engineering.slnx --locked-mode
 dotnet build TiaBridge.Engineering.slnx -c Release --no-restore
