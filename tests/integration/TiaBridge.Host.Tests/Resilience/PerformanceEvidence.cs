@@ -15,6 +15,7 @@ internal sealed class PerformanceEvidence : IDisposable
     private readonly DateTimeOffset started = DateTimeOffset.UtcNow;
     private readonly string gitSha;
     private readonly bool dirty;
+    private readonly QualificationProfile profile;
     private readonly Dictionary<string, string> binaries = new();
     private readonly Dictionary<string, string> sources = new();
     private readonly List<Func<object>> metrics = new();
@@ -23,7 +24,7 @@ internal sealed class PerformanceEvidence : IDisposable
 
     internal PerformanceEvidence(ApiFixture fixture, string scenario, string testName)
     {
-        this.fixture = fixture; this.scenario = scenario; this.testName = testName;
+        this.fixture = fixture; this.scenario = scenario; this.testName = testName; profile = QualificationProfile.Load(fixture.Files.Repository);
         string Git(params string[] args)
         {
             var info = new ProcessStartInfo("git") { WorkingDirectory = fixture.Files.Repository, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
@@ -37,7 +38,7 @@ internal sealed class PerformanceEvidence : IDisposable
         gitSha = Git("rev-parse", "HEAD"); dirty = Git("status", "--porcelain").Length != 0;
         foreach (string path in new[] { typeof(PerformanceEvidence).Assembly.Location, fixture.Binary("TiaBridge.Core"), fixture.Binary("TiaBridge.Host"), fixture.Binary("TiaBridge.Ipc"), fixture.Binary("TiaBridge.FakeWorker") })
             binaries.Add(Path.GetRelativePath(fixture.Files.Repository, path).Replace('\\', '/'), Hash(path));
-        foreach (string relative in new[] { "tests/integration/TiaBridge.Host.Tests/ApiPerformanceTests.cs", "tests/integration/TiaBridge.Host.Tests/Resilience/ResiliencePerformanceTests.cs", "tests/integration/TiaBridge.Host.Tests/Resilience/PerformanceEvidence.cs" })
+        foreach (string relative in new[] { "tests/integration/TiaBridge.Host.Tests/ApiPerformanceTests.cs", "tests/integration/TiaBridge.Host.Tests/SchedulerSafetyTests.cs", "tests/integration/TiaBridge.Host.Tests/Resilience/ResiliencePerformanceTests.cs", "tests/integration/TiaBridge.Host.Tests/Resilience/PerformanceEvidence.cs", "tests/integration/TiaBridge.Host.Tests/Resilience/QualificationProfile.cs", "tests/resilience/performance-profiles.json" })
             sources.Add(relative, Hash(Path.Combine(fixture.Files.Repository, relative)));
     }
 
@@ -49,7 +50,8 @@ internal sealed class PerformanceEvidence : IDisposable
             double[] values = samples().ToArray(); int errors = refused?.Invoke() ?? 0;
             var distribution = values.Length == 0 ? null : ResiliencePerformanceTests.Distribution(values);
             string status = values.Length != expected ? "INCOMPLETE" : errors != 0 || distribution!["p95_ms"] > p95 || p99 is not null && distribution["p99_ms"] > p99 ? "FAIL" : "PASS";
-            return new { id, unit = "ms", time_kind = "wall_clock", order = "collection_snapshot_not_concurrent_completion_order", expected_samples = expected, sample_count = values.Length, samples = values.Select((value, index) => new { id = index, value }).ToArray(), distribution, p95_limit_ms = p95, p99_limit_ms = p99, refused_samples = errors, status, workspace = Path.GetFullPath(workspace), filesystem = new DriveInfo(Path.GetPathRoot(workspace)!).DriveFormat };
+            int p95Exceedances = values.Count(value => value > p95); int? p99Exceedances = p99 is null ? null : values.Count(value => value > p99);
+            return new { id, unit = "ms", time_kind = "wall_clock", order = "collection_snapshot_not_concurrent_completion_order", expected_samples = expected, sample_count = values.Length, samples = values.Select((value, index) => new { id = index, value }).ToArray(), distribution, p95_limit_ms = p95, p99_limit_ms = p99, p95_exceedance_count = p95Exceedances, p99_exceedance_count = p99Exceedances, refused_samples = errors, status, workspace = Path.GetFullPath(workspace), filesystem = new DriveInfo(Path.GetPathRoot(workspace)!).DriveFormat };
         });
     }
     internal void Pass() => passed = true;
@@ -68,6 +70,9 @@ internal sealed class PerformanceEvidence : IDisposable
         {
             schema_version = "1.1",
             kind = "nf-performance",
+            qualification_profile = profile.Name,
+            profile_version = profile.Version,
+            profile_definition_sha256 = profile.Sha256,
             run_id = ResilienceEvidence.CurrentRunId,
             scenario,
             test_name = testName,
@@ -80,6 +85,8 @@ internal sealed class PerformanceEvidence : IDisposable
             runtime = RuntimeInformation.FrameworkDescription,
             os = RuntimeInformation.OSDescription,
             processors = Environment.ProcessorCount,
+            applied_thresholds = profile.Limits,
+            applied_test_harness_limits = profile.TestHarness,
             state_path = fixture.Files.Root,
             state_filesystem = new DriveInfo(Path.GetPathRoot(fixture.Files.Root)!).DriveFormat,
             fake_scenario = "Hang",

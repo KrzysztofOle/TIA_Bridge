@@ -25,14 +25,16 @@ class OfflineRunnerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); (root / "scripts").mkdir()
             shutil.copyfile(ROOT / "scripts/performance_evidence.py", root / "scripts/performance_evidence.py")
+            (root / "tests/resilience").mkdir(parents=True)
+            shutil.copyfile(ROOT / "tests/resilience/performance-profiles.json", root / "tests/resilience/performance-profiles.json")
             shared = root / ".tia-bridge/resilience/run.json"; shared.parent.mkdir(parents=True); shared.write_bytes(b"historical unchanged")
             fake_reporter = SimpleNamespace(performance_evidence=evidence, capture_environment=lambda *args: None,
-                qualification=lambda *args: dict(gate="FAIL", x01_readiness="NOT_READY", gate_blockers=[], limited_x01_technical_readiness="NOT_READY"))
+                qualification=lambda *args: dict(gate="FAIL", x01_readiness="NOT_READY", gate_blockers=[], limited_x01_technical_readiness="NOT_READY", nf={f"NF-{n:02d}": {"status": "PASS"} for n in [1, 2, 3, 5, 8]}))
             def fake_step(name, command, steps, **kwargs):
                 steps.append(dict(name=name, exit_code=0, elapsed_s=0))
                 return SimpleNamespace(returncode=0, stdout="Ran 1 tests\nOK\n")
             first_output = None
-            with patch.object(runner, "ROOT", root), patch.object(runner, "OUTPUT", root / "unused"), patch.object(runner, "load_reporter", return_value=fake_reporter), patch.object(runner, "check_core_boundary", return_value={"status": "PASS"}), patch.object(runner, "check_trx", return_value=dict(passed=1, failed=0, failed_tests=[])), patch.object(runner, "run_step", side_effect=fake_step), patch.object(runner.subprocess, "check_output", return_value="a" * 40), patch("builtins.print"), patch.dict(os.environ):
+            with patch.object(runner, "ROOT", root), patch.object(runner, "OUTPUT", root / "unused"), patch.object(runner, "load_reporter", return_value=fake_reporter), patch.object(runner, "check_core_boundary", return_value={"status": "PASS"}), patch.object(runner, "check_trx", return_value=dict(passed=1, failed=0, failed_tests=[])), patch.object(runner, "run_preflight", return_value={"status": "PASS_WITH_LOAD", "load_policy": {}}), patch.object(runner, "run_step", side_effect=fake_step), patch.object(runner.subprocess, "check_output", return_value="a" * 40), patch("builtins.print"), patch.dict(os.environ):
                 for _ in range(2):
                     self.assertEqual(1, runner.main())
                     result = json.loads((runner.OUTPUT / "run.json").read_text())

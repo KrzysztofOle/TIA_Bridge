@@ -91,6 +91,8 @@ Dodatkowe REQUIRED: queue cancel vs dispatch race; śmierć workera przy żywym 
 
 ## Wydajność, stabilność i dostarczanie dowodów
 
+NF KPI w trybie offline mają dwa jawne profile w [D-11-P](20_PERFORMANCE_QUALIFICATION_PROFILES.md). `STRICT` pozostaje domyślny i zachowuje wszystkie dotychczasowe progi. Kandydacki `SHARED_WORKSTATION` jest wybierany jawnie przez runner; nie wymaga bezczynności systemu, a `PASS_WITH_LOAD` jest akceptowanym stanem preflightu, po którym progi nadal oceniają pełne próbki. Wymagania bezpieczeństwa/poprawności zawsze wymagają PASS. Timeouty operacji, kolejki, heartbeat, IPC/native call, recovery i limity liczby operacji nie są KPI i nie ulegają zmianie. Szczegółowe progi, obciążenie, próbkowanie i historia są w dokumencie 20.
+
 Pełna kwalifikacja stabilności w B-10B/R-14 obejmuje profil NF-01–NF-15 z [02](02_REQUIREMENTS.md), minimum 1000 operacji syntetycznych i minimum 8 h NF-11 oraz osobny read-only live soak 100 operacji. Minimum 8 h nie jest warunkiem ograniczonego eksperymentu X-01 read-only; pozostaje obowiązkowe przed odpowiednią kwalifikacją stabilności produkcyjnej. Mierz warm/cold Attach, Export per kind/size, compile duration, CPU/RAM/handles/process count i API latency podczas wiszącego call. Nie porównuj czasu OPC i Snap7 z różnymi buildami DB lub częstotliwością. Wartości celów należy skorygować pomiarami, nie przedstawiać jako już osiągnięte.
 
 Pakiet dowodów: machine-readable `run.json`, test IDs, sanitized event journal, plan/source/capability/normalizer versions, compiler results, raw artifact hashes i wybrane screenshots/trace. Duże/zawierające projekt artifacts pozostają chronione poza Git; repo zawiera syntetyczne fixtures i podsumowania z hashami. Redakcja nie może usuwać informacji o UNKNOWN lub niespełnionym kryterium. CI offline nie potrzebuje Siemens; Windows integration lane jest opt-in z bezpiecznym profilem, a E2E nigdy nie uruchamia się automatycznie na fizycznym PLC.
@@ -108,6 +110,8 @@ Zatwierdzona decyzja [D-11](09_RISKS_AND_DECISIONS.md#decyzje), 2026-10-26, okre
 NF-11 może pozostać NOT_RUN przed tym eksperymentem; B-10B/R-14 pozostaje obowiązkowe. Historyczny NF-03 exFAT: FAIL nie jest zmieniany ani przenoszony na NTFS. Pozytywny NTFS nie dopuszcza operacji zależnych od safe replace na niezakwalifikowanym exFAT i nie uprawnia do relokacji danych.
 
 PASS tej bramki pozwala wyłącznie przygotować osobne zadanie X-01 read-only, z odrębną autoryzacją i weryfikacją środowiska, tożsamości projektu, exact DLL/rights oraz własności procesów. Nie uruchamia X-01 i nie nadaje zgody na mutacje, download ani sterowanie PLC/HMI. Fake nie dowodzi poprawności Siemens.
+
+Profil `SHARED_WORKSTATION` nie zastępuje ani nie modyfikuje tej zatwierdzonej bramki. Propozycja wejścia E2-B1 na podstawie nowego profilu wymaga osobnego zatwierdzenia użytkownika; do tego czasu wymaganie D-11 powyżej pozostaje aktywne.
 
 ## Kolejne poziomy kwalifikacji i dowody B-02D
 

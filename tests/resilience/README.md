@@ -22,6 +22,12 @@ Wymagania i jednorazowy cache: [tests/README.md](../README.md). Windows, .NET SD
 & "$env:LOCALAPPDATA/TIA_Bridge2/dev/qa-b01a-20261025/Scripts/python.exe" -B scripts/validate_offline.py
 ```
 
+Domyślny profil to `STRICT`. Aby wykonać jawnie nową kwalifikację offline na
+współdzielonym stanowisku, dopisz `--profile SHARED_WORKSTATION`. Nie wybieraj
+profilu na podstawie wyników poprzedniego runu. Preflight `PASS_WITH_LOAD`
+kontynuuje pomiary, a wszystkie obserwacje obciążenia pozostają w nowym UUID.
+Profile i ich wersjonowane progi opisuje [D-11-P](../../docs/20_PERFORMANCE_QUALIFICATION_PROFILES.md).
+
 To pełny zestaw, z rzeczywistym pięciominutowym idle i 1001 operacjami. Projekty wykonują się kolejno (-m:1), profile HTTP są izolowane od innych startów procesów; osiem klientów jest równoczesnych wewnątrz testu. Nie skraca się deadline produkcyjnych ani progu NF-01. Pełny 8 h soak NF-11 nie jest wykonywany: jawna decyzja użytkownika pozostawia go w B-10B/R-14.
 
 Celowany przebieg po build:

@@ -1,7 +1,10 @@
 """Corruption and historical evidence must not become a new qualification PASS. Synthetic samples only."""
 import importlib.util
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -21,16 +24,20 @@ def fixture(root, scenario="api-performance"):
     code = root / "synthetic.cs"; code.write_text("// synthetic")
     metrics = []
     for name, (n, p95, p99) in evidence.PROFILES[scenario].items():
-        values = list(range(n))
+        values = [1] * n
         metrics.append(dict(id=name, unit="ms", time_kind="wall_clock", order="collection_snapshot_not_concurrent_completion_order", expected_samples=n, sample_count=n,
                             samples=[dict(id=i, value=v) for i, v in enumerate(values)], distribution=evidence.distribution(values),
-                            p95_limit_ms=p95, p99_limit_ms=p99, refused_samples=0, status="PASS", workspace="synthetic-ntfs", filesystem="NTFS"))
+                            p95_limit_ms=p95, p99_limit_ms=p99, p95_exceedance_count=0, p99_exceedance_count=0 if p99 is not None else None, refused_samples=0, status="PASS", workspace="synthetic-ntfs", filesystem="NTFS"))
     value = dict(schema_version="1.1", kind="nf-performance", run_id=RUN, scenario=scenario, test_name="SyntheticEvidenceTest", started_at=START, ended_at=START,
+                 qualification_profile=evidence.PROFILE_NAME, profile_version=evidence.PROFILE_VERSION, profile_definition_sha256=evidence.PROFILE_SHA256,
+                 applied_test_harness_limits=evidence.TEST_HARNESS_LIMITS,
+                 applied_thresholds=evidence.PROFILE_DEFINITION["profiles"][evidence.PROFILE_NAME]["limits"],
                  git_sha="a" * 40, git_dirty=False, binaries_sha256={"synthetic.dll": evidence.digest(binary)}, sources_sha256={"synthetic.cs": evidence.digest(code)},
                  runtime="synthetic", os="synthetic", processors=8, state_path="synthetic-state", state_filesystem="NTFS", fake_scenario="Hang", config_sha256="b" * 64,
                  test_status="PASS", metrics=metrics, summary=None)
     if scenario == "api-performance":
-        value["summary"] = {"observed_at": START, "submit_eight_clients": metrics[0]["distribution"], "edit_one_mib": metrics[1]["distribution"], "status_one_client": dict(p95_ms=10, p99_ms=20), "status_eight_clients": dict(p95_ms=10, p99_ms=20)}
+        by_id = {metric["id"]: metric for metric in metrics}
+        value["summary"] = {"observed_at": START, "submit_eight_clients": by_id["nf02-submit-eight"]["distribution"], "edit_one_mib": by_id["nf03-inplace-repository"]["distribution"], "status_one_client": by_id["nf01-status-one"]["distribution"], "status_eight_clients": by_id["nf01-status-eight"]["distribution"]}
     return value
 
 
@@ -49,6 +56,37 @@ class PerformanceEvidenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); value = fixture(root); publish(root, value)
             self.assertEqual("PASS", evidence.load_bundle(root, RUN, "api-performance", START)["status"])
+
+    def test_strict_profile_is_default_and_shared_profile_has_versioned_individual_thresholds(self):
+        self.assertEqual("STRICT", evidence.PROFILE_DEFINITION["default_profile"])
+        shared = evidence.PROFILE_DEFINITION["profiles"]["SHARED_WORKSTATION"]["limits"]
+        strict = evidence.PROFILE_DEFINITION["profiles"]["STRICT"]["limits"]
+        self.assertEqual(100, strict["nf03_replace_p95_ms"])
+        self.assertEqual(500, shared["nf03_replace_p95_ms"])
+        self.assertEqual(250, shared["nf01_status_p95_ms"])
+        self.assertEqual(500, shared["nf02_submit_p95_ms"])
+        self.assertEqual(10000, shared["nf05_startup_p95_ms"])
+        self.assertEqual(1, strict["nf08_host_idle_cpu_mean_percent"])
+        self.assertEqual(2, shared["nf08_host_idle_cpu_mean_percent"])
+        self.assertEqual(strict["nf08_host_ram_mib"], shared["nf08_host_ram_mib"])
+
+    def test_shared_profile_is_explicitly_selectable_in_the_same_validator(self):
+        environment = os.environ.copy(); environment["TIA_BRIDGE_QUALIFICATION_PROFILE"] = "SHARED_WORKSTATION"
+        probe = "import json,sys; sys.path.insert(0,'scripts'); import performance_evidence as e; print(json.dumps({'name':e.PROFILE_NAME,'version':e.PROFILE_VERSION,'nf03':e.PROFILES['workspace-replace']['nf03-ntfs-save-replace']}))"
+        result = subprocess.run([sys.executable, "-B", "-c", probe], cwd=ROOT, env=environment, capture_output=True, text=True, check=True)
+        self.assertEqual({"name": "SHARED_WORKSTATION", "version": "1.0.0-candidate", "nf03": [100, 500, None]}, json.loads(result.stdout))
+
+    def test_performance_threshold_failure_and_integrity_failure_remain_distinct(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); value = fixture(root); metric = next(m for m in value["metrics"] if m["id"] == "nf03-inplace-repository")
+            failed_value = metric["p95_limit_ms"] + 1
+            for sample in metric["samples"]: sample["value"] = failed_value
+            metric["distribution"] = evidence.distribution([failed_value] * 100); metric["p95_exceedance_count"] = 100; metric["status"] = "FAIL"; value["test_status"] = "FAIL"
+            value["summary"]["edit_one_mib"] = metric["distribution"]
+            publish(root, value)
+            self.assertEqual("FAIL", evidence.load_bundle(root, RUN, "api-performance", START)["status"])
+            artifact = root / "synthetic.dll"; artifact.write_bytes(b"tampered")
+            with self.assertRaises(ValueError): evidence.load_bundle(root, RUN, "api-performance", START)
 
     def test_rejects_missing_duplicate_wrong_count_nonfinite_negative_and_mixed_samples(self):
         for fault in ["missing", "duplicate", "count", "nan", "inf", "negative", "aggregate", "run", "mixed", "unit", "clock", "threshold", "status", "stale", "build"]:
@@ -90,11 +128,11 @@ class PerformanceEvidenceTests(unittest.TestCase):
             with self.subTest(fault=fault), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory); value = fixture(root); metric = value["metrics"][0]
                 if fault == "partial":
-                    metric["samples"] = metric["samples"][:3]; metric["sample_count"] = 3; metric["distribution"] = evidence.distribution([0, 1, 2]); metric["status"] = "INCOMPLETE"; value["test_status"] = "FAIL"
+                    metric["samples"] = metric["samples"][:3]; metric["sample_count"] = 3; metric["distribution"] = evidence.distribution([1, 1, 1]); metric["status"] = "INCOMPLETE"; value["test_status"] = "FAIL"
                 if fault == "legacy": value["schema_version"] = "1.0"; value.pop("metrics")
                 if fault == "slo":
                     for sample in metric["samples"]: sample["value"] = 600
-                    metric["distribution"] = evidence.distribution([600] * 64); metric["status"] = "FAIL"; value["test_status"] = "FAIL"; value["summary"]["submit_eight_clients"] = metric["distribution"]
+                    metric["distribution"] = evidence.distribution([600] * 64); metric["p95_exceedance_count"] = 64; metric["p99_exceedance_count"] = None if metric["p99_limit_ms"] is None else sum(sample["value"] > metric["p99_limit_ms"] for sample in metric["samples"]); metric["status"] = "FAIL"; value["test_status"] = "FAIL"; value["summary"]["submit_eight_clients"] = metric["distribution"]
                 publish(root, value)
                 self.assertEqual("FAIL" if fault == "slo" else "INSUFFICIENT", evidence.load_bundle(root, RUN, "api-performance", START)["status"])
 
@@ -131,15 +169,15 @@ class PerformanceEvidenceTests(unittest.TestCase):
                         for phase, metric in zip(["without_worker", "with_worker"], value["metrics"]): record["data"][phase] = dict(success=True, refused_samples=0, distribution=metric["distribution"])
                     path.write_text(json.dumps(record))
             validation = folder / "validation"; validation.mkdir(); (validation / "environment.json").write_text(json.dumps({"run_id": RUN}))
-            metadata = validation / "run-metadata.json"; metadata.write_text(json.dumps(dict(run_id=RUN, git_sha="a" * 40, started_at=START)))
-            result = reporter.qualification(root, RUN, START); self.assertEqual("PASS", result["sample_evidence_status"])
+            metadata = validation / "run-metadata.json"; metadata.write_text(json.dumps(dict(run_id=RUN, git_sha="a" * 40, started_at=START, qualification_profile=evidence.PROFILE_NAME, profile_version=evidence.PROFILE_VERSION, profile_definition_sha256=evidence.PROFILE_SHA256, applied_test_harness_limits=evidence.TEST_HARNESS_LIMITS, preflight_status="PASS_WITH_LOAD")))
+            result = reporter.qualification(root, RUN, START); self.assertEqual("PASS", result["sample_evidence_status"]); self.assertEqual("PASS_WITH_LOAD", result["preflight_status"])
             # The shared legacy file may be corrupt; it is never consumed by current qualification.
             (root / ".tia-bridge/b02c/performance.json").write_text("broken")
             self.assertEqual("PASS", reporter.qualification(root, RUN, START)["sample_evidence_status"])
-            metadata.write_text(json.dumps(dict(run_id=RUN, git_sha="0" * 40, started_at=START)))
+            metadata.write_text(json.dumps(dict(run_id=RUN, git_sha="0" * 40, started_at=START, qualification_profile=evidence.PROFILE_NAME, profile_version=evidence.PROFILE_VERSION, profile_definition_sha256=evidence.PROFILE_SHA256, applied_test_harness_limits=evidence.TEST_HARNESS_LIMITS, preflight_status="PASS_WITH_LOAD")))
             with self.assertRaises(ValueError): reporter.qualification(root, RUN, START)
-            metadata.write_text(json.dumps(dict(run_id=RUN, git_sha="a" * 40, started_at=START)))
-            path = folder / "workspace-replace.json"; record = json.loads(path.read_text()); record["data"]["save_replace_1mib"]["p95_ms"] = 1; path.write_text(json.dumps(record))
+            metadata.write_text(json.dumps(dict(run_id=RUN, git_sha="a" * 40, started_at=START, qualification_profile=evidence.PROFILE_NAME, profile_version=evidence.PROFILE_VERSION, profile_definition_sha256=evidence.PROFILE_SHA256, applied_test_harness_limits=evidence.TEST_HARNESS_LIMITS, preflight_status="PASS_WITH_LOAD")))
+            path = folder / "workspace-replace.json"; record = json.loads(path.read_text()); record["data"]["save_replace_1mib"]["p95_ms"] = 999; path.write_text(json.dumps(record))
             with self.assertRaises(ValueError): reporter.qualification(root, RUN, START)
 
     def test_failed_ntfs_workspace_cannot_be_labeled_pass_by_the_reporter(self):

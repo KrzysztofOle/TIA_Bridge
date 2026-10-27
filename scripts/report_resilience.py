@@ -38,8 +38,11 @@ def qualification(root: Path, run_id: str, started_at: str, *, allow_legacy=Fals
     idle = records["idle-300s"]["data"]
     if idle.get("duration_s", 0) < 300:
         raise ValueError("NF-08 idle window was not completed.")
-    idle_ok = records["idle-300s"]["status"] == "PASS" and idle["cpu_percent_normalized_all_logical_processors"] < 1 and idle["host_max_ram_mib"] <= 200 and idle["worker_max_ram_mib"] <= 250
+    profile = performance_evidence.PROFILE_NAME
+    limits = performance_evidence.PROFILE_DEFINITION["profiles"][profile]["limits"]
+    idle_ok = records["idle-300s"]["status"] == "PASS" and idle["cpu_percent_normalized_all_logical_processors"] < limits["nf08_host_idle_cpu_mean_percent"] and idle["host_max_ram_mib"] <= limits["nf08_host_ram_mib"] and idle["worker_max_ram_mib"] <= limits["nf08_worker_ram_mib"]
     sample_state = "INSUFFICIENT"
+    run_metadata = {}
     if allow_legacy and not (folder / "performance").exists():
         perf = json.loads((root / ".tia-bridge/b02c/performance.json").read_text(encoding="utf-8"))
     else:
@@ -51,6 +54,8 @@ def qualification(root: Path, run_id: str, started_at: str, *, allow_legacy=Fals
         run_metadata = performance_evidence.read_json(run_metadata_path)
         if run_metadata.get("run_id") != run_id or run_metadata.get("git_sha") != builds[0]["git_sha"] or performance_evidence.timestamp(run_metadata.get("started_at")) != performance_evidence.timestamp(started_at):
             raise ValueError("Performance evidence does not belong to runner metadata.")
+        if run_metadata.get("qualification_profile") != performance_evidence.PROFILE_NAME or run_metadata.get("profile_version") != performance_evidence.PROFILE_VERSION or run_metadata.get("profile_definition_sha256") != performance_evidence.PROFILE_SHA256 or run_metadata.get("applied_test_harness_limits") != performance_evidence.TEST_HARNESS_LIMITS:
+            raise ValueError("Run metadata profile mismatch.")
         if any((b["git_sha"], b["binaries_sha256"], b["sources_sha256"]) != (builds[0]["git_sha"], builds[0]["binaries_sha256"], builds[0]["sources_sha256"]) for b in builds[1:]):
             raise ValueError("Performance evidence mixes builds/sources.")
         for scenario, field, metric_id in [("workspace-replace", "save_replace_1mib", "nf03-ntfs-save-replace"), ("repository-replace-control", "without_worker", "nf03-repository-without-worker"), ("repository-replace-control", "with_worker", "nf03-repository-with-worker")]:
@@ -78,12 +83,12 @@ def qualification(root: Path, run_id: str, started_at: str, *, allow_legacy=Fals
     nf["NF-11"] = {"status": "PASS" if full_soak else "NOT_RUN", "completed_operations": soak["completed_operations"], "measured_seconds": soak["soak_seconds"], "ram_growth_mib": soak["ram_growth_mib"], "handle_growth_fraction": soak["handle_growth_fraction"], "live_read_only_soak": "NOT_RUN"}
     nf["NF-13"]["reason"] = "100 deterministic Core cases PASS; actual planner remains B-04A."
     readers = records["http-readers-recovery"]["data"]
-    nf["NF-01"]["status"] = "PASS" if all(perf[k]["p95_ms"] <= 100 and perf[k]["p99_ms"] <= 250 for k in ["status_one_client", "status_eight_clients"]) and readers.get("health_8", {}).get("p95_ms", 101) <= 100 and readers.get("health_8", {}).get("p99_ms", 251) <= 250 else "FAIL"
-    nf["NF-02"]["status"] = "PASS" if perf["submit_eight_clients"]["p95_ms"] <= 250 and perf["submit_eight_clients"]["p99_ms"] <= 500 else "FAIL"
-    nf["NF-05"]["status"] = "PASS" if readers.get("startup_history", {}).get("p95_ms", 5001) <= 5000 and readers.get("safe_read_after_recovery_ms", 30001) <= 30000 else "FAIL"
+    nf["NF-01"]["status"] = "PASS" if all(perf[k]["p95_ms"] <= limits["nf01_status_p95_ms"] and perf[k]["p99_ms"] <= limits["nf01_status_p99_ms"] for k in ["status_one_client", "status_eight_clients"]) and readers.get("health_8", {}).get("p95_ms", limits["nf01_status_p95_ms"] + 1) <= limits["nf01_status_p95_ms"] and readers.get("health_8", {}).get("p99_ms", limits["nf01_status_p99_ms"] + 1) <= limits["nf01_status_p99_ms"] else "FAIL"
+    nf["NF-02"]["status"] = "PASS" if perf["submit_eight_clients"]["p95_ms"] <= limits["nf02_submit_p95_ms"] and perf["submit_eight_clients"]["p99_ms"] <= limits["nf02_submit_p99_ms"] else "FAIL"
+    nf["NF-05"]["status"] = "PASS" if readers.get("startup_history", {}).get("p95_ms", limits["nf05_startup_p95_ms"] + 1) <= limits["nf05_startup_p95_ms"] and readers.get("safe_read_after_recovery_ms", 30001) <= 30000 else "FAIL"
     repo_replace = records["repository-replace-control"]["data"]
     ntfs_ok = records["workspace-replace"]["status"] == "PASS"
-    repo_ok = ntfs_ok and repo_replace["with_worker"]["success"] and repo_replace["without_worker"]["success"] and perf["edit_one_mib"]["p95_ms"] <= 100
+    repo_ok = ntfs_ok and repo_replace["with_worker"]["success"] and repo_replace["without_worker"]["success"] and perf["edit_one_mib"]["p95_ms"] <= limits["nf03_replace_p95_ms"]
     nf["NF-03"] = {"status": "PASS" if repo_ok else "FAIL", "ntfs_save_replace_status": "PASS" if ntfs_ok else "FAIL", "repository_volume_control": repo_replace,
                    "scope": "100 paced 1 MiB save/replace samples on local NTFS; repository volume replace is independently tested without/with worker. No unsafe fallback or retry."}
     gate = "FAIL" if not repo_ok else "PASS" if full_soak else "BLOCKED"
@@ -111,7 +116,11 @@ def qualification(root: Path, run_id: str, started_at: str, *, allow_legacy=Fals
             if path.is_file() and not {"bin", "obj", "__pycache__"}.intersection(path.parts) and path.suffix in {".cs", ".csproj", ".py", ".sql", ".json"} and path.name != "qualification.json":
                 sources[path.relative_to(root).as_posix()] = hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
     source_hash = hashlib.sha256(json.dumps(sources, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-    return {"schema_version": "1.1", "run_id": run_id, "sample_evidence_status": sample_state, "environment": environment, "generated_at": datetime.now(timezone.utc).isoformat(),
+    performance_keys = ["NF-01", "NF-02", "NF-03", "NF-05", "NF-08"]
+    performance_values = [nf[key]["status"] for key in performance_keys[:-1]] + [nf["NF-08"]["measured_idle_status"]]
+    performance_status = "FAIL" if "FAIL" in performance_values else "PASS" if all(value == "PASS" for value in performance_values) else "BLOCKED"
+    qualification_status = "FAIL" if gate == "FAIL" else "PASS" if gate == "PASS" else "BLOCKED"
+    return {"schema_version": "1.1", "run_id": run_id, "sample_evidence_status": sample_state, "performance_status": performance_status, "qualification_status": qualification_status, "qualification_profile": profile, "profile_version": performance_evidence.PROFILE_VERSION, "profile_definition_sha256": performance_evidence.PROFILE_SHA256, "applied_thresholds": limits, "applied_test_harness_limits": performance_evidence.TEST_HARNESS_LIMITS, "environment": environment, "generated_at": datetime.now(timezone.utc).isoformat(),
             "versions": {"api_schema": "1.0", "ipc_protocol": "1.0", "fake_build": "1.0", "sqlite_schema": 4, "source_fingerprint_lf_sha256": source_hash, "source_file_count": len(sources)},
             "scope": "B-02D synthetic offline qualification; no Siemens activation or TIA state verification",
             "gate": gate, "x01_readiness": "READY" if gate == "PASS" else "NOT_READY",
@@ -119,6 +128,7 @@ def qualification(root: Path, run_id: str, started_at: str, *, allow_legacy=Fals
             "limited_x01_technical_readiness": "TECHNICALLY_READY_ON_NTFS_PENDING_FORMAL_GATE_DECISION" if sample_state == "PASS" and idle_ok and all(rt[k]["status"] == "PASS" for k in matrix["required_rt"]) and all(nf[k]["status"] == "PASS" for k in ["NF-01", "NF-02", "NF-05"]) else "NOT_READY",
             "production_stability_qualification": "NOT_RUN",
             "required_rt": matrix["required_rt"], "rt": rt, "nf": nf, "environment_not_run": matrix["not_run_environment_cases"],
+            "preflight_status": run_metadata.get("preflight_status", "NOT_RUN"),
             "measurements": {"b02c": perf, "http_readers_recovery": records["http-readers-recovery"]["data"], "idle": idle, "workspace_replace": records["workspace-replace"]["data"], "repository_replace": repo_replace, "queue_capacity": records["queue-capacity"]["data"]},
             "scenarios": [{"id": name, "status": r["status"], "requirements": r["requirements"], "elapsed_ms": r["elapsed_ms"], "evidence_sha256": r["sha256"]} for name, r in sorted(records.items())],
             "unknown_evidence": {name: r["data"] for name, r in records.items() if name.startswith("running-") or name in ["owned-child-lock", "deadline-late-receipt", "old-epoch-receipt"]},

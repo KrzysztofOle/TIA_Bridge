@@ -29,14 +29,17 @@ public class ApiPerformanceTests
     {
         await using var f = new ApiFixture();
         using var performance = new PerformanceEvidence(f, "api-performance", nameof(One_and_eight_clients_keep_status_and_workspace_responsive_during_real_worker_hang));
-        var admissions = new ConcurrentBag<double>(); var edits = new List<double>();
-        performance.Register("nf02-submit-eight", () => admissions, 64, 250, 500, f.Files.Root);
-        performance.Register("nf03-inplace-repository", () => edits, 100, 100, null, f.Files.Repository);
+        var profile = QualificationProfile.Load(f.Files.Repository);
+        var admissions = new ConcurrentBag<double>(); var edits = new List<double>(); var oneClient = new ConcurrentBag<double>(); var eightClients = new ConcurrentBag<double>();
+        performance.Register("nf02-submit-eight", () => admissions, 64, profile.Number("nf02_submit_p95_ms"), profile.Number("nf02_submit_p99_ms"), f.Files.Root);
+        performance.Register("nf03-inplace-repository", () => edits, 100, profile.Number("nf03_replace_p95_ms"), null, f.Files.Repository);
+        performance.Register("nf01-status-one", () => oneClient, 1000, profile.Number("nf01_status_p95_ms"), profile.Number("nf01_status_p99_ms"), f.Files.Root);
+        performance.Register("nf01-status-eight", () => eightClients, 1000, profile.Number("nf01_status_p95_ms"), profile.Number("nf01_status_p99_ms"), f.Files.Root);
         await f.Start(FakeScenario.Hang); using var client = f.Client(); var id = await f.Submit(client, ApiFixture.Request(timeout: 120));
         await f.Until(client, id, r => r.Phase == "EXECUTING");
         async Task<double[]> StatusSamples(int parallel)
         {
-            using var http = f.Raw(); var samples = new ConcurrentBag<double>();
+            using var http = f.Raw(); var samples = parallel == 1 ? oneClient : eightClients;
             await Task.WhenAll(Enumerable.Range(0, parallel).Select(async clientIndex =>
             {
                 for (int i = 0; i < 1000 / parallel; i++)
@@ -91,11 +94,12 @@ public class ApiPerformanceTests
             submit_eight_clients = Distribution(admissions),
             edit_one_mib = Distribution(edits)
         };
-        Assert.True(Percentile(single, .95) <= 100, "NF-01 single p95: " + Percentile(single, .95));
-        Assert.True(Percentile(eight, .95) <= 100, "NF-01 eight p95: " + Percentile(eight, .95));
-        Assert.True(Percentile(single, .99) <= 250); Assert.True(Percentile(eight, .99) <= 250);
-        Assert.True(Percentile(admissions, .95) <= 250, "NF-02 submit p95: " + Percentile(admissions, .95)); Assert.True(Percentile(admissions, .99) <= 500);
-        Assert.True(Percentile(edits, .95) <= 100, "NF-03 edit p95: " + Percentile(edits, .95));
+        double statusP95 = profile.Number("nf01_status_p95_ms"), statusP99 = profile.Number("nf01_status_p99_ms");
+        Assert.True(Percentile(single, .95) <= statusP95, "NF-01 single p95: " + Percentile(single, .95));
+        Assert.True(Percentile(eight, .95) <= statusP95, "NF-01 eight p95: " + Percentile(eight, .95));
+        Assert.True(Percentile(single, .99) <= statusP99); Assert.True(Percentile(eight, .99) <= statusP99);
+        Assert.True(Percentile(admissions, .95) <= profile.Number("nf02_submit_p95_ms"), "NF-02 submit p95: " + Percentile(admissions, .95)); Assert.True(Percentile(admissions, .99) <= profile.Number("nf02_submit_p99_ms"));
+        Assert.True(Percentile(edits, .95) <= profile.Number("nf03_replace_p95_ms"), "NF-03 edit p95: " + Percentile(edits, .95));
         performance.Pass();
     }
     [Fact]

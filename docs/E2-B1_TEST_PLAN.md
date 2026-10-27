@@ -42,6 +42,18 @@ innych użytkowników, zamykania obcej TIA, auto napraw ani Runtime/symulacji/OP
 7. Działający zewnętrzny sampler Windows oraz metadane projektu przed odczytem,
    gotowe miejsce na wszystkie dowody i wypełniony authorization.md z hashami planów.
 
+## D-11-P — propozycja, nieobowiązująca dla tego planu
+
+Kandydacki profil `SHARED_WORKSTATION` został opisany w [D-11-P](20_PERFORMANCE_QUALIFICATION_PROFILES.md).
+Nie zastępuje punktu 3 ani nie aktywuje B1. Do zatwierdzenia przez użytkownika jest
+ewentualna przyszła reguła wejścia wymagająca PASS obowiązkowych testów bezpieczeństwa,
+PASS jednego świeżego shared performance run, preflight `PASS`/`PASS_WITH_LOAD`,
+zatwierdzonego qualification-only bootstrap, exact project/process/build/plan/window
+bindingu, osobnej zgody na live Engineering i niezależnego `IsModified=false` przed
+i po dozwolonym read-only cyklu. Projekty pozostają w kolejności
+`T05_RecipeSim_V19_Testowy`, następnie `T04_T05-000_Testowy`. Profil nie nadaje
+uprawnień, capability ani grantów; bieżący warunek D-11 pozostaje normatywny.
+
 ## Kroki testowe po spełnieniu wejścia
 
 1. Zapisz preflight/binding/build manifest, config i lokalną autoryzację/hash B0

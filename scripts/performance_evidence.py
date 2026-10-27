@@ -9,11 +9,30 @@ import math
 import os
 from pathlib import Path
 import re
+import os
 
+PROFILE_PATH = Path(__file__).resolve().parents[1] / "tests/resilience/performance-profiles.json"
+PROFILE_BYTES = PROFILE_PATH.read_bytes()
+PROFILE_SHA256 = hashlib.sha256(PROFILE_BYTES).hexdigest()
+PROFILE_DEFINITION = json.loads(PROFILE_BYTES)
+PROFILE_NAME = os.environ.get("TIA_BRIDGE_QUALIFICATION_PROFILE", PROFILE_DEFINITION["default_profile"])
+if PROFILE_NAME not in PROFILE_DEFINITION["profiles"]:
+    raise ValueError("Unknown performance qualification profile.")
+PROFILE_VERSION = PROFILE_DEFINITION["profiles"][PROFILE_NAME]["version"]
+TEST_HARNESS_LIMITS = PROFILE_DEFINITION["profiles"][PROFILE_NAME]["test_harness"]
+_LIMITS = PROFILE_DEFINITION["profiles"][PROFILE_NAME]["limits"]
 PROFILES = {
-    "api-performance": {"nf02-submit-eight": (64, 250, 500), "nf03-inplace-repository": (100, 100, None)},
-    "workspace-replace": {"nf03-ntfs-save-replace": (100, 100, None)},
-    "repository-replace-control": {"nf03-repository-without-worker": (100, 100, None), "nf03-repository-with-worker": (100, 100, None)},
+    "api-performance": {
+        "nf02-submit-eight": (64, _LIMITS["nf02_submit_p95_ms"], _LIMITS["nf02_submit_p99_ms"]),
+        "nf03-inplace-repository": (100, _LIMITS["nf03_replace_p95_ms"], None),
+        "nf01-status-one": (1000, _LIMITS["nf01_status_p95_ms"], _LIMITS["nf01_status_p99_ms"]),
+        "nf01-status-eight": (1000, _LIMITS["nf01_status_p95_ms"], _LIMITS["nf01_status_p99_ms"]),
+    },
+    "workspace-replace": {"nf03-ntfs-save-replace": (100, _LIMITS["nf03_replace_p95_ms"], None)},
+    "repository-replace-control": {
+        "nf03-repository-without-worker": (100, _LIMITS["nf03_replace_p95_ms"], None),
+        "nf03-repository-with-worker": (100, _LIMITS["nf03_replace_p95_ms"], None),
+    },
 }
 
 
@@ -107,6 +126,12 @@ def load_bundle(root, run_id, scenario, started_at, verify_build=True):
         for key in ["test_name", "runtime", "os", "state_path", "state_filesystem"]:
             if not isinstance(value[key], str) or not value[key]:
                 raise ValueError("Missing environment/test metadata.")
+        if value["qualification_profile"] != PROFILE_NAME or value["profile_version"] != PROFILE_VERSION or value["profile_definition_sha256"] != PROFILE_SHA256:
+            raise ValueError("Qualification profile identity mismatch.")
+        if value.get("applied_thresholds") != _LIMITS:
+            raise ValueError("Applied thresholds differ from the versioned profile.")
+        if value.get("applied_test_harness_limits") != TEST_HARNESS_LIMITS:
+            raise ValueError("Applied test harness limits differ from the versioned profile.")
         if value["fake_scenario"] != "Hang" or value["test_status"] not in {"PASS", "FAIL"}:
             raise ValueError("Wrong test configuration/status.")
         for key in ["binaries_sha256", "sources_sha256"]:
@@ -139,7 +164,11 @@ def load_bundle(root, run_id, scenario, started_at, verify_build=True):
             refused = metric["refused_samples"]
             if type(refused) is not int or not 0 <= refused <= len(samples):
                 raise ValueError("Invalid refusal count.")
+            p95_exceedances = sum(value > p95 for value in values)
+            p99_exceedances = None if p99 is None else sum(value > p99 for value in values)
             status = "INCOMPLETE" if len(samples) != expected else "FAIL" if refused or measured["p95_ms"] > p95 or p99 is not None and measured["p99_ms"] > p99 else "PASS"
+            if metric.get("p95_exceedance_count") != p95_exceedances or metric.get("p99_exceedance_count") != p99_exceedances:
+                raise ValueError("Threshold exceedance count mismatch.")
             if metric["status"] != status:
                 raise ValueError("Sample SLO status mismatch.")
             insufficient |= status == "INCOMPLETE"
@@ -151,10 +180,10 @@ def load_bundle(root, run_id, scenario, started_at, verify_build=True):
             if not summary or timestamp(summary["observed_at"]) < timestamp(value["started_at"]) or timestamp(summary["observed_at"]) > timestamp(value["ended_at"]):
                 raise ValueError("Missing/stale API summary.")
             by_id = {m["id"]: m for m in metrics}
-            for field, metric in [("submit_eight_clients", "nf02-submit-eight"), ("edit_one_mib", "nf03-inplace-repository")]:
+            for field, metric in [("submit_eight_clients", "nf02-submit-eight"), ("edit_one_mib", "nf03-inplace-repository"), ("status_one_client", "nf01-status-one"), ("status_eight_clients", "nf01-status-eight")]:
                 if summary[field] != by_id[metric]["distribution"]:
                     raise ValueError("API summary differs from samples.")
-        return {"status": "INSUFFICIENT" if insufficient else "FAIL" if failed else "PASS", "bundle": value, "sha256": digest(path)}
+        return {"status": "INSUFFICIENT" if insufficient else "FAIL" if failed else "PASS", "bundle": value, "sha256": digest(path), "profile": PROFILE_NAME, "profile_version": PROFILE_VERSION}
     except (KeyError, TypeError, AttributeError, OSError) as error:
         raise ValueError("Incomplete or malformed sample evidence.") from error
 

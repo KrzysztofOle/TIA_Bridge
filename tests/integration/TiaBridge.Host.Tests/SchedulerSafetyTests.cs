@@ -121,12 +121,13 @@ public class SchedulerSafetyTests
         var operation = files.Accept(store).Operation;
         var asset = store.Artifacts.Put(operation.Report.OperationId, new MemoryStream(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "response.sync.apply.json"))));
         var profile = new FakeProfile(); profile.Specs[operation.Report.OperationId] = new("synthetic", "fake.1.apply", false, asset, FakeScenario.Hang);
+        var qualificationProfile = QualificationProfile.Load(files.Repository);
         long fence;
         await using (var scheduler = new OperationScheduler(store, new FakeWorkerSupervisor(SchedulerFixture.WorkerPath(files), files.Root, clock), profile, clock))
         {
             await scheduler.PumpOnceAsync(); fence = scheduler.Owner.Fence;
             var timer = Stopwatch.StartNew();
-            while (store.ReadStatus(operation.Report.OperationId).Phase != "EXECUTING") { Assert.True(timer.Elapsed < TimeSpan.FromSeconds(10)); await scheduler.PumpOnceAsync(); await Task.Delay(10); }
+            while (store.ReadStatus(operation.Report.OperationId).Phase != "EXECUTING") { Assert.True(timer.Elapsed < TimeSpan.FromSeconds(qualificationProfile.HarnessNumber("fake_worker_phase_observation_s"))); await scheduler.PumpOnceAsync(); await Task.Delay(10); }
         }
         await using var second = new OperationScheduler(store, new FakeWorkerSupervisor(SchedulerFixture.WorkerPath(files), files.Root, clock), profile, clock);
         Assert.True(second.Owner.Fence > fence); Assert.True(store.OwnerBlocked);

@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "default_profile": "STRICT",
+  "profiles": {
+    "STRICT": {
+      "version": "1.0.0",
+      "test_harness": {
+        "fake_worker_phase_observation_s": 10
+      },
+      "limits": {
+        "nf01_status_p95_ms": 100,
+        "nf01_status_p99_ms": 250,
+        "nf02_submit_p95_ms": 250,
+        "nf02_submit_p99_ms": 500,
+        "nf03_replace_p95_ms": 100,
+        "nf05_startup_p95_ms": 5000,
+        "nf08_host_idle_cpu_mean_percent": 1,
+        "nf08_host_ram_mib": 200,
+        "nf08_worker_ram_mib": 250
+      }
+    },
+    "SHARED_WORKSTATION": {
+      "version": "1.0.0-candidate",
+      "test_harness": {
+        "fake_worker_phase_observation_s": 30
+      },
+      "limits": {
+        "nf01_status_p95_ms": 250,
+        "nf01_status_p99_ms": 500,
+        "nf02_submit_p95_ms": 500,
+        "nf02_submit_p99_ms": 1000,
+        "nf03_replace_p95_ms": 500,
+        "nf05_startup_p95_ms": 10000,
+        "nf08_host_idle_cpu_mean_percent": 2,
+        "nf08_host_ram_mib": 200,
+        "nf08_worker_ram_mib": 250
+      }
+    }
+  },
+  "unchanged_protective_limits": {
+    "queue_wait_default_s": 300,
+    "safe_read_after_recovery_s": 30,
+    "nf04_missing_heartbeat_detection_s": 10,
+    "worker_heartbeat_interval_s": 2,
+    "lease_s": 15,
+    "max_active_operations": 1000,
+    "nf07_import_budget_s": 120,
+    "nf07_compile_budget_s": 300,
+    "nf07_archive_budget_s": 600,
+    "nf11_soak_minimum_h": 8
+  }
+}

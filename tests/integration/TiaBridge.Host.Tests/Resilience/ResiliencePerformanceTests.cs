@@ -24,8 +24,9 @@ public class ResiliencePerformanceTests
         using var evidence = new ResilienceEvidence("workspace-replace", "NF-03", "RT-01");
         await using var f = new ApiFixture();
         using var performance = new PerformanceEvidence(f, "workspace-replace", nameof(Independent_workspace_save_and_replace_remains_available_during_a_hung_worker));
+        var profile = QualificationProfile.Load(f.Files.Repository);
         var samples = new List<double>();
-        performance.Register("nf03-ntfs-save-replace", () => samples, 100, 100, null, f.Files.Root);
+        performance.Register("nf03-ntfs-save-replace", () => samples, 100, profile.Number("nf03_replace_p95_ms"), null, f.Files.Root);
         await f.Start(FakeScenario.Hang); using var client = f.Client(); var id = await f.Submit(client, ApiFixture.Request(timeout: 120)); await f.Until(client, id, r => r.Phase == "EXECUTING");
         string parent = Path.GetFullPath(Path.Combine(f.Files.Root, "workspaces")); Directory.CreateDirectory(parent);
         string root = Path.GetFullPath(Path.Combine(parent, Guid.NewGuid().ToString("N"))); Assert.StartsWith(parent + Path.DirectorySeparatorChar, root, StringComparison.OrdinalIgnoreCase); Directory.CreateDirectory(root);
@@ -40,7 +41,7 @@ public class ResiliencePerformanceTests
                 Assert.Equal(System.Security.Cryptography.SHA256.HashData(bytes), System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(target))); await Task.Delay(100);
             }
             var distribution = Distribution(samples); evidence.Data["save_replace_1mib"] = distribution; evidence.Data["filesystem"] = new DriveInfo(Path.GetPathRoot(root)!).DriveFormat; evidence.Data["interval_ms"] = 100;
-            Assert.True(distribution["p95_ms"] <= 100, "NF-03 replace p95: " + distribution["p95_ms"]); evidence.Pass(); performance.Pass();
+            Assert.True(distribution["p95_ms"] <= profile.Number("nf03_replace_p95_ms"), "NF-03 replace p95: " + distribution["p95_ms"]); evidence.Pass(); performance.Pass();
         }
         finally { if (File.Exists(temporary)) File.Delete(temporary); if (File.Exists(target)) File.Delete(target); Directory.Delete(root, recursive: false); }
     }
@@ -50,6 +51,7 @@ public class ResiliencePerformanceTests
         using var evidence = new ResilienceEvidence("repository-replace-control", "NF-03", "RT-01");
         await using var f = new ApiFixture();
         using var performance = new PerformanceEvidence(f, "repository-replace-control", nameof(Repository_volume_replace_is_compared_with_and_without_a_worker_without_unsafe_fallback));
+        var profile = QualificationProfile.Load(f.Files.Repository);
         string parent = Path.GetFullPath(Path.Combine(f.Files.Repository, ".tia-bridge", "resilience", "workspaces")); Directory.CreateDirectory(parent);
         string root = Path.Combine(parent, Guid.NewGuid().ToString("N")); Assert.StartsWith(parent + Path.DirectorySeparatorChar, Path.GetFullPath(root), StringComparison.OrdinalIgnoreCase); Directory.CreateDirectory(root);
         string target = Path.Combine(root, "owned-target.txt"), temporary = Path.Combine(root, "owned-source.tmp");
@@ -58,7 +60,7 @@ public class ResiliencePerformanceTests
         {
             byte[] original = Enumerable.Repeat((byte)0x41, 1024 * 1024).ToArray(), replacement = Enumerable.Repeat((byte)0x42, 1024 * 1024).ToArray();
             var times = new List<double>(); var errors = new List<int>();
-            performance.Register("nf03-repository-" + label, () => times, 100, 100, null, root, () => errors.Count);
+            performance.Register("nf03-repository-" + label, () => times, 100, profile.Number("nf03_replace_p95_ms"), null, root, () => errors.Count);
             for (int i = 0; i < 100; i++)
             {
                 string sampleTarget = Path.Combine(root, label + "-target-" + i + ".txt"), sampleTemporary = Path.Combine(root, label + "-source-" + i + ".tmp");
@@ -69,7 +71,7 @@ public class ResiliencePerformanceTests
                 times.Add(timer.Elapsed.TotalMilliseconds); await Task.Delay(100);
             }
             var distribution = Distribution(times);
-            return new { success = errors.Count == 0 && distribution["p95_ms"] <= 100, refused_samples = errors.Count, hresults = errors.Distinct().ToArray(), distribution };
+            return new { success = errors.Count == 0 && distribution["p95_ms"] <= profile.Number("nf03_replace_p95_ms"), refused_samples = errors.Count, hresults = errors.Distinct().ToArray(), distribution };
         }
         try
         {
@@ -99,7 +101,7 @@ public class ResiliencePerformanceTests
                 }
             }));
             var distribution = Distribution(times); evidence.Data[path.EndsWith("health", StringComparison.Ordinal) ? "health_8" : path.EndsWith("events", StringComparison.Ordinal) ? "events_8" : "result_8"] = distribution;
-            if (path.EndsWith("health", StringComparison.Ordinal)) { Assert.True(distribution["p95_ms"] <= 100, "Health p95: " + distribution["p95_ms"]); Assert.True(distribution["p99_ms"] <= 250, "Health p99: " + distribution["p99_ms"]); }
+            if (path.EndsWith("health", StringComparison.Ordinal)) { var healthProfile = QualificationProfile.Load(f.Files.Repository); Assert.True(distribution["p95_ms"] <= healthProfile.Number("nf01_status_p95_ms"), "Health p95: " + distribution["p95_ms"]); Assert.True(distribution["p99_ms"] <= healthProfile.Number("nf01_status_p99_ms"), "Health p99: " + distribution["p99_ms"]); }
             Assert.True(distribution["maximum_ms"] < 5000); await Task.Delay(1100);
         }
         await ResilienceEvidence.IndependentWork(f); evidence.Data["host_during_hang"] = Resources(f.HostProcess);
@@ -110,7 +112,7 @@ public class ResiliencePerformanceTests
             start.Restart(); await f.Start(); using var current = f.Client(); Assert.Equal(200, (await current.SendAsync(HttpMethod.Get, "/v1/operations/" + id)).StatusCode); starts.Add(start.Elapsed.TotalMilliseconds);
             if (i < 18) await f.Stop();
         }
-        var recovered = Distribution(starts); evidence.Data["startup_history"] = recovered; evidence.Data["startup_samples_ms"] = starts; Assert.True(recovered["p95_ms"] <= 5000, "NF-05 startup p95: " + recovered["p95_ms"]);
+        var recovered = Distribution(starts); evidence.Data["startup_history"] = recovered; evidence.Data["startup_samples_ms"] = starts; var profile = QualificationProfile.Load(f.Files.Repository); evidence.Data["startup_p95_limit_ms"] = profile.Number("nf05_startup_p95_ms"); Assert.True(recovered["p95_ms"] <= profile.Number("nf05_startup_p95_ms"), "NF-05 startup p95: " + recovered["p95_ms"]);
         using var final = f.Client(); start.Restart(); var next = await f.Submit(final, ApiFixture.Request()); await f.Until(final, next, r => r.State == OperationState.SUCCEEDED); Assert.True(start.Elapsed < TimeSpan.FromSeconds(30));
         evidence.Data["safe_read_after_recovery_ms"] = start.Elapsed.TotalMilliseconds;
         evidence.Data["environment"] = new { os = RuntimeInformation.OSDescription, runtime = RuntimeInformation.FrameworkDescription, cpu_count = Environment.ProcessorCount, architecture = RuntimeInformation.ProcessArchitecture.ToString(), state_fs = new DriveInfo(Path.GetPathRoot(f.Files.Root)!).DriveFormat };
@@ -133,7 +135,8 @@ public class ResiliencePerformanceTests
         evidence.Data["duration_s"] = timer.Elapsed.TotalSeconds; evidence.Data["cpu_percent_normalized_all_logical_processors"] = cpu;
         evidence.Data["host_max_ram_mib"] = ram.Max() / 1048576d; evidence.Data["worker_max_ram_mib"] = workerRam.Max() / 1048576d;
         evidence.Data["handles_first"] = handles[0]; evidence.Data["handles_last"] = handles[^1]; evidence.Data["handles_max"] = handles.Max(); evidence.Data["owned_process_count"] = 2;
-        Assert.True(timer.Elapsed >= TimeSpan.FromMinutes(5)); Assert.True(cpu < 1, "NF-08 idle CPU: " + cpu); Assert.True(ram.Max() <= 200L * 1048576); Assert.True(workerRam.Max() <= 250L * 1048576);
+        var profile = QualificationProfile.Load(f.Files.Repository); evidence.Data["qualification_profile"] = profile.Name; evidence.Data["profile_version"] = profile.Version;
+        Assert.True(timer.Elapsed >= TimeSpan.FromMinutes(5)); Assert.True(cpu < profile.Number("nf08_host_idle_cpu_mean_percent"), "NF-08 idle CPU: " + cpu); Assert.True(ram.Max() <= profile.Number("nf08_host_ram_mib") * 1048576); Assert.True(workerRam.Max() <= profile.Number("nf08_worker_ram_mib") * 1048576);
         evidence.Pass();
     }
     [Fact]

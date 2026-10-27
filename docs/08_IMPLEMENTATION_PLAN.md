@@ -36,6 +36,8 @@ Stan 2026-10-25: B-01A/B-01B zaimplementowane offline w [Core](../src/TiaBridge.
 
 ## Etap 2 — Silnik operacji, procesy i recovery [MVP]
 
+Pakiet D-11-P wprowadza wersjonowane profile KPI offline opisane w [20](20_PERFORMANCE_QUALIFICATION_PROFILES.md): `STRICT` zachowuje dotychczasowe progi i domyślny wybór; `SHARED_WORKSTATION` jest jawnym kandydatem dla obciążonego stanowiska. To kwalifikacja harnessu, nie zmiana API/IPC, schedulerów, timeoutów ochronnych ani aktywnej bramki E2-B1/X-01. Historyczne raporty i decyzje pozostają bez zmian.
+
 Stan 2026-10-26: zrealizowano [B-02A — warstwę trwałości](13_DURABLE_STORAGE.md) oraz [B-02B — scheduler, supervisor i Fake Worker/IPC](14_SCHEDULER_IPC.md). Działa wyłącznie wykonanie syntetyczne. [B-02C — HTTP API i CLI](15_HTTP_API_CLI.md) udostępnia ten sam silnik. [B-02D](16_RESILIENCE_RECOVERY.md) dostarczył harness i historyczny raport RT/NF z OFFLINE/GATE FAIL. Zatwierdzona D-11 rozdziela jego wykonanie, ograniczoną bramkę NTFS i produkcję; [aktualna interpretacja dowodów](../tests/resilience/X01_LIMITED_GATE.md) nie zmienia snapshot. NF-11 minimum 8 h pozostaje NOT_RUN/B-10B, a NF-03 exFAT FAIL nie jest uchylony.
 
 **Cel:** nieblokujący, trwały interfejs jeszcze przed TIA. **Zależności:**1A, częściowo 1B. **Pakiety:**

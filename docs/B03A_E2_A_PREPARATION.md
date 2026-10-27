@@ -365,3 +365,12 @@ odróżnia snapshot TiaPortalProcess od aktywnej sesji i wskazuje, że jego Disp
 portal. To wyłącznie kontekst producenta, **nie potwierdzenie getterów V19**. Tutaj źródłem
 exact zakresu jest kod V19; zachowanie live pozostaje NOT_RUN. Timeout nie kończy call;
 zachowaj UNKNOWN/quarantine, bez retry, rollbacku, Save lub automatycznej naprawy.
+
+D-11-P dodaje kandydacki profil kwalifikacji wydajnościowej `SHARED_WORKSTATION`; jego
+progi i PASS_WITH_LOAD nie zmieniają D-11 PASS związanego z tym historycznym buildem ani
+nie stanowią wejścia do E2-B1. Propozycja wymaga osobnej decyzji: obowiązkowe testy
+bezpieczeństwa PASS, świeży shared profile PASS, zatwierdzony bootstrap qualification-only,
+exact project/process binding, jawna zgoda live Engineering oraz niezależne
+`IsModified=false` przed i po read-only cyklu. Kolejność projektów pozostaje
+`T05_RecipeSim_V19_Testowy`, potem `T04_T05-000_Testowy`; nic nie jest uruchamiane przez
+wybór profilu.

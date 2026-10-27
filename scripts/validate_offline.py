@@ -6,6 +6,7 @@ Run with the isolated QA Python from repo root; exit 0 only when every gate pass
 from __future__ import annotations
 
 import importlib.util
+import argparse
 import json
 import os
 from pathlib import Path
@@ -139,20 +140,43 @@ def load_reporter(root):
     return reporter
 
 
-def main():
+def run_preflight(profile, output_directory):
+    result = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "RemoteSigned", "-File", str(ROOT / "scripts/d11_preflight.ps1"), "-OutputDirectory", str(output_directory), "-Profile", profile], cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=90, check=False)
+    if result.returncode != 0:
+        details = (result.stderr or result.stdout or "No PowerShell diagnostic was returned.").strip()[-3000:]
+        raise ValueError("Qualification preflight failed (exit " + str(result.returncode) + "): " + details)
+    path = Path(result.stdout.strip().splitlines()[-1])
+    return json.loads(path.read_text(encoding="utf-8-sig"))
+
+
+def main(argv=None):
     global OUTPUT
     configure_console_utf8()
+    parser = argparse.ArgumentParser(description="Run the offline suite using an explicit qualification profile.")
+    parser.add_argument("--profile", choices=["STRICT", "SHARED_WORKSTATION"], default="STRICT")
+    profile = parser.parse_args(argv or []).profile
+    os.environ["TIA_BRIDGE_QUALIFICATION_PROFILE"] = profile
     run_id = uuid.uuid4().hex
     run_folder = ROOT / ".tia-bridge/resilience" / run_id
     run_folder.mkdir(parents=True, exist_ok=False)
     OUTPUT = run_folder / "validation"
     OUTPUT.mkdir()
-    report = {"schema_version": "1.0", "scope": "B-01A-C/B-02A-D OFFLINE", "status": "FAIL", "started_at": datetime.now(timezone.utc).isoformat(), "steps": [], "engineering": "NOT_RUN", "runtime": "NOT_RUN"}
+    report = {"schema_version": "1.1", "scope": "B-01A-C/B-02A-D OFFLINE", "status": "FAIL", "qualification_status": "NOT_RUN", "performance_status": "NOT_RUN", "qualification_profile": profile, "profile_version": "1.0.0" if profile == "STRICT" else "1.0.0-candidate", "started_at": datetime.now(timezone.utc).isoformat(), "steps": [], "engineering": "NOT_RUN", "runtime": "NOT_RUN"}
     try:
         for dependency in ["jsonschema", "openapi_spec_validator"]:
             if importlib.util.find_spec(dependency) is None:
                 raise ValueError("Missing QA dependency; see scripts/requirements-qa.txt and tests/README.md.")
         report["core_boundary"] = check_core_boundary()
+        preflight_dir = OUTPUT / "preflight"
+        try:
+            report["preflight"] = run_preflight(profile, preflight_dir)
+        except (OSError, ValueError, subprocess.SubprocessError) as preflight_error:
+            report["qualification_status"] = "BLOCKED"; report["performance_status"] = "NOT_RUN"; report["status"] = "BLOCKED"
+            report["preflight_error"] = str(preflight_error)
+            raise
+        if report["preflight"]["status"] == "BLOCKED":
+            report["qualification_status"] = "BLOCKED"; report["performance_status"] = "NOT_RUN"; report["status"] = "BLOCKED"
+            raise ValueError("Qualification preflight BLOCKED: " + "; ".join(report["preflight"]["blockers"]))
         # An empty local feed and existing global cache keep restore offline. No package install or audit HTTP.
         feed = OUTPUT / "empty-feed"
         feed.mkdir(exist_ok=True)
@@ -160,7 +184,7 @@ def main():
         os.environ["TIA_BRIDGE_RESILIENCE_RUN_ID"] = run_id
         resilience_report = load_reporter(ROOT)
         resilience_report.capture_environment(ROOT, run_id)
-        resilience_report.performance_evidence.write_new_json(OUTPUT / "run-metadata.json", {"run_id": run_id, "started_at": report["started_at"], "git_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), "python": sys.version, "scope": report["scope"]})
+        resilience_report.performance_evidence.write_new_json(OUTPUT / "run-metadata.json", {"run_id": run_id, "started_at": report["started_at"], "git_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), "python": sys.version, "qualification_profile": profile, "profile_version": resilience_report.performance_evidence.PROFILE_VERSION, "profile_definition_sha256": resilience_report.performance_evidence.PROFILE_SHA256, "applied_test_harness_limits": resilience_report.performance_evidence.TEST_HARNESS_LIMITS, "preflight_status": report["preflight"]["status"], "scope": report["scope"]})
         steps = [
             ("01-restore", ["dotnet", "restore", "TiaBridge.slnx", "--locked-mode", "--source", str(feed), "-p:NuGetAudit=false"]),
             ("02-build", ["dotnet", "build", "TiaBridge.slnx", "-c", "Release", "--no-restore"]),
@@ -187,10 +211,17 @@ def main():
         test_execution_ok = all(step["exit_code"] == 0 for step in report["steps"]) and report["dotnet"]["failed"] == 0 and report["python"]["skipped"] == 0
         if not test_execution_ok:
             qualification["gate"] = "FAIL"; qualification["x01_readiness"] = "NOT_READY"
+            qualification["qualification_status"] = "FAIL"; report["qualification_status"] = "FAIL"
             if report["python"]["failed"] or any("ApiPerformanceTests.One_and_eight_clients_keep_status_and_workspace_responsive_during_real_worker_hang" not in name for name in report["dotnet"]["failed_tests"]):
                 qualification["limited_x01_technical_readiness"] = "NOT_READY_UNTIL_FAILED_TESTS_RESOLVED"
             qualification["gate_blockers"].append("A .NET or Python test failed/skipped; passing RT subsets cannot hide this execution failure.")
         qualification["test_results"] = {"dotnet": report["dotnet"], "python": report["python"]}
+        qualification["preflight_status"] = report["preflight"]["status"]
+        qualification["preflight_load_observations"] = report["preflight"]["load_policy"]
+        performance_keys = ["NF-01", "NF-02", "NF-03", "NF-05", "NF-08"]
+        performance_values = [qualification["nf"][key]["status"] for key in performance_keys[:-1]] + [qualification["nf"]["NF-08"]["measured_idle_status"]]
+        report["performance_status"] = "FAIL" if "FAIL" in performance_values else "PASS" if all(value == "PASS" for value in performance_values) else "BLOCKED"
+        report["qualification_status"] = "FAIL" if qualification["gate"] == "FAIL" else "PASS" if qualification["gate"] == "PASS" else "BLOCKED"
         resilience_report.performance_evidence.write_new_json(OUTPUT / "resilience.json", qualification)
         report["resilience_gate"] = qualification["gate"]; report["x01_readiness"] = qualification["x01_readiness"]
         report["test_execution_status"] = "PASS" if test_execution_ok else "FAIL"
@@ -213,4 +244,4 @@ def main():
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main(sys.argv[1:]))

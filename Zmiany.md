@@ -1,5 +1,40 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-27 — D-11-P: SHARED_WORKSTATION performance profile
+
+Dodano jedną wersjonowaną definicję progów z domyślnym `STRICT` i kandydackim
+`SHARED_WORKSTATION`, jawny wybór profilu runnera oraz wspólną ocenę C#/Python.
+Raport próbek zawiera profil/version/hash, Git SHA, run ID, surowe próbki, progi,
+p50/p95/p99/max, liczności przekroczeń i SHA artefaktów. Preflight dopuszcza
+`PASS_WITH_LOAD`; zwykłe obciążenie, AV, VS Code i kolejki dyskowe nie tworzą
+samodzielnego BLOCKED. Timeouty ochronne i limity RAM nie zostały podniesione.
+
+Zmieniono [07](docs/07_TEST_STRATEGY.md), [08](docs/08_IMPLEMENTATION_PLAN.md),
+[16](docs/16_RESILIENCE_RECOVERY.md), [B03A/E2-A](docs/B03A_E2_A_PREPARATION.md),
+[E2-B1](docs/E2-B1_TEST_PLAN.md) oraz [wymagania](docs/02_REQUIREMENTS.md);
+szczegółowa polityka, analiza progów i tabela historyczna są w
+[20_PERFORMANCE_QUALIFICATION_PROFILES.md](docs/20_PERFORMANCE_QUALIFICATION_PROFILES.md).
+Historyczne raporty i snapshoty nie zostały zmienione ani przeliczone. Warunek
+E2-B1 pozostaje bez zmian i wymaga osobnej decyzji. Oceniono `AGENTS.md`,
+`Instrukcja_ChatGPT.md`, ADR 0001–0003 i kontrakty; pozostają bez zmian, ponieważ
+bieżąca zatwierdzona bramka X-01 i granty są zachowane, a kandydat nie zmienia API,
+IPC ani bezpieczeństwa.
+
+**Walidacja D-11-P:** kanoniczny offline run `239339c7003345d8a758a331d6c9a5ad`
+zakończył runner `PASS`, preflight `PASS`, profil `SHARED_WORKSTATION`
+`1.0.0-candidate` i ocenę KPI `PASS`; pełna kwalifikacja pozostaje `BLOCKED`,
+ponieważ NF-11 (8 h) celowo `NOT_RUN`, a istniejąca bramka X-01 nie wyklucza go
+jednoznacznie. Nie uznano tego za zmianę bramki ani za E2-B1 PASS. Build Release
+PASS (0 warningów/błędów), Core 564/564, Host 363/363, Python 46/46; audyt jakości,
+format i `git diff --check` PASS. NF-08 pełne kryterium pozostaje `NOT_RUN`; osobny
+zmierzony 300 s idle podtest PASS. NF-03 workspace N=100: p50/p95/p99/max
+2,1666/4,8333/8,5523/67,5971 ms; repo bez/z Fake N=100: p95 11,4893/5,0122 ms,
+max 37,844/16,1403 ms, zero przekroczeń limitu 500 ms. NF-02 N=64 p50/p95/p99/max
+132,3369/158,6116/208,8081/208,8081 ms. Surowe wyniki i manifesty pozostają
+w ignorowanym `.tia-bridge/`; wcześniejsze próby zablokowane/błędne zachowano i nie
+wybrano najlepszego wyniku spośród runów. Engineering, Runtime, E2-B1/B2 i NF-11
+nie zostały uruchomione.
+
 ## 2026-10-27 — B-03A/E2-B0: Controlled Qualification Bootstrap
 
 **Wejście:** czyste `HEAD=main=origin/main=5d999023a799e91c90e54902504c5fa7108494ef`
