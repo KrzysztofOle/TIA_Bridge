@@ -163,6 +163,37 @@
       "runtime": "python",
       "timeout_seconds": 30,
       "path": "scripts/qa_prepare_tia_bridge.py"
+    },
+    "ipc-resource-lifetime": {
+      "type": "python_script",
+      "offline": true,
+      "runtime": "python",
+      "timeout_seconds": 1200,
+      "path": "scripts/ipc_resource_lifetime.py",
+      "args": [
+        "--output",
+        "{artifacts}"
+      ]
+    },
+    "sender-lifetime-tests": {
+      "type": "dotnet_test",
+      "offline": true,
+      "runtime": "dotnet",
+      "timeout_seconds": 180,
+      "project": "tests/integration/TiaBridge.Host.Tests/TiaBridge.Host.Tests.csproj",
+      "filter": "FullyQualifiedName~SenderLifetimeTests"
+    },
+    "ipc-allocation-ownership": {
+      "type": "python_script",
+      "offline": true,
+      "runtime": "python",
+      "timeout_seconds": 180,
+      "path": "scripts/ipc_resource_lifetime.py",
+      "args": [
+        "--output",
+        "{artifacts}",
+        "--mechanism-only"
+      ]
     }
   },
   "profiles": {

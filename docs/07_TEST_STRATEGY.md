@@ -129,3 +129,12 @@ B-03A/E2-G zatwierdza `SHARED_WORKSTATION 1.0.0` jako podstawę wydajnościową 
 | PRODUCTION QUALIFICATION | pełna stabilność B-10B (NF-11 ≥8 h), skala, retencja i wymagane RT/NF dla release oraz testy odbiorców, izolacji i uprawnień; samo X-01 nie wystarcza |
 
 [Harness i raport](16_RESILIENCE_RECOVERY.md) dokumentują syntetyczny Host/CLI/Fake flow. [Historyczne wyniki](../tests/resilience/QUALIFICATION.md) i [JSON](../tests/resilience/qualification.json) są niezmienne. [Odrębna ocena D-11](../tests/resilience/X01_LIMITED_GATE.md) stosuje zatwierdzone kryteria do tych dowodów; nie zamienia NOT_RUN w PASS i nie zmienia oryginalnej macierzy RT.
+
+## B1-J - offline sender resource lifetime
+
+[B1-J](B03A_E2_B1_IPC_SENDER_LIFETIME.md) adds automated S1-S5 through the
+QA Runner scenario ipc-resource-lifetime.json and deterministic net48 cleanup
+regressions in STANDARD. Functional execution, resource behavior and diagnostic
+completeness are separate verdicts; Windows/GC samples have no arbitrary handle
+threshold. Forced GC and heartbeat controls are confined to the test harness.
+This does not qualify historical B1, Siemens, B2, NF-08 or NF-11.

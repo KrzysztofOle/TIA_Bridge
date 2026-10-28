@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "id": "ipc-allocation-ownership",
+  "description": "B1-J specific APM allocation and Thread/GC ownership hypothesis, offline only",
+  "tags": [
+    "offline",
+    "ipc-resources"
+  ],
+  "mode": "offline",
+  "timeout_seconds": 900,
+  "requires": [],
+  "on_failure": "stop",
+  "steps": [
+    {
+      "id": "restore",
+      "type": "dotnet_restore",
+      "task": "restore",
+      "timeout_seconds": 600,
+      "required": true
+    },
+    {
+      "id": "build",
+      "type": "dotnet_build",
+      "task": "build",
+      "timeout_seconds": 600,
+      "required": true
+    },
+    {
+      "id": "format",
+      "type": "approved_command",
+      "task": "format",
+      "timeout_seconds": 300,
+      "required": true
+    },
+    {
+      "id": "sender-lifetime-tests",
+      "type": "dotnet_test",
+      "task": "sender-lifetime-tests",
+      "timeout_seconds": 180,
+      "required": true
+    },
+    {
+      "id": "ipc-allocation-ownership",
+      "type": "python_script",
+      "task": "ipc-allocation-ownership",
+      "timeout_seconds": 180,
+      "required": true
+    }
+  ]
+}

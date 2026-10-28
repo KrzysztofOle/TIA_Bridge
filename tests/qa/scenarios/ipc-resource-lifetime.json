@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "id": "ipc-resource-lifetime",
+  "description": "B1-J real net48 sender S1-S5 and isolated GC/flush ownership controls; no Siemens",
+  "tags": [
+    "offline",
+    "ipc-resources"
+  ],
+  "mode": "offline",
+  "timeout_seconds": 1800,
+  "requires": [],
+  "on_failure": "stop",
+  "steps": [
+    {
+      "id": "restore",
+      "type": "dotnet_restore",
+      "task": "restore",
+      "timeout_seconds": 600,
+      "required": true
+    },
+    {
+      "id": "build",
+      "type": "dotnet_build",
+      "task": "build",
+      "timeout_seconds": 600,
+      "required": true
+    },
+    {
+      "id": "format",
+      "type": "approved_command",
+      "task": "format",
+      "timeout_seconds": 300,
+      "required": true
+    },
+    {
+      "id": "sender-lifetime-tests",
+      "type": "dotnet_test",
+      "task": "sender-lifetime-tests",
+      "timeout_seconds": 180,
+      "required": true
+    },
+    {
+      "id": "ipc-resource-lifetime",
+      "type": "python_script",
+      "task": "ipc-resource-lifetime",
+      "timeout_seconds": 1200,
+      "required": true
+    }
+  ]
+}

@@ -16,6 +16,7 @@ internal static class InfrastructureEntry
     }
     private static int Main(string[] args)
     {
+        if (args.Length == 2 && args[0] == "sender-lifetime") return SenderLifetimeProbe.Run(args[1]).GetAwaiter().GetResult();
         if (args.Length != 2 || args[0] is not ("baseline" or "worker" or "heartbeat" or "no-heartbeat" or "sampler" or "audit" or "poll-only" or "send-only" or "timer-only" or "send-only-no-flush")) return 2;
         string mode = args[0], root = Path.GetFullPath(args[1]);
         if (!Environment.Is64BitProcess || !root.StartsWith(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TIA_Bridge2", "dev") + "\\", StringComparison.OrdinalIgnoreCase)) return 2;

@@ -1,5 +1,48 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-28 — B-03A/E2-B1-J: IPC sender lifetime i QA-01
+
+Utworzono osobny worktree TIA_Bridge_B1J i gałąź
+test/e2-b1-ipc-sender-lifetime od 1d65568. QA-01 jest bezpośrednim potomkiem
+B1-I a509a65; zachowano oba historyczne commity, checkouty i dowody bez merge,
+rebase, squash albo nadpisywania. Origin/main sprawdzono po fetch.
+
+Istniejący worker-handles.json przeanalizowano i zachowano: to regresja TRX,
+bez pełnej macierzy faz/GC/własności. Osobny ipc-resource-lifetime.json używa
+niezmienionego QA Runner v1 oraz adaptera projektu. Rozszerzono istniejący
+InfrastructureProbe i ProbeSession, bez nowego schedulera lub toru Siemens.
+Dodano S1–S5, słabe referencje Thread/Task, kontrolę flush i obserwację istniejących
+APM wait handles; metryki i porównania pozostają w jednym sealed bundle QA.
+Kod produkcyjny, IPC 1.1 i historyczne raporty B1 bez zmian. Szczegółowe wyniki
+i ograniczenia: [raport B1-J](docs/B03A_E2_B1_IPC_SENDER_LIFETIME.md).
+
+Ocena spójności sekcja po sekcji: AGENTS — zakres i hierarchia zachowane;
+niezmienniki procesów/async/synchronizacji bez zmian; autoryzacja i wszystkie
+granice offline/live zachowane; testy rozszerzono tylko w odrębnym harnessie;
+dyscyplina zmian, Conventional Commits i nieufne dane zachowane.
+Instrukcja_ChatGPT §1–3 cel/role/źródła bez zmian; §4 architektura i saga bez
+zmian; §5 zakres zlecenia realizowany; §6 rozdzielone warstwy wyników;
+§7 bezpieczeństwo/recovery bez zmian; §8 przegląd wykonany; §9 Git/dokumentacja
+i §10 styl zachowane. Oba pliki instrukcji pozostawiono bez zmian, ponieważ
+nie nadano nowego prawa ani nie zmieniono ich reguł. Oceniono ADR 0001/0002,
+docs 03–06, 07, 08 i kontrakty IPC: brak zmiany architektury/DTO/sagi/grantów;
+aktualizacji wymagają tylko strategia testów, QA docs i dokumentacja harnessu.
+Nie znaleziono konfliktu normatywnego. B1 BLOCKED, live/B2/NF-11 NOT_RUN.
+
+Wyniki: 18 eksperymentów, 2598 wysłań, 0 błędów; 489/489 zaobserwowanych
+wait handles APM zamkniętych po EndRead/EndWrite. GC potwierdza odroczone
+zwolnienie podzbioru Thread/Event, lecz właściciel wszystkich Eventów pozostaje
+nieznany. Resource REVIEW_REQUIRED, root cause PROBABLE; brak potwierdzonego
+błędu produkcyjnego, więc produkcja bez poprawki. FAST 621 PASS. Pierwszy
+STANDARD: 1100 testów PASS, profil FAIL przez whitespace; formatter ograniczono
+do nowego harnessu, bez zmiany tokenów. Dodano tani ipc-lifetime-review.json
+oraz format gate przed kosztownymi eksperymentami. Historyczne FAIL/BLOCKED
+zachowane; pełne identyfikatory i końcowa regresja w raporcie B1-J.
+Końcowy STANDARD PASS 1100/1100, zero FAIL/SKIP, quality/format/diff PASS:
+`20261028T084351254855Z-c548e8afdddd40338827f8ec282253f9`. Końcowy FAST
+621/621; jednostkowe testy raportowania nie zmieniają wyniku zasobowego
+REVIEW_REQUIRED ani ograniczeń kwalifikacji. Manifesty przebiegów zweryfikowano.
+
 ## 2026-10-28 — QA-01: Universal QA Runner v1
 
 Osobna gałąź feat/qa-01-runner i worktree TIA_Bridge_QA01 od a509a65;

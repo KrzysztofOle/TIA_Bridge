@@ -6,6 +6,11 @@ using TiaBridge.Host.Storage;
 // Test-only process. Explicit synthetic lanes may start their own Host/Fake or offline probe; never Siemens.
 if (args.Length != 4) return 2;
 string root = args[0], repository = args[1], mode = args[2], checkpoint = args[3];
+if (mode == "sender-lifetime")
+{
+    if (!OperatingSystem.IsWindows()) return 2;
+    return await SenderLifetimeInvestigation.Run(root, repository, checkpoint);
+}
 if (mode == "handle-investigation")
 {
     if (!OperatingSystem.IsWindows()) return 2;

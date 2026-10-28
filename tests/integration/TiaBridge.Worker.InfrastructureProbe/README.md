@@ -29,3 +29,14 @@ an explicitly separate controlled GC and 30 s observation afterward. Ordinary
 A–E never force GC. `--flush-control` runs one isolated sender with inline pipe
 flush to test inherited async flush scheduling; this is not a production change.
 Each invocation creates a new immutable run; no failed scenario is retried.
+
+## B1-J sender-only entry point
+
+The sender-lifetime entry point is test-only and is driven by the existing
+StorageProbe/ProbeSession through the QA Runner
+[scenario](../../qa/scenarios/ipc-resource-lifetime.json). It uses the real
+FramedConnection, checks no Siemens assembly is loaded, records local
+metrics and self-only PSS checkpoints, and closes its heartbeat/sampler before
+recording shutdown. Forced GC and flush/APM forwarders exist only here.
+Existing B1-I modes and their historical evidence remain unchanged. See the
+[technical report](../../../docs/B03A_E2_B1_IPC_SENDER_LIFETIME.md).

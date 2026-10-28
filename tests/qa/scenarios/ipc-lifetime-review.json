@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "id": "ipc-lifetime-review",
+  "description": "Cheap whitespace, documentation and diff review for B1-J, no Worker or Siemens sessions",
+  "tags": [
+    "offline"
+  ],
+  "mode": "offline",
+  "timeout_seconds": 600,
+  "requires": [],
+  "on_failure": "stop",
+  "steps": [
+    {
+      "id": "format",
+      "type": "approved_command",
+      "task": "format",
+      "timeout_seconds": 300,
+      "required": true
+    },
+    {
+      "id": "quality",
+      "type": "python_script",
+      "task": "quality",
+      "timeout_seconds": 300,
+      "required": true
+    },
+    {
+      "id": "diff",
+      "type": "approved_command",
+      "task": "diff",
+      "timeout_seconds": 300,
+      "required": true
+    }
+  ]
+}

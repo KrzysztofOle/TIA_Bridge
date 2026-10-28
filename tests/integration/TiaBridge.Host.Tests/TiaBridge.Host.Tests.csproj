@@ -24,5 +24,6 @@
     <Compile Include="../../../src/TiaBridge.Worker.V19/WorkerResourceTrace.cs" Link="SyntheticInventory/WorkerResourceTrace.cs" />
     <Compile Include="../../diagnostics/PssHandleSnapshot.cs" Link="Diagnostics/PssHandleSnapshot.cs" />
     <Compile Include="../TiaBridge.StorageProbe/InfrastructureInvestigation.cs" Link="Diagnostics/InfrastructureInvestigation.cs" />
+    <Compile Include="../TiaBridge.StorageProbe/SenderLifetimeInvestigation.cs" Link="Diagnostics/SenderLifetimeInvestigation.cs" />
   </ItemGroup>
 </Project>

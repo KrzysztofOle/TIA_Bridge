@@ -225,7 +225,7 @@ internal static class InfrastructureInvestigation
             var start = new ProcessStartInfo(exe) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
             start.ArgumentList.Add(mode); start.ArgumentList.Add(root);
             start.Environment.Remove("TIA_BRIDGE_V19_RESOURCE_TRACE"); if (trace) start.Environment["TIA_BRIDGE_V19_RESOURCE_TRACE"] = "1";
-            bool ipc = mode is "worker" or "heartbeat" or "no-heartbeat" or "poll-only" or "send-only" or "timer-only" or "send-only-no-flush";
+            bool ipc = mode is "worker" or "heartbeat" or "no-heartbeat" or "poll-only" or "send-only" or "timer-only" or "send-only-no-flush" or "sender-lifetime";
             Guid epoch = Guid.NewGuid(), nonce = Guid.NewGuid(); byte[] secret = RandomNumberGenerator.GetBytes(32);
             using var self = Process.GetCurrentProcess();
             string pipeName = "tia-bridge-offline-" + Guid.NewGuid().ToString("N");
@@ -277,9 +277,9 @@ internal static class InfrastructureInvestigation
             }
             catch (Exception e) when (e is IOException or ObjectDisposedException) { replies.Writer.TryComplete(e); }
         }
-        internal async Task<WireMessage> Dispatch(Guid id, long fence)
+        internal async Task<WireMessage> Dispatch(Guid id, long fence, object? payload = null)
         {
-            byte[] request = JsonSerializer.SerializeToUtf8Bytes(new { schema_version = "1.0", method = "project.inspect", project_key = "11111111-1111-4111-8111-111111111111" });
+            byte[] request = JsonSerializer.SerializeToUtf8Bytes(payload ?? new { schema_version = "1.0", method = "project.inspect", project_key = "11111111-1111-4111-8111-111111111111" });
             string aid = "artifact-" + Guid.NewGuid().ToString("N"), hash = Convert.ToHexStringLower(SHA256.HashData(request));
             Directory.CreateDirectory(Path.Combine(root, "artifacts")); File.WriteAllBytes(Path.Combine(root, "artifacts", aid + ".blob"), request);
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -304,6 +304,15 @@ internal static class InfrastructureInvestigation
             }
             await Child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
             if (Transport is not null) { await Transport.DisposeAsync(); await reader; }
+            File.WriteAllText(Path.Combine(root, "child.stdout"), await stdout); File.WriteAllText(Path.Combine(root, "child.stderr"), await stderr);
+            if (Child.ExitCode != 0) throw new IOException("Offline child exit " + Child.ExitCode);
+        }
+        internal async Task Disconnect()
+        {
+            if (stopped) return;
+            stopped = true;
+            await Transport!.DisposeAsync(); await reader;
+            await Child.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
             File.WriteAllText(Path.Combine(root, "child.stdout"), await stdout); File.WriteAllText(Path.Combine(root, "child.stderr"), await stderr);
             if (Child.ExitCode != 0) throw new IOException("Offline child exit " + Child.ExitCode);
         }

@@ -76,3 +76,12 @@ Siemens ani nie aktywuje bootstrapu. Format, kody i znaczenie trzech statusów s
 [21](../docs/21_E2_B1_READINESS_GATE.md). Runner z jawnym SHARED_WORKSTATION buduje także Worker V19 Release
 z lokalnych referencji i cache (locked offline restore), bez uruchamiania Workera;
 CreateNew build-metadata wiąże exact Host/Worker z dowodem i źródłami.
+
+## B1-J sender lifetime adapter
+
+`ipc_resource_lifetime.py` requires Python 3.12 standard library, Windows x64,
+the existing .NET Framework 4.8 and Release `TiaBridge.slnx` build. Invoke through
+`qa.ps1 run --scenario tests/qa/scenarios/ipc-resource-lifetime.json`; the QA task
+supplies its artifact directory. It uses no external tracing tools or packages,
+never loads Siemens and never forces production GC. See the
+[report](../docs/B03A_E2_B1_IPC_SENDER_LIFETIME.md) for exact windows and verdicts.

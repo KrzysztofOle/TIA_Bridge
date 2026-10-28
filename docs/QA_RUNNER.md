@@ -15,6 +15,9 @@ From the repository root, without activating an environment:
 .\qa.ps1 run standard
 .\qa.ps1 run qualification
 .\qa.ps1 run --scenario tests/qa/scenarios/worker-handles.json
+.\qa.ps1 run --scenario tests/qa/scenarios/ipc-resource-lifetime.json
+.\qa.ps1 run --scenario tests/qa/scenarios/ipc-allocation-ownership.json
+.\qa.ps1 run --scenario tests/qa/scenarios/ipc-lifetime-review.json
 .\qa.ps1 report --latest --failures-only
 .\qa.ps1 report --run-id <run-id>
 .\qa.ps1 run qualification --performance-profile STRICT
@@ -39,6 +42,14 @@ Restore uses an empty local feed, locked mode and disabled NuGet audit; there is
 public-feed fallback. Test and application state policies remain unchanged.
 
 ## Components and portability
+
+B1-J adds an approved offline adapter and a separate
+[sender lifetime scenario](B03A_E2_B1_IPC_SENDER_LIFETIME.md), without modifying
+the runner engine. The runner summary/failures describe execution. Read the
+step artifact `lifetime-analysis.json` for the separate resource verdict and
+`lifetime-analysis.md` for its short table; `REVIEW_REQUIRED` is not a stability
+PASS even when the runner completes successfully. Raw metrics, PSS metadata,
+CSV, SVG and source/build provenance are covered by the same run manifest.
 
 The small [package](../scripts/qa_runner/__init__.py) separates loader/project config,
 adapters, sequential runner, diagnostics, evaluator and reports. `qa.py` is the CLI
