@@ -63,7 +63,23 @@
     "required_seconds": 28800,
     "minimum_operations": 1000,
     "missing_blocks_x01": true,
-    "decision": "User explicitly deferred execution to B-10B; formal X-01 gate clarification awaits separate approval."
+    "decision": "B-10B implements synthetic and live phases separately; execution remains explicit and never part of FAST/STANDARD."
+  },
+  "nf11_synthetic_phase": {
+    "required_seconds": 28800,
+    "minimum_operations": 1000,
+    "warmup_operations": 50,
+    "sampling_interval_seconds": 1,
+    "operation_schedule": "uniformly spaced across the measured window after warmup",
+    "sampling_basis": "Existing NF-08 resource profile samples once per second; the 50-operation warmup follows the existing 1001-operation scenario.",
+    "host_ram_growth_mib_max": 50,
+    "host_handle_growth_fraction_max": 0.05,
+    "diagnostic_mode_qualifies": false
+  },
+  "nf11_live_phase": {
+    "minimum_read_only_operations": 100,
+    "requires_separate_authorization": true,
+    "implemented": false
   },
   "not_run_environment_cases": [
     {

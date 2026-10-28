@@ -11,6 +11,7 @@ internal sealed class ResilienceEvidence(string scenario, params string[] requir
 {
     private static readonly string RunId = Guid.TryParseExact(Environment.GetEnvironmentVariable("TIA_BRIDGE_RESILIENCE_RUN_ID"), "N", out var id) ? id.ToString("N") : Guid.NewGuid().ToString("N");
     internal static string CurrentRunId => RunId;
+    internal static void WriteNew(string path, byte[] bytes) => PerformanceEvidence.WriteNew(path, bytes);
     private readonly Stopwatch timer = Stopwatch.StartNew();
     private readonly DateTimeOffset started = DateTimeOffset.UtcNow;
     private bool passed;
@@ -76,5 +77,72 @@ internal sealed class ResilienceEvidence(string scenario, params string[] requir
         // Own bounded synthetic W, independent of the immutable request artifacts and worker's locks.
         string path = Path.Combine(f.Files.Root, "independent.scl"); byte[] data = Enumerable.Repeat((byte)0x41, 1024 * 1024).ToArray();
         await File.WriteAllBytesAsync(path, data); Assert.Equal(data, await File.ReadAllBytesAsync(path)); File.Delete(path);
+    }
+}
+
+/// <summary>Run-bound append-only evidence for the opt-in synthetic NF-11 soak.</summary>
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
+internal sealed class Nf11SyntheticEvidence : IAsyncDisposable
+{
+    private readonly string folder;
+    private readonly FileStream samples;
+    private readonly FileStream operations;
+    private readonly JsonSerializerOptions json = new() { WriteIndented = false };
+    private int sampleSequence;
+
+    internal Nf11SyntheticEvidence(string folder)
+    {
+        this.folder = Path.GetFullPath(folder);
+        Directory.CreateDirectory(this.folder);
+        samples = new FileStream(Path.Combine(this.folder, "nf11-synthetic-samples.jsonl"), FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+        operations = new FileStream(Path.Combine(this.folder, "nf11-synthetic-operations.jsonl"), FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+    }
+
+    internal void Accepted(Guid operationId, DateTimeOffset at)
+    {
+        Append(operations, new { kind = "accepted", operation_id = operationId, at_utc = at });
+    }
+    internal void Completed(Guid operationId, string state, DateTimeOffset at)
+    {
+        Append(operations, new { kind = "completed", operation_id = operationId, state, at_utc = at });
+    }
+
+    internal void Sample(object value)
+    {
+        Append(samples, new { sequence = sampleSequence++, value });
+    }
+
+    internal int SampleCount => sampleSequence;
+
+    private void Append<T>(FileStream stream, T value)
+    {
+        byte[] payload = JsonSerializer.SerializeToUtf8Bytes(value, json);
+        stream.Write(payload);
+        stream.WriteByte((byte)'\n');
+        stream.Flush(flushToDisk: true);
+    }
+
+    internal void CompleteManifest(string runId)
+    {
+        samples.Flush(flushToDisk: true);
+        operations.Flush(flushToDisk: true);
+        samples.Dispose();
+        operations.Dispose();
+        var files = new Dictionary<string, object>();
+        foreach (string name in new[] { "nf11-synthetic-samples.jsonl", "nf11-synthetic-operations.jsonl", "nf11-synthetic-result.json" })
+        {
+            string path = Path.Combine(folder, name);
+            files.Add(name, new { bytes = new FileInfo(path).Length, sha256 = PerformanceEvidence.Hash(path) });
+        }
+        ResilienceEvidenceWriteNew(Path.Combine(folder, "nf11-synthetic-manifest.json"), JsonSerializer.SerializeToUtf8Bytes(new
+        { schema_version = "1.0", run_id = runId, files }, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    private static void ResilienceEvidenceWriteNew(string path, byte[] bytes) => PerformanceEvidence.WriteNew(path, bytes);
+
+    public async ValueTask DisposeAsync()
+    {
+        await samples.DisposeAsync();
+        await operations.DisposeAsync();
     }
 }

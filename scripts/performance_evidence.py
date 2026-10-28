@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import re
 import os
+from uuid import UUID
 
 PROFILE_PATH = Path(__file__).resolve().parents[1] / "tests/resilience/performance-profiles.json"
 PROFILE_BYTES = PROFILE_PATH.read_bytes()
@@ -207,3 +208,157 @@ def verify_run(folder, run_id):
         if digest(path) != expected["sha256"] or path.stat().st_size != expected["bytes"]:
             raise ValueError("Run artifact integrity mismatch.")
     return manifest
+
+
+def load_nf11_synthetic(root, run_id):
+    """Validate run-bound synthetic NF-11 phase evidence without inferring status from a short smoke."""
+    if not re.fullmatch(r"[0-9a-f]{32}", run_id):
+        raise ValueError("Invalid NF-11 run ID.")
+    folder = checked_path(root, ".tia-bridge/resilience/" + run_id)
+    manifest = read_json(checked_path(folder, "nf11-synthetic-manifest.json"))
+    if manifest.get("schema_version") != "1.0" or manifest.get("run_id") != run_id:
+        raise ValueError("NF-11 synthetic manifest identity mismatch.")
+    required = {"nf11-synthetic-samples.jsonl", "nf11-synthetic-operations.jsonl", "nf11-synthetic-result.json"}
+    if set(manifest.get("files", {})) != required:
+        raise ValueError("NF-11 synthetic manifest inventory mismatch.")
+    for name in sorted(required):
+        path = checked_path(folder, name)
+        identity = manifest["files"][name]
+        if type(identity.get("bytes")) is not int or identity["bytes"] != path.stat().st_size or not re.fullmatch(r"[0-9a-f]{64}", identity.get("sha256", "")) or digest(path) != identity["sha256"]:
+            raise ValueError("NF-11 synthetic evidence hash mismatch: " + name)
+
+    result_path = checked_path(folder, "nf11-synthetic-result.json")
+    result = read_json(result_path)
+    if result.get("schema_version") != "1.0" or result.get("run_id") != run_id or result.get("phase") != "NF11_SYNTHETIC":
+        raise ValueError("NF-11 synthetic result identity mismatch.")
+    if result.get("mode") not in {"FULL", "DIAGNOSTIC"} or result.get("execution_status") not in {"COMPLETE", "INTERRUPTED", "FAIL", "DIAGNOSTIC"}:
+        raise ValueError("NF-11 synthetic execution state is invalid.")
+    started = timestamp(result.get("measurement_started_at"))
+    ended = timestamp(result.get("ended_at"))
+    if ended < started:
+        raise ValueError("NF-11 synthetic time window is reversed.")
+    measured = result.get("measured_seconds")
+    if type(measured) not in {int, float} or not math.isfinite(measured) or measured < 0:
+        raise ValueError("NF-11 measured duration is invalid.")
+
+    def rows(filename):
+        path = checked_path(folder, filename)
+        if path.stat().st_size > 128 * 1024 * 1024:
+            raise ValueError("NF-11 evidence file exceeds the bounded size.")
+        output = []
+        try:
+            with path.open("r", encoding="utf-8", newline="") as stream:
+                for line_number, line in enumerate(stream, 1):
+                    if len(line) > 16 * 1024 or not line.endswith("\n"):
+                        raise ValueError("Truncated or oversized NF-11 evidence row.")
+                    output.append(json.loads(line, object_pairs_hook=_pairs,
+                                             parse_constant=lambda value: (_ for _ in ()).throw(ValueError("Nonfinite JSON number."))))
+        except (OSError, UnicodeError, RecursionError, json.JSONDecodeError) as error:
+            raise ValueError("Missing or damaged NF-11 evidence rows.") from error
+        return output
+
+    sample_rows = rows("nf11-synthetic-samples.jsonl")
+    if len(sample_rows) != result.get("samples_count") or not sample_rows:
+        raise ValueError("NF-11 resource samples are missing or incomplete.")
+    elapsed_samples = []
+    host_working_sets = []
+    host_handles = []
+    for expected, row in enumerate(sample_rows):
+        value = row.get("value", {})
+        elapsed = value.get("elapsed_seconds")
+        host = value.get("host", {})
+        if row.get("sequence") != expected or type(elapsed) not in {int, float} or not math.isfinite(elapsed) or elapsed < 0 or elapsed > measured + 1:
+            raise ValueError("NF-11 resource sample sequence/time is invalid.")
+        if type(host.get("working_set_bytes")) is not int or host["working_set_bytes"] < 0 or type(host.get("handles")) is not int or host["handles"] <= 0:
+            raise ValueError("NF-11 resource sample is incomplete.")
+        for field in ["threads", "cpu_ms"]:
+            if type(host.get(field)) not in {int, float} or not math.isfinite(host[field]) or host[field] < 0:
+                raise ValueError("NF-11 CPU/thread sample is invalid.")
+        if type(value.get("process_counts", {}).get("machine")) is not int or type(value.get("process_counts", {}).get("tracked_owned_total")) is not int:
+            raise ValueError("NF-11 process sample is incomplete.")
+        elapsed_samples.append(elapsed)
+        host_working_sets.append(host["working_set_bytes"])
+        host_handles.append(host["handles"])
+    if any(right <= left for left, right in zip(elapsed_samples, elapsed_samples[1:])):
+        raise ValueError("NF-11 resource sample times are not strictly increasing.")
+
+    operations = rows("nf11-synthetic-operations.jsonl")
+    accepted = set()
+    completed = set()
+    for row in operations:
+        operation_id = row.get("operation_id")
+        if not isinstance(operation_id, str) or not re.fullmatch(r"[0-9a-fA-F-]{32,36}", operation_id):
+            raise ValueError("Invalid NF-11 operation identity.")
+        try:
+            operation_id = UUID(operation_id).hex
+        except (ValueError, AttributeError) as error:
+            raise ValueError("Invalid NF-11 operation identity.") from error
+        if row.get("kind") == "accepted":
+            if operation_id in accepted:
+                raise ValueError("Duplicate accepted NF-11 operation ID.")
+            accepted.add(operation_id)
+        elif row.get("kind") == "completed":
+            if operation_id not in accepted or operation_id in completed or row.get("state") != "SUCCEEDED":
+                raise ValueError("Unexpected or failed NF-11 completion.")
+            completed.add(operation_id)
+        else:
+            raise ValueError("Unknown NF-11 operation evidence event.")
+    lost = sorted(accepted - completed)
+    if result.get("accepted_operations") != len(accepted) or result.get("completed_operations") != len(completed):
+        raise ValueError("NF-11 operation totals differ from event evidence.")
+    try:
+        summary_lost = sorted(UUID(value).hex for value in result.get("lost_operation_ids", []))
+    except (ValueError, TypeError) as error:
+        raise ValueError("Invalid NF-11 lost Operation ID summary.") from error
+    if summary_lost != lost:
+        raise ValueError("NF-11 lost Operation ID summary differs from evidence.")
+
+    baseline_ram = result.get("warmup_host_working_set_bytes")
+    baseline_handles = result.get("warmup_host_handles")
+    if type(baseline_ram) is not int or type(baseline_handles) is not int or baseline_handles <= 0:
+        raise ValueError("NF-11 warmup resource baseline is invalid.")
+    ram_growth = max(0, (max(host_working_sets) - baseline_ram) / 1048576)
+    handle_growth = max(0, (max(host_handles) - baseline_handles) / baseline_handles)
+    if not math.isclose(result.get("ram_growth_mib", -1), ram_growth, rel_tol=1e-9, abs_tol=1e-6) or not math.isclose(result.get("handle_growth_fraction", -1), handle_growth, rel_tol=1e-9, abs_tol=1e-9):
+        raise ValueError("NF-11 resource aggregates differ from samples.")
+    matrix = read_json(root / "tests/resilience/matrix.json")
+    synthetic = matrix.get("nf11_synthetic_phase", {})
+    requirement = matrix.get("eight_hour_requirement", {})
+    live = matrix.get("nf11_live_phase", {})
+    if not synthetic or requirement.get("required_seconds") != 28_800 or requirement.get("minimum_operations") != 1000 or live.get("minimum_read_only_operations") != 100:
+        raise ValueError("NF-11 qualification matrix is missing or inconsistent.")
+    if result.get("sampling_interval_seconds") != synthetic.get("sampling_interval_seconds") or result.get("required_seconds") != requirement["required_seconds"] or result.get("minimum_operations") != requirement["minimum_operations"]:
+        raise ValueError("NF-11 criteria or sample interval changed.")
+    thresholds = result.get("thresholds", {})
+    if thresholds.get("maximum_ram_growth_mib") != synthetic.get("host_ram_growth_mib_max") or thresholds.get("maximum_handle_growth_fraction") != synthetic.get("host_handle_growth_fraction_max"):
+        raise ValueError("NF-11 stability thresholds differ from the matrix.")
+    unmanaged = result.get("unmanaged_child_processes")
+    if type(unmanaged) is not int or unmanaged < 0 or result.get("cleanup_confirmed") != (unmanaged == 0):
+        raise ValueError("NF-11 child-process cleanup evidence is invalid.")
+    run_metadata = read_json(checked_path(folder, "validation/run-metadata.json"))
+    build_metadata_path = checked_path(folder, "validation/build-metadata.json")
+    build_metadata = read_json(build_metadata_path)
+    git_sha = run_metadata.get("git_sha")
+    source_sha = run_metadata.get("source_fingerprint_lf_sha256")
+    if run_metadata.get("run_id") != run_id or build_metadata.get("run_id") != run_id or build_metadata.get("git_sha") != git_sha or build_metadata.get("source_fingerprint_lf_sha256") != source_sha:
+        raise ValueError("NF-11 source/build metadata identity mismatch.")
+    if not re.fullmatch(r"[0-9a-f]{40}", git_sha or "") or not re.fullmatch(r"[0-9a-f]{64}", source_sha or ""):
+        raise ValueError("NF-11 source/build fingerprint is invalid.")
+    binaries = build_metadata.get("binaries")
+    if not isinstance(binaries, dict) or not binaries:
+        raise ValueError("NF-11 build hashes are missing.")
+    for identity in binaries.values():
+        checked_path(root, identity.get("path"))
+        if type(identity.get("bytes")) is not int or identity["bytes"] <= 0 or not re.fullmatch(r"[0-9a-f]{64}", identity.get("sha256", "")):
+            raise ValueError("NF-11 build artifact identity is invalid.")
+    return {"result": result, "samples": sample_rows, "accepted_ids": accepted, "completed_ids": completed,
+            "ram_growth_mib": ram_growth, "handle_growth_fraction": handle_growth,
+            "required_seconds": requirement["required_seconds"], "minimum_operations": requirement["minimum_operations"],
+            "sample_interval_seconds": synthetic["sampling_interval_seconds"],
+            "maximum_ram_growth_mib": synthetic["host_ram_growth_mib_max"],
+            "maximum_handle_growth_fraction": synthetic["host_handle_growth_fraction_max"],
+            "live_minimum_operations": live["minimum_read_only_operations"],
+            "build_metadata": build_metadata,
+            "build_metadata_sha256": digest(build_metadata_path),
+            "manifest_sha256": digest(checked_path(folder, "nf11-synthetic-manifest.json")),
+            "result_sha256": digest(result_path)}

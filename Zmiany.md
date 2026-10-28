@@ -1,5 +1,38 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-28 — B-10B-A1: syntetyczny harness NF-11
+
+Dodano opt-in, długotrwały scenariusz NF-11 Host/FakeWorker oraz krótką diagnostykę
+plumbing. Runner v1 tworzy per-run evidence, singleton lock, build/source metadata,
+obsługuje kontrolowane przerwanie i raportuje syntetyczną fazę oddzielnie od live.
+Pełny wynik NF-11 pozostaje BLOCKED bez niezależnych, poprawnych dowodów 100 operacji
+live. Próbkowanie 1 s wynika z istniejącej konwencji NF-08; 50 operacji warmup i
+równomierny rozkład 1000 zmierzonych operacji wykorzystują istniejący wzorzec
+resilience. Progi i czas NF-11 bez zmian; nie uruchomiono pełnego soak ani Siemens.
+
+Dokumentacja operacyjna: [syntetyczny NF-11](docs/B10B_NF11_SYNTHETIC.md). Testy
+diagnostyczne są oznaczone osobną kategorią i nie kwalifikują fazy. Dotychczasowe
+raporty nie są przepisywane; pola NF-11 w historycznych gate'ach i ograniczona D-11
+zachowują semantykę NOT_RUN.
+
+**Ocena wpływu dokumentacji:** przejrzano AGENTS.md i Instrukcja_ChatGPT.md sekcja po
+sekcji; nie zmieniono zasad wykonawczych, autoryzacji ani zakresu Siemens. ADR 0001–0003
+pozostają bez zmian, ponieważ pakiet wykorzystuje istniejący Host/FakeWorker bez nowej
+architektury operacji. Uaktualniono opis implementacji/testów w matrix i README oraz
+dodano specyfikację harnessu; wymagania NF-11, strategia D-11 i kryteria kwalifikacji
+pozostają bez zmian. Właściwe specyfikacje 02/07/08/09/16 przejrzano; nie wymagają
+zmiany kontraktu ani metodyki.
+
+**Walidacja:** QA FAST: 13/13 testów NF-11, 5/5 reporter, preflight/build i 1/1
+scenariusz DIAGNOSTIC (kwalifikacyjnie BLOCKED), `audit_quality.py` PASS. QA STANDARD:
+Host 363/363, Core 564/564, Python 80/80, generatory i audyt dokumentacji PASS. Pierwszy
+Runner STANDARD zachował FAIL wyłącznie za whitespace w nowym C#; poprawiono format,
+a ponowny `dotnet format whitespace ... --verify-no-changes` przeszedł. Kontrolowane
+przerwanie osobnego DIAGNOSTIC zachowało częściowe dowody i celowo zakończyło test jako
+FAIL/BLOCKED, bez PASS. Jedna ponowna próba DIAGNOSTIC została zablokowana istniejącym
+preflightem (`Get-Volume` nie znalazł C:); wcześniejszy DIAGNOSTIC miał preflight PASS.
+NF11_SYNTHETIC FULL 8H i NF11_LIVE 100 pozostają NOT_RUN.
+
 ## 2026-10-27 — B-03A/E2-G: SHARED_WORKSTATION i bramka E2-B1
 
 Baza: `3e0785556902c0ef10d6983f17ea0743997e8e6c`, HEAD=origin/main po fetch,

@@ -30,6 +30,8 @@ Profile i ich wersjonowane progi opisuje [D-11-P](../../docs/20_PERFORMANCE_QUAL
 
 To pełny zestaw, z rzeczywistym pięciominutowym idle i 1001 operacjami. Projekty wykonują się kolejno (-m:1), profile HTTP są izolowane od innych startów procesów; osiem klientów jest równoczesnych wewnątrz testu. Nie skraca się deadline produkcyjnych ani progu NF-01. Pełny 8 h soak NF-11 nie jest wykonywany: jawna decyzja użytkownika pozostawia go w B-10B/R-14.
 
+Syntetyczny harness NF-11 z pakietu B-10B-A1 jest oddzielnym, opt-in testem Host/FakeWorker; użyj [jego runbooka](../../docs/B10B_NF11_SYNTHETIC.md). Standardowy runner wyklucza kategorię `NF11Soak`. `DIAGNOSTIC` nie kwalifikuje fazy, a `FULL` wymaga realnych 28 800 s. Nie uruchamiaj `FULL` w FAST/STANDARD. Osobne 100 operacji read-only live pozostaje NOT_RUN, więc syntetyczny PASS daje `NF11_OVERALL: BLOCKED`.
+
 Celowany przebieg po build:
 
 ```powershell

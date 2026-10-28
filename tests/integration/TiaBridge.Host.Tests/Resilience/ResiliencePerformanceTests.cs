@@ -163,4 +163,299 @@ public class ResiliencePerformanceTests
         evidence.Data["ram_growth_mib"] = ramGrowth; evidence.Data["handle_growth_fraction"] = handleGrowth; evidence.Data["duration_is_not_eight_hour_soak"] = true;
         evidence.Pass();
     }
+
+    [Fact]
+    [Trait("Category", "NF11Soak")]
+    public async Task NF11_synthetic_soak_is_opt_in_and_persists_full_or_partial_evidence()
+    {
+        string mode = Environment.GetEnvironmentVariable("TIA_BRIDGE_NF11_MODE") ?? "";
+        Assert.Contains(mode, new[] { "FULL", "DIAGNOSTIC" });
+        string runId = Environment.GetEnvironmentVariable("TIA_BRIDGE_NF11_RUN_ID") ?? "";
+        Assert.Matches("^[0-9a-f]{32}$", runId);
+        string repository = AppContext.BaseDirectory;
+        while (!File.Exists(Path.Combine(repository, "TiaBridge.slnx"))) repository = Directory.GetParent(repository)!.FullName;
+        string expectedFolder = Path.GetFullPath(Path.Combine(repository, ".tia-bridge", "resilience", runId));
+        string outputFolder = Path.GetFullPath(Environment.GetEnvironmentVariable("TIA_BRIDGE_NF11_OUTPUT_DIRECTORY") ?? "");
+        Assert.Equal(expectedFolder, outputFolder);
+        string stopFile = Path.GetFullPath(Environment.GetEnvironmentVariable("TIA_BRIDGE_NF11_STOP_FILE") ?? "");
+        Assert.StartsWith(expectedFolder + Path.DirectorySeparatorChar, stopFile, StringComparison.OrdinalIgnoreCase);
+
+        const int warmupFull = 50;
+        const int requiredFullOperations = 1000;
+        const int warmupDiagnostic = 3;
+        const int diagnosticOperations = 5;
+        const int diagnosticSeconds = 15;
+        int warmupCount = mode == "FULL" ? warmupFull : warmupDiagnostic;
+        int measuredOperations = mode == "FULL" ? requiredFullOperations : diagnosticOperations;
+        TimeSpan requiredWindow = mode == "FULL" ? TimeSpan.FromSeconds(28_800) : TimeSpan.FromSeconds(diagnosticSeconds);
+        DateTimeOffset startedAt = DateTimeOffset.UtcNow;
+        DateTimeOffset? measurementStartedAt = null;
+        var timer = new Stopwatch();
+        using var stop = new CancellationTokenSource();
+        await using var fixture = new ApiFixture();
+        await using var phaseEvidence = new Nf11SyntheticEvidence(outputFolder);
+        var accepted = new HashSet<Guid>();
+        var completed = new HashSet<Guid>();
+        var workerIdentities = new HashSet<(int Pid, long StartTicks)>();
+        var samples = new List<(long Sequence, double ElapsedSeconds, long WorkingSetBytes, int Handles)>();
+        long warmupRam = 0;
+        int warmupHandles = 0;
+        bool interrupted = false;
+        bool cleanupConfirmed = false;
+        int unmanagedChildProcesses = 0;
+        bool hostNeedsStop = false;
+        Task? samplerTask = null;
+        string executionStatus = "FAIL";
+        int hostPid = 0;
+        long hostStartTicks = 0;
+        double elapsedSeconds = 0;
+        try
+        {
+            await fixture.Start();
+            hostNeedsStop = true;
+            hostPid = fixture.HostProcess.Id;
+            hostStartTicks = fixture.HostProcess.StartTime.ToUniversalTime().Ticks;
+            using var client = fixture.Client();
+
+            async Task SubmitAndComplete()
+            {
+                var operationId = await fixture.Submit(client, ApiFixture.Request());
+                Guid id = operationId.Value;
+                Assert.True(accepted.Add(id), "Duplicate accepted Operation ID.");
+                phaseEvidence.Accepted(id, DateTimeOffset.UtcNow);
+                var report = await fixture.Until(client, operationId, r => r.State == OperationState.SUCCEEDED, milliseconds: 10_000);
+                Assert.Equal(OperationState.SUCCEEDED, report.State);
+                Assert.True(completed.Add(id), "Duplicate completed Operation ID.");
+                phaseEvidence.Completed(id, report.State.ToString(), DateTimeOffset.UtcNow);
+                TrackWorkers(fixture, workerIdentities);
+            }
+
+            for (int i = 0; i < warmupCount; i++)
+            {
+                if (File.Exists(stopFile)) { interrupted = true; break; }
+                await SubmitAndComplete();
+            }
+            if (!interrupted)
+            {
+                fixture.HostProcess.Refresh();
+                warmupRam = fixture.HostProcess.WorkingSet64;
+                warmupHandles = fixture.HostProcess.HandleCount;
+                Assert.True(warmupHandles > 0, "Host handle baseline must be positive.");
+                startedAt = DateTimeOffset.UtcNow;
+                measurementStartedAt = startedAt;
+                timer.Start();
+                samplerTask = SampleResourcesAsync(fixture, phaseEvidence, samples, workerIdentities, timer, stop, stopFile);
+                var hostCpuPrevious = fixture.HostProcess.TotalProcessorTime;
+                var cpuTimestampPrevious = timer.Elapsed;
+                for (int i = 0; i < measuredOperations && !stop.IsCancellationRequested; i++)
+                {
+                    TimeSpan target = TimeSpan.FromTicks(requiredWindow.Ticks * (i + 1) / measuredOperations);
+                    TimeSpan delay = target - timer.Elapsed;
+                    if (delay > TimeSpan.Zero)
+                    {
+                        try { await Task.Delay(delay, stop.Token); }
+                        catch (OperationCanceledException) { break; }
+                    }
+                    if (File.Exists(stopFile)) { interrupted = true; break; }
+                    await SubmitAndComplete();
+                    if ((i + 1) % 25 == 0) Console.WriteLine($"NF11 {mode}: operations={completed.Count} elapsed_s={timer.Elapsed.TotalSeconds:F0}");
+                }
+                if (!stop.IsCancellationRequested && !interrupted && timer.Elapsed < requiredWindow)
+                {
+                    try { await Task.Delay(requiredWindow - timer.Elapsed, stop.Token); }
+                    catch (OperationCanceledException) { }
+                }
+                if (stop.IsCancellationRequested || File.Exists(stopFile)) interrupted = true;
+                stop.Cancel();
+                try { await samplerTask; } catch (OperationCanceledException) { } catch { executionStatus = "FAIL"; }
+                fixture.HostProcess.Refresh();
+                double measuredCpuMs = (fixture.HostProcess.TotalProcessorTime - hostCpuPrevious).TotalMilliseconds;
+                double measuredWallMs = Math.Max(1, (timer.Elapsed - cpuTimestampPrevious).TotalMilliseconds);
+                _ = measuredCpuMs / measuredWallMs / Environment.ProcessorCount * 100;
+                if (!interrupted && executionStatus != "FAIL")
+                {
+                    Assert.True(accepted.SetEquals(PersistedOperationIds(fixture)), "Accepted Operation IDs differ from durable Host history.");
+                    var effects = Directory.EnumerateFiles(fixture.Files.Root, "fake-effects-*.jsonl")
+                        .SelectMany(File.ReadAllLines).Select(line => JsonDocument.Parse(line))
+                        .GroupBy(document => { using (document) return document.RootElement.GetProperty("operation_id").GetGuid(); })
+                        .ToDictionary(group => group.Key, group => group.Count());
+                    Assert.True(accepted.SetEquals(effects.Keys), "FakeWorker effects differ from accepted Operation IDs.");
+                    Assert.All(effects.Values, count => Assert.Equal(1, count));
+                }
+            }
+            elapsedSeconds = timer.Elapsed.TotalSeconds;
+            await fixture.Stop();
+            hostNeedsStop = false;
+            unmanagedChildProcesses = RemainingOwnedProcesses(hostPid, hostStartTicks, workerIdentities);
+            cleanupConfirmed = unmanagedChildProcesses == 0;
+            executionStatus = interrupted ? "INTERRUPTED" : mode == "DIAGNOSTIC" ? "DIAGNOSTIC" : "COMPLETE";
+        }
+        finally
+        {
+            stop.Cancel();
+            if (samplerTask is not null)
+            {
+                try { await samplerTask; } catch (OperationCanceledException) { } catch { executionStatus = "FAIL"; }
+            }
+            if (hostNeedsStop)
+            {
+                try { await fixture.Stop(); } catch { cleanupConfirmed = false; }
+            }
+            elapsedSeconds = timer.Elapsed.TotalSeconds;
+            double ramGrowth = samples.Count == 0 ? 0 : Math.Max(0, (samples.Max(s => s.WorkingSetBytes) - warmupRam) / 1048576d);
+            double handleGrowth = samples.Count == 0 || warmupHandles <= 0 ? 0 : Math.Max(0, (double)(samples.Max(s => s.Handles) - warmupHandles) / warmupHandles);
+            var result = new
+            {
+                schema_version = "1.0",
+                run_id = runId,
+                phase = "NF11_SYNTHETIC",
+                mode,
+                execution_status = executionStatus,
+                started_at = startedAt,
+                measurement_started_at = measurementStartedAt,
+                ended_at = DateTimeOffset.UtcNow,
+                measured_seconds = elapsedSeconds,
+                required_seconds = 28_800,
+                minimum_operations = 1000,
+                warmup_operations = warmupCount,
+                accepted_operations = accepted.Count,
+                completed_operations = completed.Count,
+                lost_operation_ids = accepted.Except(completed).Select(id => id.ToString()).Order().ToArray(),
+                operation_ids = completed.Select(id => id.ToString()).Order().ToArray(),
+                warmup_host_working_set_bytes = warmupRam,
+                warmup_host_handles = warmupHandles,
+                ram_growth_mib = ramGrowth,
+                handle_growth_fraction = handleGrowth,
+                samples_count = samples.Count,
+                sampling_interval_seconds = 1,
+                cleanup_confirmed = cleanupConfirmed,
+                unmanaged_child_processes = unmanagedChildProcesses,
+                thresholds = new { maximum_ram_growth_mib = 50, maximum_handle_growth_fraction = .05 },
+                diagnostic_must_not_qualify = mode == "DIAGNOSTIC"
+            };
+            ResilienceEvidence.WriteNew(Path.Combine(outputFolder, "nf11-synthetic-result.json"), JsonSerializer.SerializeToUtf8Bytes(result, new JsonSerializerOptions { WriteIndented = true }));
+            phaseEvidence.CompleteManifest(runId);
+        }
+
+        if (interrupted) throw new Xunit.Sdk.XunitException("NF-11 synthetic run was controlled-interrupted; partial evidence retained.");
+        if (mode == "FULL")
+        {
+            Assert.True(elapsedSeconds >= 28_800);
+            Assert.True(completed.Count >= 1000);
+            Assert.Empty(accepted.Except(completed));
+            Assert.True(cleanupConfirmed, "An owned Host/FakeWorker process remained after cleanup.");
+            Assert.True(samples.Count >= 28_800, "One-second resource samples are incomplete.");
+            Assert.True(samples.Max(s => s.WorkingSetBytes) - warmupRam <= 50L * 1024 * 1024);
+            Assert.True((double)(samples.Max(s => s.Handles) - warmupHandles) / warmupHandles <= .05);
+        }
+    }
+
+    private static async Task SampleResourcesAsync(ApiFixture fixture, Nf11SyntheticEvidence evidence,
+        List<(long Sequence, double ElapsedSeconds, long WorkingSetBytes, int Handles)> samples,
+        HashSet<(int Pid, long StartTicks)> workers, Stopwatch timer, CancellationTokenSource stop, string stopFile)
+    {
+        using var interval = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        double previousElapsed = 0;
+        double previousHostCpuMs = fixture.HostProcess.TotalProcessorTime.TotalMilliseconds;
+        while (await interval.WaitForNextTickAsync(stop.Token))
+        {
+            if (File.Exists(stopFile)) { stop.Cancel(); break; }
+            fixture.HostProcess.Refresh();
+            TrackWorkers(fixture, workers);
+            long ws = fixture.HostProcess.WorkingSet64;
+            int handles = fixture.HostProcess.HandleCount;
+            int threads = fixture.HostProcess.Threads.Count;
+            double cpuMs = fixture.HostProcess.TotalProcessorTime.TotalMilliseconds;
+            double elapsed = timer.Elapsed.TotalSeconds;
+            double elapsedDelta = elapsed - previousElapsed;
+            double hostCpuPercent = elapsedDelta <= 0 ? 0 : Math.Max(0, cpuMs - previousHostCpuMs) / (elapsedDelta * 1000 * Environment.ProcessorCount) * 100;
+            previousElapsed = elapsed;
+            previousHostCpuMs = cpuMs;
+            int liveWorkers = 0;
+            long workerWs = 0;
+            int workerHandles = 0;
+            int workerThreads = 0;
+            double workerCpuMs = 0;
+            (int Pid, long StartTicks)[] workerSnapshot;
+            lock (workers) workerSnapshot = workers.ToArray();
+            foreach (var identity in workerSnapshot)
+            {
+                if (!TryProcess(identity.Pid, identity.StartTicks, out var process)) continue;
+                using (process)
+                {
+                    process.Refresh(); liveWorkers++; workerWs += process.WorkingSet64;
+                    workerHandles += process.HandleCount; workerThreads += process.Threads.Count;
+                    workerCpuMs += process.TotalProcessorTime.TotalMilliseconds;
+                }
+            }
+            long sequence = samples.Count;
+            samples.Add((sequence, elapsed, ws, handles));
+            evidence.Sample(new
+            {
+                observed_at_utc = DateTimeOffset.UtcNow,
+                elapsed_seconds = elapsed,
+                host = new { pid = fixture.HostProcess.Id, start_ticks = fixture.HostProcess.StartTime.ToUniversalTime().Ticks, working_set_bytes = ws, handles, threads, cpu_ms = cpuMs },
+                fake_workers = new { tracked_processes = workers.Count, live_processes = liveWorkers, working_set_bytes = workerWs, handles = workerHandles, threads = workerThreads, cpu_ms = workerCpuMs },
+                process_counts = new { machine = MachineProcessCount(), host = 1, fake_worker = liveWorkers, tracked_owned_total = 1 + liveWorkers },
+                cpu_percent_normalized_all_logical_processors = hostCpuPercent,
+                diagnostic = "Raw cumulative CPU milliseconds are preserved; no NF-11 CPU threshold is defined."
+            });
+        }
+    }
+
+    private static void TrackWorkers(ApiFixture fixture, HashSet<(int Pid, long StartTicks)> workers)
+    {
+        using var connection = fixture.Files.Connection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT pid,start_ticks FROM worker_processes";
+        using var reader = command.ExecuteReader();
+        lock (workers)
+            while (reader.Read()) workers.Add((reader.GetInt32(0), reader.GetInt64(1)));
+    }
+
+    private static HashSet<Guid> PersistedOperationIds(ApiFixture fixture)
+    {
+        var ids = new HashSet<Guid>();
+        using var connection = fixture.Files.Connection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT operation_id FROM operations";
+        using var reader = command.ExecuteReader();
+        while (reader.Read()) ids.Add(Guid.Parse(reader.GetString(0)));
+        return ids;
+    }
+
+    private static int RemainingOwnedProcesses(int hostPid, long hostStartTicks, HashSet<(int Pid, long StartTicks)> workers)
+    {
+        int remaining = 0;
+        if (TryProcess(hostPid, hostStartTicks, out var host)) { host.Dispose(); remaining++; }
+        lock (workers)
+        {
+            foreach (var identity in workers)
+            {
+                if (!TryProcess(identity.Pid, identity.StartTicks, out var process)) continue;
+                process.Dispose();
+                remaining++;
+            }
+        }
+        return remaining;
+    }
+
+    private static int MachineProcessCount()
+    {
+        Process[] processes = Process.GetProcesses();
+        try { return processes.Length; }
+        finally { foreach (Process process in processes) process.Dispose(); }
+    }
+
+    private static bool TryProcess(int pid, long startTicks, out Process process)
+    {
+        try
+        {
+            process = Process.GetProcessById(pid);
+            if (process.StartTime.ToUniversalTime().Ticks == startTicks) return true;
+            process.Dispose(); process = null!; return false;
+        }
+        catch (ArgumentException) { process = null!; return false; }
+        catch (InvalidOperationException) { process = null!; return false; }
+    }
 }

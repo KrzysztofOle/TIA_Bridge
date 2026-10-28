@@ -33,9 +33,84 @@ def source_fingerprint(root):
     return source_hash, sources
 
 
+def nf11_overall(synthetic_status, live_status):
+    statuses = {"PASS", "FAIL", "BLOCKED", "NOT_RUN"}
+    if synthetic_status not in statuses or live_status not in statuses:
+        raise ValueError("Unknown NF-11 phase status.")
+    overall = "FAIL" if "FAIL" in {synthetic_status, live_status} else "PASS" if synthetic_status == live_status == "PASS" else "BLOCKED"
+    return {"NF11_SYNTHETIC": synthetic_status, "NF11_LIVE": live_status, "NF11_OVERALL": overall}
+
+
+def nf11_synthetic_report(root: Path, run_id: str):
+    """Evaluate only the synthetic phase; the separate live requirement always gates overall NF-11."""
+    phase_folder = root / ".tia-bridge/resilience" / run_id
+    if not (phase_folder / "nf11-synthetic-manifest.json").exists() and not (phase_folder / "nf11-synthetic-result.json").exists():
+        phases = nf11_overall("NOT_RUN", "NOT_RUN")
+        return {"schema_version": "1.0", "run_id": run_id, **phases,
+                "blockers": ["No run-bound synthetic phase evidence exists.", "NF11_OVERALL requires both synthetic and separately validated live phases."]}
+    try:
+        evidence = performance_evidence.load_nf11_synthetic(root, run_id)
+    except (ValueError, OSError, KeyError, TypeError) as error:
+        phases = nf11_overall("BLOCKED", "NOT_RUN")
+        return {"schema_version": "1.0", "run_id": run_id, **phases, "reason": str(error), "blockers": [str(error)]}
+
+    result = evidence["result"]
+    violations = []
+    if evidence["ram_growth_mib"] > evidence["maximum_ram_growth_mib"]:
+        violations.append("RAM growth exceeded 50 MiB after warmup.")
+    if evidence["handle_growth_fraction"] > evidence["maximum_handle_growth_fraction"]:
+        violations.append("Handle growth exceeded 5% after warmup.")
+    if evidence["accepted_ids"] != evidence["completed_ids"]:
+        violations.append("An accepted Operation ID is missing a successful completion.")
+    if not result.get("cleanup_confirmed"):
+        violations.append("Owned Host/FakeWorker process cleanup was not confirmed.")
+    if result.get("unmanaged_child_processes") != 0:
+        violations.append("At least one owned child process remained after cleanup.")
+
+    if violations:
+        synthetic_status = "FAIL"
+    elif result["execution_status"] == "INTERRUPTED":
+        synthetic_status = "BLOCKED"
+    elif result["execution_status"] == "DIAGNOSTIC" or result["mode"] == "DIAGNOSTIC":
+        synthetic_status = "BLOCKED"
+    elif result["execution_status"] != "COMPLETE":
+        synthetic_status = "BLOCKED"
+    elif result["measured_seconds"] < evidence["required_seconds"]:
+        synthetic_status = "FAIL"
+        violations.append("Completed full-mode run did not meet the unchanged 8-hour minimum.")
+    elif result["completed_operations"] < evidence["minimum_operations"]:
+        synthetic_status = "FAIL"
+        violations.append("Completed full-mode run did not meet the unchanged 1000-operation minimum.")
+    elif len(evidence["samples"]) < evidence["required_seconds"] / evidence["sample_interval_seconds"]:
+        synthetic_status = "BLOCKED"
+        violations.append("The one-second resource sample stream is incomplete for the measured window.")
+    elif evidence["samples"][-1]["value"]["elapsed_seconds"] < evidence["required_seconds"]:
+        synthetic_status = "BLOCKED"
+        violations.append("Resource samples do not cover the full measurement interval.")
+    else:
+        synthetic_status = "PASS"
+
+    phases = nf11_overall(synthetic_status, "NOT_RUN")
+    return {"schema_version": "1.0", "run_id": run_id, **phases,
+            "measured_seconds": result["measured_seconds"], "completed_operations": result["completed_operations"],
+            "ram_growth_mib": evidence["ram_growth_mib"], "handle_growth_fraction": evidence["handle_growth_fraction"],
+            "sample_count": len(evidence["samples"]), "cleanup_confirmed": result.get("cleanup_confirmed"),
+            "live_reason": "The separately required 100-operation read-only live phase is not part of this synthetic run.",
+            "evidence": {"result": ".tia-bridge/resilience/" + run_id + "/nf11-synthetic-result.json",
+                         "samples": ".tia-bridge/resilience/" + run_id + "/nf11-synthetic-samples.jsonl",
+                         "operations": ".tia-bridge/resilience/" + run_id + "/nf11-synthetic-operations.jsonl",
+                         "manifest": ".tia-bridge/resilience/" + run_id + "/nf11-synthetic-manifest.json",
+                         "manifest_sha256": evidence["manifest_sha256"], "result_sha256": evidence["result_sha256"],
+                         "build_metadata": ".tia-bridge/resilience/" + run_id + "/validation/build-metadata.json",
+                         "build_metadata_sha256": evidence["build_metadata_sha256"]},
+            "build": evidence["build_metadata"],
+            "blockers": violations + ([] if phases["NF11_OVERALL"] == "PASS" else ["NF11_OVERALL requires both synthetic and separately validated live phases."])}
+
+
 def qualification(root: Path, run_id: str, started_at: str, *, allow_legacy=False):
     if not re.fullmatch(r"[0-9a-f]{32}", run_id):
         raise ValueError("Invalid resilience run ID.")
+    nf11 = nf11_synthetic_report(root, run_id)
     matrix = json.loads((root / "tests/resilience/matrix.json").read_text(encoding="utf-8"))
     folder = root / ".tia-bridge/resilience" / run_id
     records = {}
@@ -138,6 +213,7 @@ def qualification(root: Path, run_id: str, started_at: str, *, allow_legacy=Fals
             "limited_x01_technical_readiness": "TECHNICALLY_READY_ON_NTFS_PENDING_FORMAL_GATE_DECISION" if sample_state == "PASS" and idle_ok and all(rt[k]["status"] == "PASS" for k in matrix["required_rt"]) and all(nf[k]["status"] == "PASS" for k in ["NF-01", "NF-02", "NF-05"]) else "NOT_READY",
             "production_stability_qualification": "NOT_RUN",
             "required_rt": matrix["required_rt"], "rt": rt, "nf": nf, "environment_not_run": matrix["not_run_environment_cases"],
+            "nf11": nf11,
             "preflight_status": run_metadata.get("preflight_status", "NOT_RUN"),
             "measurements": {"b02c": perf, "http_readers_recovery": records["http-readers-recovery"]["data"], "idle": idle, "workspace_replace": records["workspace-replace"]["data"], "repository_replace": repo_replace, "queue_capacity": records["queue-capacity"]["data"]},
             "scenarios": [{"id": name, "status": r["status"], "requirements": r["requirements"], "elapsed_ms": r["elapsed_ms"], "evidence_sha256": r["sha256"]} for name, r in sorted(records.items())],

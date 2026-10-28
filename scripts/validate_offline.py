@@ -149,12 +149,174 @@ def run_preflight(profile, output_directory):
     return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
+def run_nf11_synthetic(mode, profile):
+    """Run only the opt-in Host/Fake NF-11 phase; preserve partial evidence on controlled stop."""
+    global OUTPUT
+    run_id = uuid.uuid4().hex
+    run_folder = ROOT / ".tia-bridge/resilience" / run_id
+    lock_path = ROOT / ".tia-bridge/resilience/nf11-synthetic.active.json"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    lock_value = json.dumps({"run_id": run_id, "pid": os.getpid(), "started_at": datetime.now(timezone.utc).isoformat()})
+    try:
+        with lock_path.open("x", encoding="utf-8") as lock:
+            lock.write(lock_value + "\n"); lock.flush(); os.fsync(lock.fileno())
+    except FileExistsError as error:
+        print("NF11: BLOCKED - an active/stale NF-11 lock exists; inspect it, do not remove it automatically.", flush=True)
+        return 2
+
+    validation = run_folder / "validation"
+    test_results = run_folder / "test-results"
+    validation.mkdir(parents=True)
+    test_results.mkdir()
+    OUTPUT = validation
+    stop_file = run_folder / "stop.request"
+    log_path = validation / "nf11-dotnet-test.log"
+    report = {"schema_version": "1.0", "run_id": run_id, "mode": mode, "scope": "NF11_SYNTHETIC Host/FakeWorker only",
+              "status": "BLOCKED", "started_at": datetime.now(timezone.utc).isoformat(), "test_exit_code": None,
+              "interrupted": False, "engineering": "NOT_RUN", "runtime": "NOT_RUN"}
+    exit_code = 1
+    output_offset = 0
+    process = None
+    try:
+        os.environ["TIA_BRIDGE_QUALIFICATION_PROFILE"] = profile
+        dependencies = ["dotnet", "git"]
+        versions = {}
+        for tool in dependencies:
+            result = subprocess.run([tool, "--version"], cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=15, check=True)
+            versions[tool] = result.stdout.strip().splitlines()[0]
+        report["tools"] = versions
+        # The existing preflight inspects this test-owned repository-volume root.
+        # Create only its empty parent; the soak itself writes under its UUID run folder.
+        (ROOT / ".tia-bridge/resilience/workspaces").mkdir(parents=True, exist_ok=True)
+        (ROOT / ".tia-bridge/b02c/workspaces").mkdir(parents=True, exist_ok=True)
+        preflight_dir = validation / "preflight"
+        preflight = run_preflight(profile, preflight_dir)
+        report["preflight"] = preflight
+        if preflight.get("status") == "BLOCKED":
+            raise ValueError("NF-11 preflight BLOCKED: " + "; ".join(preflight.get("blockers", [])))
+        resilience_report = load_reporter(ROOT)
+        resilience_report.capture_environment(ROOT, run_id)
+        source_fingerprint, sources = resilience_report.source_fingerprint(ROOT)
+        profile_meta = resilience_report.performance_evidence
+        profile_meta.write_new_json(validation / "run-metadata.json", {
+            "run_id": run_id, "started_at": report["started_at"], "git_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
+            "source_fingerprint_lf_sha256": source_fingerprint, "source_file_count": len(sources), "mode": mode,
+            "profile": profile_meta.PROFILE_NAME, "profile_version": profile_meta.PROFILE_VERSION,
+            "profile_definition_sha256": profile_meta.PROFILE_SHA256,
+            "protected_criteria": json.loads((ROOT / "tests/resilience/matrix.json").read_text(encoding="utf-8"))["eight_hour_requirement"]})
+        empty_feed = validation / "empty-feed"
+        empty_feed.mkdir()
+        restore_command = ["dotnet", "restore", "TiaBridge.slnx", "--locked-mode", "--source", str(empty_feed), "-p:NuGetAudit=false"]
+        restore_steps = []
+        run_step("01-restore", restore_command, restore_steps)
+        build_command = ["dotnet", "build", "TiaBridge.slnx", "-c", "Release", "--no-restore"]
+        run_step("02-build", build_command, restore_steps)
+        report["steps"] = restore_steps
+        binary_paths = {
+            "host_tests": "tests/integration/TiaBridge.Host.Tests/bin/Release/net10.0/TiaBridge.Host.Tests.dll",
+            "host": "src/TiaBridge.Host/bin/Release/net10.0/TiaBridge.Host.dll",
+            "fake_worker": "src/TiaBridge.FakeWorker/bin/Release/net10.0/TiaBridge.FakeWorker.dll",
+            "core": "src/TiaBridge.Core/bin/Release/net10.0/TiaBridge.Core.dll",
+            "ipc": "src/TiaBridge.Ipc/bin/Release/net10.0/TiaBridge.Ipc.dll",
+        }
+        profile_meta.write_new_json(validation / "build-metadata.json", {
+            "run_id": run_id, "git_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
+            "source_fingerprint_lf_sha256": source_fingerprint,
+            "binaries": {key: {"path": relative, "bytes": (ROOT / relative).stat().st_size, "sha256": profile_meta.digest(ROOT / relative)} for key, relative in binary_paths.items()}})
+        command = ["dotnet", "test", "tests/integration/TiaBridge.Host.Tests/TiaBridge.Host.Tests.csproj", "-c", "Release", "--no-build", "--no-restore",
+                   "--filter", "Category=NF11Soak", "--logger", "trx", "--results-directory", str(test_results)]
+        environment = os.environ.copy()
+        environment.update({"DOTNET_CLI_UI_LANGUAGE": "en", "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+                            "TIA_BRIDGE_RESILIENCE_RUN_ID": run_id, "TIA_BRIDGE_NF11_RUN_ID": run_id,
+                            "TIA_BRIDGE_NF11_MODE": mode, "TIA_BRIDGE_NF11_OUTPUT_DIRECTORY": str(run_folder),
+                            "TIA_BRIDGE_NF11_STOP_FILE": str(stop_file), "PYTHONIOENCODING": "utf-8"})
+        creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+        with log_path.open("x", encoding="utf-8", newline="\n") as log:
+            process = subprocess.Popen(command, cwd=ROOT, env=environment, stdout=log, stderr=subprocess.STDOUT, creationflags=creationflags)
+            report["command"] = command
+            report["child_pid"] = process.pid
+            print(f"NF11 {mode}: run_id={run_id}; evidence={run_folder}", flush=True)
+            try:
+                while process.poll() is None:
+                    time.sleep(1)
+                    log.flush()
+                    with log_path.open("r", encoding="utf-8", errors="replace") as reader:
+                        reader.seek(output_offset)
+                        chunk = reader.read()
+                        output_offset = reader.tell()
+                    if chunk:
+                        print(chunk, end="", flush=True)
+            except KeyboardInterrupt:
+                report["interrupted"] = True
+                try:
+                    request_nf11_stop(stop_file, run_id, "keyboard_interrupt")
+                except FileExistsError:
+                    pass
+                print("NF11: controlled stop requested; waiting for the owned test process to flush partial evidence and clean up.", flush=True)
+                process.wait()
+        report["test_exit_code"] = process.returncode
+        nf11 = resilience_report.nf11_synthetic_report(ROOT, run_id)
+        profile_meta.write_new_json(validation / "nf11-report.json", nf11)
+        report["nf11"] = nf11
+        report["ended_at"] = datetime.now(timezone.utc).isoformat()
+        report["status"] = "PASS" if nf11["NF11_SYNTHETIC"] == "PASS" else "BLOCKED" if nf11["NF11_SYNTHETIC"] in {"BLOCKED", "NOT_RUN"} else "FAIL"
+        if report["interrupted"]:
+            report["status"] = "BLOCKED"
+            exit_code = 130
+        elif process.returncode != 0 and not (mode == "DIAGNOSTIC" and nf11["NF11_SYNTHETIC"] == "BLOCKED"):
+            report["status"] = "FAIL" if nf11["NF11_SYNTHETIC"] == "FAIL" else "BLOCKED"
+            exit_code = 1
+        else:
+            exit_code = 0 if report["status"] in {"PASS", "BLOCKED"} else 1
+    except (OSError, ValueError, subprocess.SubprocessError, KeyError, TypeError) as error:
+        report["error"] = str(error)
+        report["status"] = "BLOCKED"
+        report["ended_at"] = datetime.now(timezone.utc).isoformat()
+        try:
+            nf11 = load_reporter(ROOT).nf11_synthetic_report(ROOT, run_id)
+            report["nf11"] = nf11
+            profile_meta = load_reporter(ROOT).performance_evidence
+            profile_meta.write_new_json(validation / "nf11-report.json", nf11)
+        except (OSError, ValueError):
+            pass
+        exit_code = 1
+    finally:
+        report.setdefault("ended_at", datetime.now(timezone.utc).isoformat())
+        if process is not None and process.poll() is None:
+            try:
+                request_nf11_stop(stop_file, run_id, "runner_cleanup")
+            except FileExistsError:
+                pass
+            process.wait()
+        with (validation / "run.json").open("x", encoding="utf-8") as stream:
+            json.dump(report, stream, indent=2); stream.write("\n"); stream.flush(); os.fsync(stream.fileno())
+        load_reporter(ROOT).performance_evidence.seal_run(run_folder, run_id)
+        if lock_path.exists() and lock_path.read_text(encoding="utf-8").strip() == lock_value:
+            lock_path.unlink()
+        print(f"NF11 {mode}: {report['status']}; synthetic={report.get('nf11', {}).get('NF11_SYNTHETIC', 'NOT_RUN')}; live={report.get('nf11', {}).get('NF11_LIVE', 'NOT_RUN')}; overall={report.get('nf11', {}).get('NF11_OVERALL', 'BLOCKED')}", flush=True)
+    return exit_code
+
+
+def request_nf11_stop(path, run_id, reason):
+    """Create the one-way stop request consumed by the active test; never overwrite it."""
+    with Path(path).open("x", encoding="utf-8", newline="\n") as request:
+        request.write(json.dumps({"run_id": run_id, "reason": reason, "requested_at": datetime.now(timezone.utc).isoformat()}) + "\n")
+        request.flush(); os.fsync(request.fileno())
+
+
 def main(argv=None):
     global OUTPUT
     configure_console_utf8()
     parser = argparse.ArgumentParser(description="Run the offline suite using an explicit qualification profile.")
     parser.add_argument("--profile", choices=["STRICT", "SHARED_WORKSTATION"], default="STRICT")
-    profile = parser.parse_args(argv or []).profile
+    parser.add_argument("--nf11-synthetic", action="store_true", help="Run only the opt-in Host/FakeWorker NF-11 synthetic phase.")
+    parser.add_argument("--nf11-mode", choices=["FULL", "DIAGNOSTIC"], default="FULL")
+    arguments = parser.parse_args(argv or [])
+    profile = arguments.profile
+    if arguments.nf11_synthetic:
+        return run_nf11_synthetic(arguments.nf11_mode, profile)
+    if arguments.nf11_mode != "FULL":
+        parser.error("--nf11-mode requires --nf11-synthetic")
     os.environ["TIA_BRIDGE_QUALIFICATION_PROFILE"] = profile
     run_id = uuid.uuid4().hex
     run_folder = ROOT / ".tia-bridge/resilience" / run_id
@@ -192,7 +354,7 @@ def main(argv=None):
             *([("01b-worker-restore", ["dotnet", "restore", "src/TiaBridge.Worker.V19/TiaBridge.Worker.V19.csproj", "--locked-mode", "--source", str(feed), "-p:NuGetAudit=false"])] if profile == "SHARED_WORKSTATION" else []),
             ("02-build", ["dotnet", "build", "TiaBridge.slnx", "-c", "Release", "--no-restore"]),
             *([("02b-worker-build", ["dotnet", "build", "src/TiaBridge.Worker.V19/TiaBridge.Worker.V19.csproj", "-c", "Release", "--no-restore"])] if profile == "SHARED_WORKSTATION" else []),
-            ("03-dotnet", ["dotnet", "test", "TiaBridge.slnx", "-c", "Release", "--no-build", "--no-restore", "-m:1", "--logger", "trx", "--results-directory", str(test_results)]),
+            ("03-dotnet", ["dotnet", "test", "TiaBridge.slnx", "-c", "Release", "--no-build", "--no-restore", "-m:1", "--filter", "FullyQualifiedName!~NF11_synthetic_soak", "--logger", "trx", "--results-directory", str(test_results)]),
             ("04-json-schema-openapi", [sys.executable, "-B", "-m", "unittest", "discover", "-s", "tests/contracts", "-p", "test_*.py", "-v"]),
             ("05-contract-generator", [sys.executable, "-B", "scripts/generate_contracts.py"]),
             ("06-test-vectors", [sys.executable, "-B", "scripts/generate_test_vectors.py"]),

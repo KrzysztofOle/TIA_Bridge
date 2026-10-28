@@ -9,7 +9,7 @@ Wymagania: .NET SDK 10.0.4xx (global.json dopuszcza najnowszy patch tego pasma),
 
 ## Pełny przebieg offline jednym poleceniem
 
-Aktualne dowody są niezmienne i przypięte do run ID w `.tia-bridge/resilience/<run-id>/`; szczegóły [próbek NF 1.1](resilience/README.md#dowody-nf-02nf-03-od-formatu-11). Testy przygotowania: [raport D-11 preparation](resilience/D11_PREPARATION_2026-10-26.md). Pełnego polecenia poniżej nie wykonuje się w zadaniu ograniczonym do przygotowania harnessu.
+Aktualne dowody są niezmienne i przypięte do run ID w `.tia-bridge/resilience/<run-id>/`; szczegóły [próbek NF 1.1](resilience/README.md#dowody-nf-02nf-03-od-formatu-11). Testy przygotowania: [raport D-11 preparation](resilience/D11_PREPARATION_2026-10-26.md). Ośmiogodzinny test ma osobny opt-in tryb `--nf11-synthetic --nf11-mode FULL`, a standardowy QA filtr wyłącza jego kategorię; [runbook B-10B-A1](../docs/B10B_NF11_SYNTHETIC.md). Pełnego polecenia poniżej nie wykonuje się w zadaniu ograniczonym do przygotowania harnessu.
 
 Po jednorazowym przygotowaniu zależności według instrukcji niżej uruchom z root repo, używając Python z izolowanego środowiska QA:
 

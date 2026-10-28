@@ -75,6 +75,9 @@ class ResilienceReportTests(unittest.TestCase):
             self.assertEqual("BLOCKED", result["gate"])
             self.assertEqual("NOT_READY", result["x01_readiness"])
             self.assertEqual("NOT_RUN", result["nf"]["NF-11"]["status"])
+            self.assertEqual("NOT_RUN", result["nf11"]["NF11_SYNTHETIC"])
+            self.assertEqual("NOT_RUN", result["nf11"]["NF11_LIVE"])
+            self.assertEqual("BLOCKED", result["nf11"]["NF11_OVERALL"])
             self.assertTrue(all(result["rt"][key]["status"] == "PASS" for key in result["required_rt"]))
             path = root / ".tia-bridge/resilience" / RUN / "operations-1001.json"
             value = json.loads(path.read_text(encoding="utf-8"))
