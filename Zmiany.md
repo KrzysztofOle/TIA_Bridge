@@ -1,5 +1,44 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-28 — QA-03: launcher NF-11 dla VS Code
+
+Dodano PowerShell launcher i trzy konfiguracje F5 dla preflightu, pełnego syntetycznego
+NF-11 oraz raportu ostatniego runu NF-11. Launcher wyznacza root względem skryptu,
+wykorzystuje kanoniczne `validate_offline.py`, zachowuje unikalne evidence i kody
+wyjścia oraz blokuje start przy niegotowym środowisku lub zajętym singleton locku.
+`-Run -Smoke` mapuje tylko na DIAGNOSTIC i nie kwalifikuje fazy. Naprawiono
+przekazywanie programu raportera przez Windows PowerShell 5.1/PowerShell 7; raport
+waliduje manifest i pokazuje metryki zasobów, statusy faz oraz lokalizacje dowodów.
+
+Ctrl+C podczas uruchomionego testu zapisało stop request, częściowe próbki i manifest;
+runner poczekał na cleanup, zwolnił lock i zakończył `BLOCKED`. Raport ostatniego
+NF-11 poprawnie odczytał ten run. Konfiguracja launch.json jest automatycznie
+walidowana, ale rzeczywiste F5 nie wykonano; zachowanie po nagłym zamknięciu VS Code
+pozostaje niezweryfikowane. Dokumentacja nakazuje kontrolowane przerwanie i oczekiwanie
+na zakończenie zamiast zakładać kontynuację w tle.
+
+**Ocena wpływu:** przejrzano AGENTS.md i Instrukcja_ChatGPT.md; zmiana dotyczy
+wyłącznie offline narzędzia uruchamiającego istniejący harness, nie zmienia
+autoryzacji, architektury operacji, kryteriów NF-11 ani granic Siemens. Instrukcje,
+ADR i specyfikacje kwalifikacyjne pozostają bez zmian; runbook NF-11 oraz README
+skryptów opisują nowy sposób uruchamiania i ograniczenia terminala.
+
+**Walidacja:** CLI preflight PASS w PowerShell 7 i Windows PowerShell 5.1. DIAGNOSTIC
+smoke zakończył `BLOCKED` zgodnie z kontraktem; osobne kontrolowane Ctrl+C zachowało
+dowody i cleanup. Singleton lock blokował preflight kodem 2. Raport w obu wersjach
+PowerShell odczytał najnowszy NF-11 i zweryfikował manifest. Automatyczna walidacja
+launch.json sprawdziła typ, request, workspace script i argumenty wszystkich trzech
+konfiguracji; rzeczywiste F5 nie uruchomiono.
+
+QA FAST PASS: 13/13 testów `test_nf11_synthetic.py`, 5/5 `test_resilience_report.py`,
+parser PowerShell, mapowanie launch.json i DIAGNOSTIC smoke. QA STANDARD PASS:
+Host 363/363, Core 564/564, Python 80/80, generator kontraktów, 100 golden vectors,
+audit dokumentacji, format i diff; 9/9 kroków runnera PASS. `NF11Soak` było wykluczone.
+Późniejsza dodatkowa próba smoke została prawidłowo zablokowana przez istniejący
+`d11_preflight.ps1`, gdy `Get-Volume -DriveLetter C,X` nie zwrócił woluminu C:;
+wcześniejsza próba DIAGNOSTIC zakończyła się kompletnie, a launcher nie ominął blokady.
+Pełny NF-11 8 h i NF-11 LIVE 100 pozostają NOT_RUN.
+
 ## 2026-10-28 — B-10B-A1: syntetyczny harness NF-11
 
 Dodano opt-in, długotrwały scenariusz NF-11 Host/FakeWorker oraz krótką diagnostykę

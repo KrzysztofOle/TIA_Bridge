@@ -15,6 +15,20 @@ py -3 -B scripts/validate_offline.py --nf11-synthetic --nf11-mode FULL
 
 `DIAGNOSTIC` wykonuje krótką próbę plumbing i nigdy nie przyznaje `NF11_SYNTHETIC: PASS`. `FULL` uruchamia co najmniej 28 800 sekund rzeczywistego pomiaru i co najmniej 1000 zmierzonych operacji. Żadne z tych poleceń nie uruchamia Siemens. Profil preflightu domyślnie pozostaje `STRICT`; wybór profilu nie zmienia kryteriów NF-11.
 
+### VS Code / PowerShell
+
+Po otwarciu katalogu repozytorium wybierz w Run and Debug jedną z konfiguracji:
+
+- `QA: NF-11 — Preflight` — tylko kontrole gotowości.
+- `QA: NF-11 — 8h Synthetic Soak` — preflight i kanoniczny runner w trybie `FULL`.
+- `QA: NF-11 — Report` — raport ostatniego zakończonego przebiegu NF-11, niezależnie od innych uruchomień QA.
+
+F5 uruchamia wybraną konfigurację PowerShell bez argumentów wpisywanych ręcznie. CLI jest dostępne również jako `scripts/run-nf11.ps1 -Preflight`, `-Run` i `-Report`. Dla krótkiej, niekwalifikującej próby launchera: `scripts/run-nf11.ps1 -Run -Smoke`; ten parametr mapuje wyłącznie na kanoniczne `--nf11-mode DIAGNOSTIC`. Smoke ani zwykły QA FAST/STANDARD nie są dowodem NF-11.
+
+Skrypt wywołuje `scripts/validate_offline.py --nf11-synthetic --nf11-mode FULL` po swoim preflight. Runner ponownie wykonuje własny preflight i przejmuje istniejący singleton lock, aby zamknąć wyścig między sprawdzeniem a startem. Pełny log, konfiguracja/build metadata, próbki i raport pozostają w unikalnym `.tia-bridge/resilience/<run-id>/`; wcześniejsze runy nie są nadpisywane. `-Report` wybiera wyłącznie wpisy o scope `NF11_SYNTHETIC Host/FakeWorker only`, weryfikuje manifest całego runu i podaje statusy faz oraz ścieżki dowodów.
+
+PowerShell debugger F5 wykonuje skrypt wewnątrz PowerShell Integrated Console/sesji debugowania VS Code; launcher nie odłącza testu ani nie uruchamia usługi w tle. Przerwij przez Ctrl+C w konsoli i poczekaj na komunikat runnera o kontrolowanym zatrzymaniu oraz końcowy `BLOCKED`; runner zapisuje stop request, czeka na cleanup własnego Host/FakeWorker, zachowuje częściowe dowody i zwalnia własny lock. Nie zamykaj VS Code ani terminala podczas tego domykania. Zachowanie przy nagłym zamknięciu VS Code nie zostało zweryfikowane i testu nie wolno uznawać za kontynuujący się w tle; po awarii sprawdź `-Report` i lock. Nie usuwaj pozostałego locka bez sprawdzenia wskazanego Run ID i procesów.
+
 Standardowy `scripts/validate_offline.py` wyklucza kategorię `NF11Soak`, dlatego FAST/STANDARD nie uruchamiają ośmiogodzinnego przebiegu. Runner tworzy run ID, wykonuje istniejący read-only preflight, restore z pustego lokalnego feedu i build Release, a następnie uruchamia wyłącznie opt-in scenariusz. Lock `.tia-bridge/resilience/nf11-synthetic.active.json` zapobiega równoległemu uruchomieniu. Pozostawiony lock blokuje start i wymaga ręcznego sprawdzenia; nie jest automatycznie usuwany.
 
 ## Okno, obciążenie i próbki

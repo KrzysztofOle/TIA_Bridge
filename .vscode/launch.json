@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "QA: NF-11 — Preflight",
+      "type": "PowerShell",
+      "request": "launch",
+      "script": "${workspaceFolder}/scripts/run-nf11.ps1",
+      "args": ["-Preflight"],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "QA: NF-11 — 8h Synthetic Soak",
+      "type": "PowerShell",
+      "request": "launch",
+      "script": "${workspaceFolder}/scripts/run-nf11.ps1",
+      "args": ["-Run"],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "QA: NF-11 — Report",
+      "type": "PowerShell",
+      "request": "launch",
+      "script": "${workspaceFolder}/scripts/run-nf11.ps1",
+      "args": ["-Report"],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
