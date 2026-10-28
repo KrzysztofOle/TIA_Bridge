@@ -1,5 +1,15 @@
 # Testy offline B-01A–C, B-02A–D oraz Discovery B-03A — bez Siemens
 
+HMI-JS-01 offline tests are in `contracts/test_hmi_js_sync.py`; run with
+`py -3 -B -m unittest tests/contracts/test_hmi_js_sync.py -v`. They exercise byte-exact
+artifact copying, hashes, no-overwrite, safe Unicode names and observation-only
+change statuses. They do not load Siemens, prove project export, or count as Engineering.
+
+HMI-JS-01 offline tests are in `contracts/test_hmi_js_sync.py`; run with
+`py -3 -B -m unittest tests/contracts/test_hmi_js_sync.py -v`. They exercise byte-exact
+artifact copying, hashes, no-overwrite, safe Unicode names and observation-only
+change statuses. They do not load Siemens, prove project export, or count as Engineering.
+
 [E2-B1-I](../docs/B03A_E2_B1_IPC_HANDLE_INVESTIGATION.md) izoluje net48 baseline,
 rzeczywistą pętlę Program Workera z syntetyczną granicą vendor, IPC/heartbeat,
 normalny Host/FakeWorker oraz sampler/audit. Testowy

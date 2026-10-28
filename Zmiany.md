@@ -1,5 +1,27 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-28 — HMI-JS-01 offline JavaScript export MVP
+
+Praca rozpoczęta w osobnym worktree `feat/hmi-js-01` od HEAD `a509a65`.
+Lokalna V19 XML dokumentuje publiczny HmiScriptModule.Export oraz modułową
+kompozycję; dokładna inspekcja DLL metadata nie powiodła się w tym środowisku,
+więc `API_VERIFIED=UNKNOWN`. Nie potwierdza tekstu funkcji, pełnego inventory ani
+skryptów ekranów/zdarzeń. Nie wykonano attach ani eksportu
+`T05_RecipeSim_V19_Testowy`.
+
+Dodano offline packager natywnych plików otrzymanych przez operatora, SHA-256,
+manifest zawsze niepełny, bezpieczne ścieżki i porównanie obserwacji. Nie dodaje
+adaptera Worker, IPC, grantów ani importu. Testy syntetyczne weryfikują bajty,
+hash, Unicode, kolizje ścieżek/tożsamości, zakaz overwrite i klasyfikację.
+FAST: HMI 6/6, audit_quality PASS, diff-check PASS. STANDARD QA Runner:
+Host 409/409, Core 564/564, Python 75/75, Build/format/audit PASS; przebieg
+wykonał 4 przypadki HMI przed ostatnim rozszerzeniem, które następnie przeszło FAST.
+Engineering/Runtime NOT_RUN, NF-11 NOT_RUN. Ocena wpływu:
+AGENTS i Instrukcja_ChatGPT pozostają spójne; instrukcje, ADR 0003, kontrakty
+Core/HTTP/IPC i istniejące kwalifikacje pozostawiono bez zmian, ponieważ rozwiązanie
+jest narzędziem offline i nie zmienia architektury ani uprawnień. Szczegóły w
+`docs/HMI_JS_SYNC_MVP.md`. Live export BLOCKED/NOT_RUN bez nowego grantu.
+
 ## 2026-10-28 — B-03A/E2-B1-I: izolacja IPC, heartbeat i finalizacji net48
 
 Baza 2c5b142 na sprawdzonej gałęzi diagnostycznej, clean; origin/main=16916d4,

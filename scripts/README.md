@@ -1,5 +1,13 @@
 # Scripts
 
+## HMI JavaScript native artifact packager
+
+[`hmi_js_sync.py`](hmi_js_sync.py) uses Python 3.12 standard library only. It packages an explicit inventory JSON and supplied native files without Siemens access, parsing, normalization, overwrite, or import. `pack <inventory.json> <new-or-empty-destination>` writes opaque native artifacts and an always-incomplete manifest; `compare <previous-manifest> <current-manifest>` emits observation-only statuses. Review sensitive script content before staging it in Git. Format, evidence limits, and future live scope are documented in [HMI_JS_SYNC_MVP](../docs/HMI_JS_SYNC_MVP.md).
+
+## HMI JavaScript native artifact packager
+
+[`hmi_js_sync.py`](hmi_js_sync.py) uses Python 3.12 standard library only. It packages an explicit inventory JSON and supplied native files without Siemens access, parsing, normalization, overwrite, or import. `pack <inventory.json> <new-or-empty-destination>` writes opaque native artifacts and an always-incomplete manifest; `compare <previous-manifest> <current-manifest>` emits observation-only statuses. Review sensitive script content before staging it in Git. Format, evidence limits, and future live scope are documented in [HMI_JS_SYNC_MVP](../docs/HMI_JS_SYNC_MVP.md).
+
 Place repository maintenance and development scripts here. Scripts must not connect to or modify a TIA Portal project unless the command and its safeguards are explicit, documented, and separately reviewed.
 
 ## D-11 preparation — próbki i read-only preflight
