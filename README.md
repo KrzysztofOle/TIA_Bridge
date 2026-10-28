@@ -39,6 +39,11 @@ format ProjectKey (naprawiony offline), grant odwołany i cleanup potwierdzony.
 Cold Attach +37, Dispose −10, idle +28; ROOT_CAUSE_UNEXPLAINED. Diagnostyka
 nie przyznaje kwalifikacji B1; historyczny BLOCKED i Worker risk UNKNOWN zachowane.
 
+[E2-B1-I](docs/B03A_E2_B1_IPC_HANDLE_INVESTIGATION.md) izoluje infrastrukturę offline:
+wzrost odtworzono bez Siemens w senderze net48, a osobny GC zwolnił uchwyty
+zakończonych wątków i Eventów. Przyczyna PROBABLE, bez poprawki produkcyjnej;
+historyczny B1 pozostaje BLOCKED, Worker risk UNKNOWN. Nowe Engineering NOT_RUN.
+
 | Dokument | Zawartość |
 |---|---|
 | [01 — Audyt](docs/01_AUDIT_OLD_BRIDGE.md) | kod, historia, rejestr problemów i środki zaradcze |

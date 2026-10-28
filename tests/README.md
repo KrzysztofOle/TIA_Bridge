@@ -1,5 +1,14 @@
 # Testy offline B-01A–C, B-02A–D oraz Discovery B-03A — bez Siemens
 
+[E2-B1-I](../docs/B03A_E2_B1_IPC_HANDLE_INVESTIGATION.md) izoluje net48 baseline,
+rzeczywistą pętlę Program Workera z syntetyczną granicą vendor, IPC/heartbeat,
+normalny Host/FakeWorker oraz sampler/audit. Testowy
+[InfrastructureProbe](integration/TiaBridge.Worker.InfrastructureProbe/README.md)
+nie ma referencji do Siemens. Runner Python 3.12/std library:
+`py -3 -B scripts/investigate_worker_handles.py` po Build Release TiaBridge.slnx.
+Opcja --smoke jest wyłącznie kontrolą plumbing. Wyniki i niepowodzenia są zachowane
+poza Git, bez nowej kwalifikacji Engineering lub zmiany kryteriów B1.
+
 [Controlled Qualification Bootstrap B0](../docs/19_CONTROLLED_QUALIFICATION_BOOTSTRAP.md)
 jest częścią pełnego Host suite: SQLite/ACL/CLI, 20 syntetycznych cykli istniejącego
 schedulera, drift/revoke/expiry/dirty/replay, prawdziwy exit StorageProbe po rezerwacji

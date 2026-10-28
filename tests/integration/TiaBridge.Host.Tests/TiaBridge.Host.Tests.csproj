@@ -12,6 +12,7 @@
     <ProjectReference Include="../../../src/TiaBridge.Qualification/TiaBridge.Qualification.csproj" />
     <ProjectReference Include="../TiaBridge.StorageProbe/TiaBridge.StorageProbe.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../TiaBridge.Ipc.FrameworkProbe/TiaBridge.Ipc.FrameworkProbe.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
+    <ProjectReference Include="../TiaBridge.Worker.InfrastructureProbe/TiaBridge.Worker.InfrastructureProbe.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
     <ProjectReference Include="../../../src/TiaBridge.FakeWorker/TiaBridge.FakeWorker.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../../../src/TiaBridge.Cli/TiaBridge.Cli.csproj" ReferenceOutputAssembly="false" />
     <Content Include="../../../examples/contracts/v1/*.json" Link="Fixtures/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
@@ -21,5 +22,7 @@
     <Compile Include="../../../src/TiaBridge.Worker.V19/InventoryFamily.cs" Link="SyntheticInventory/InventoryFamily.cs" />
     <Compile Include="../../../src/TiaBridge.Worker.V19/VendorReader.cs" Link="SyntheticInventory/VendorReader.cs" />
     <Compile Include="../../../src/TiaBridge.Worker.V19/WorkerResourceTrace.cs" Link="SyntheticInventory/WorkerResourceTrace.cs" />
+    <Compile Include="../../diagnostics/PssHandleSnapshot.cs" Link="Diagnostics/PssHandleSnapshot.cs" />
+    <Compile Include="../TiaBridge.StorageProbe/InfrastructureInvestigation.cs" Link="Diagnostics/InfrastructureInvestigation.cs" />
   </ItemGroup>
 </Project>

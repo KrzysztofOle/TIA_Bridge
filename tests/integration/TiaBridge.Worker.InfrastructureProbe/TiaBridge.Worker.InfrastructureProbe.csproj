@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net48</TargetFramework><PlatformTarget>x64</PlatformTarget>
+    <LangVersion>latest</LangVersion><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors><RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <StartupObject>TiaBridge.Diagnostics.InfrastructureEntry</StartupObject>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../../src/TiaBridge.Worker.V19/Program.cs" Link="ActualWorkerProgram.cs" />
+    <Compile Include="../../../src/TiaBridge.Worker.V19/WorkerResourceTrace.cs" Link="WorkerResourceTrace.cs" />
+    <Compile Include="../../diagnostics/PssHandleSnapshot.cs" Link="PssHandleSnapshot.cs" />
+    <ProjectReference Include="../../../src/TiaBridge.Ipc/TiaBridge.Ipc.csproj" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

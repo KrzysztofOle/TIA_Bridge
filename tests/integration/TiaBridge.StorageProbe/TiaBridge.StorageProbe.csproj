@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../../src/TiaBridge.Host/TiaBridge.Host.csproj" />
+    <Compile Include="../../diagnostics/PssHandleSnapshot.cs" Link="Diagnostics/PssHandleSnapshot.cs" />
     <Content Include="../../../examples/contracts/v1/*.json" Link="Fixtures/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

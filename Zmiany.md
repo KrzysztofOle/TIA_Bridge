@@ -1,5 +1,50 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-28 — B-03A/E2-B1-I: izolacja IPC, heartbeat i finalizacji net48
+
+Baza 2c5b142 na sprawdzonej gałęzi diagnostycznej, clean; origin/main=16916d4,
+bez merge/rebase/cherry-pick. Nowy testowy InfrastructureProbe net48/x64 kompiluje
+dokładny Program Workera ze stubem granicy vendor, bez Siemens assembly reference.
+Nie zmienia produkcyjnego Main, heartbeat, IPC, schedulera, grantów lub limitów.
+Normalny Host/Fake jest osobnym punktem porównania. Runner Python/std library
+utrwala source/build hashes i wszystkie próbki poza Git.
+
+Seria b076e39c: A baseline, B trace on/off, C normalny Host/Fake, D heartbeat on/off,
+E sampler/audit; 30 s initial-idle, 20 slotów activity, 120 s post-idle, osobne procesy.
+Δ względem initial: A −3, B +13/+23, C −1, D +17/+2, E −8/−8. Kontrole e9131998
+oddzieliły timer/poll/send: post-idle −8/−13/+22. Osobny syntetyczny GC-worker
+373→338, Gen2 0→2, PSS 5 zakończonych Thread i 20 Event mniej; 30 s później 348.
+Kontrola e6f04a9e z inline pipe flush nadal +7, więc nie wprowadzono jej do produkcji.
+[Raport](docs/B03A_E2_B1_IPC_HANDLE_INVESTIGATION.md) rozdziela fakty, PROBABLE
+odroczonego cleanup net48 oraz brak dowodu stosów/pełnej przyczyny historycznego B1.
+
+Windows PSS tylko self, metadata bez object names/memory/thread context/drivera.
+Klasyfikacja PARTIAL; remote próba na własnym Fake w pierwszym smoke zakończyła
+kontroler 0xC0000005. Zachowano błąd, zweryfikowano i zakończono osierocony własny
+Fake-only Host; dziecko zwolniło się po utracie pipe. Bez dotknięcia TIA, eskalacji
+lub retry remote PSS. Kolejny smoke 8/8 po odmowie remote. Naprawiono nowe helpery:
+health URL, read-only SQLite Pooling=false/exclusive open oraz adnotację liczby
+slotów flush-control (spec/receipt zawsze 1). Pierwsze błędy zachowane, bez wyboru
+korzystnych próbek lub zmiany progów. Produkcyjny kod bez zmian.
+
+Ocena instrukcji sekcja po sekcji: AGENTS zakres/hierarchia/niezmienniki/autoryzacja/
+testy/dyscyplina/Git/dane oraz Instrukcja 1–10 cel/role/źródła/architektura/zadania/
+kontrola/recovery/decyzje/Git/styl. Oba dokumenty pozostawiono bez zmian: nowy
+testowy harness realizuje ich istniejące zasady offline i nie nadaje uprawnień.
+ADR 0001–0003, specyfikacje 03–08/14/16/18–21 i publiczne Core/HTTP/IPC/E1/B0
+bez zmian semantyki; nie dodano drugiego schedulera lub adaptera. Aktualizacje
+README/testów/raportu są opisem diagnostyki. B1/R/D i oryginalne dowody zachowane;
+ponownie zweryfikowano 1069 B1 i 243 B1-D pliki. Brak nowego live, E1 enrollment,
+B2 i NF-11. Build Release obu rozwiązań PASS, 0 warnings/errors; Core 564/564,
+końcowy Host 409/409, Python 71/71. Format verify obu rozwiązań, audit_quality
+i git diff --check PASS. Pierwsza pełna
+regresja: Core 564/564, Host 408/409; zachowano timeout wejścia syntetycznego
+ownera (5 s). Test ma teraz dedykowany LongRunning owner, asynchroniczny sygnał
+i await cleanup w finally; bez zmiany budżetu lub produkcji. Targeted 23/23,
+ponowna pełna regresja Host ma oddzielny run ddd7c2f0, bez nowego D-11/NF-11.
+Pełnego runnera nie uruchamiano: bezpośrednie pełne Core/Host/Python obejmują
+wymagane regresje IPC/resilience/E1/B0 dla tego zakresu zmian testowych.
+
 ## 2026-10-28 — B-03A/E2-B1-D: profil diagnostyczny i bezpieczny STOP po 1 cyklu
 
 Baza 28eb6ea na fix/e2-b1-worker-resource-investigation, clean; po fetch main=16916d4,

@@ -11,6 +11,7 @@
   <Folder Name="/tests/" />
   <Folder Name="/tests/integration/">
     <Project Path="tests/integration/TiaBridge.Ipc.FrameworkProbe/TiaBridge.Ipc.FrameworkProbe.csproj" />
+    <Project Path="tests/integration/TiaBridge.Worker.InfrastructureProbe/TiaBridge.Worker.InfrastructureProbe.csproj" />
   </Folder>
   <Project Path="src/TiaBridge.Cli/TiaBridge.Cli.csproj" />
   <Project Path="src/TiaBridge.Qualification/TiaBridge.Qualification.csproj" />

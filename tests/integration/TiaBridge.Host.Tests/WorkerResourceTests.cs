@@ -81,16 +81,19 @@ public sealed class WorkerResourceTests
     [Fact]
     public async Task Expired_observation_budget_does_not_abort_native_owner_or_dispose_before_return()
     {
-        using var entered = new ManualResetEventSlim(); using var release = new ManualResetEventSlim();
-        var scenario = new SyntheticVendorScenario { ReadSoftware = () => { entered.Set(); release.Wait(); } };
-        var running = Task.Run(() => Read(scenario));
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var release = new ManualResetEventSlim();
+        var scenario = new SyntheticVendorScenario { ReadSoftware = () => { entered.TrySetResult(); release.Wait(); } };
+        // Match the real dedicated native owner; do not queue a blocking owner on
+        // the same ThreadPool as the observer and concurrent resilience tests.
+        var running = Task.Factory.StartNew(() => Read(scenario), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         try
         {
-            Assert.True(entered.Wait(TimeSpan.FromSeconds(5)));
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
             Assert.NotSame(running, await Task.WhenAny(running, Task.Delay(20)));
             Assert.Equal(0, scenario.Disposes);
         }
-        finally { release.Set(); }
+        finally { release.Set(); await running.WaitAsync(TimeSpan.FromSeconds(5)); }
         Assert.True((await running).PortalAliveAfterDispose); Assert.Equal(1, scenario.Disposes);
     }
 
