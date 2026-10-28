@@ -1,0 +1,92 @@
+{
+  "schema_version": "1.0",
+  "id": "standard",
+  "description": "Release Core/Host/IPC/E1/B0/basic resilience, Python and quality audit",
+  "tags": [
+    "offline",
+    "standard"
+  ],
+  "mode": "offline",
+  "timeout_seconds": 1800,
+  "requires": [],
+  "on_failure": "continue",
+  "steps": [
+    {
+      "id": "restore",
+      "type": "dotnet_restore",
+      "task": "restore",
+      "timeout_seconds": 600,
+      "required": true
+    },
+    {
+      "id": "build",
+      "type": "dotnet_build",
+      "task": "build",
+      "timeout_seconds": 600,
+      "required": true
+    },
+    {
+      "id": "core",
+      "type": "dotnet_test",
+      "task": "core",
+      "timeout_seconds": 600,
+      "required": true
+    },
+    {
+      "id": "host",
+      "type": "dotnet_test",
+      "task": "host",
+      "timeout_seconds": 900,
+      "required": true
+    },
+    {
+      "id": "contracts",
+      "type": "python_test",
+      "task": "contracts",
+      "timeout_seconds": 600,
+      "required": true
+    },
+    {
+      "id": "runner-tests",
+      "type": "python_test",
+      "task": "runner-tests",
+      "timeout_seconds": 600,
+      "required": true
+    },
+    {
+      "id": "contracts-check",
+      "type": "python_script",
+      "task": "contracts-check",
+      "timeout_seconds": 600,
+      "required": true
+    },
+    {
+      "id": "vectors-check",
+      "type": "python_script",
+      "task": "vectors-check",
+      "timeout_seconds": 600,
+      "required": true
+    },
+    {
+      "id": "quality",
+      "type": "python_script",
+      "task": "quality",
+      "timeout_seconds": 600,
+      "required": true
+    },
+    {
+      "id": "format",
+      "type": "approved_command",
+      "task": "format",
+      "timeout_seconds": 600,
+      "required": true
+    },
+    {
+      "id": "diff",
+      "type": "approved_command",
+      "task": "diff",
+      "timeout_seconds": 600,
+      "required": true
+    }
+  ]
+}

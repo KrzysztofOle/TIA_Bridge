@@ -1,5 +1,9 @@
 # 08 — Etapowy backlog implementacyjny
 
+QA-01: [Universal QA Runner v1](QA_RUNNER.md), narzędzie offline niezależne od
+silnika Bridge. Konfiguracja projektu definiuje zatwierdzone zadania, scenariusze
+JSON wybierają ich kolejność. Nie realizuje nowej capability ani live wykonania.
+
 Plan przygotowany 2026-10-24/25. Obecne zadanie dostarcza projekt etapu 0 i kontrakty **projektowe**, nie gotowe etapy 1–11. Każdy pakiet poniżej jest kandydatem osobnego commita. Nie kopiujemy starego monolitu ani jego stanów sesji. `MVP` to minimalny zweryfikowany przepływ PLC; `REQUIRED` obejmuje pełny docelowy zakres; `OPTIONAL` to rozszerzenie po MVP.
 
 ## Kolejność dostarczenia

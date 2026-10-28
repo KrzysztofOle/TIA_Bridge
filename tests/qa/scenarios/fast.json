@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "id": "fast",
+  "description": "Quick offline Core/build/runner regression",
+  "tags": [
+    "offline",
+    "fast"
+  ],
+  "mode": "offline",
+  "timeout_seconds": 600,
+  "requires": [],
+  "on_failure": "stop",
+  "steps": [
+    {
+      "id": "restore",
+      "type": "dotnet_restore",
+      "task": "restore",
+      "timeout_seconds": 600,
+      "required": true
+    },
+    {
+      "id": "build",
+      "type": "dotnet_build",
+      "task": "build",
+      "timeout_seconds": 600,
+      "required": true
+    },
+    {
+      "id": "core",
+      "type": "dotnet_test",
+      "task": "core",
+      "timeout_seconds": 600,
+      "required": true
+    },
+    {
+      "id": "runner-tests",
+      "type": "python_test",
+      "task": "runner-tests",
+      "timeout_seconds": 600,
+      "required": true
+    }
+  ]
+}

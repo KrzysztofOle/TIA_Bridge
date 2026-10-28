@@ -1,5 +1,54 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-28 — QA-01: Universal QA Runner v1
+
+Osobna gałąź feat/qa-01-runner i worktree TIA_Bridge_QA01 od a509a65;
+oryginalna gałąź E2-B1-I i jej checkout pozostają bez zmian, bez merge/rebase.
+Nowy runner Python 3.12/std library, wrapper PowerShell, zatwierdzone zadania
+w qa.project.json, scenariusze JSON 1.0 i profile FAST/STANDARD/QUALIFICATION.
+Silnik rozdziela loader, adaptery, wykonanie, diagnostykę, ocenę i raporty.
+Wyniki są create-new per Run ID w ignorowanym .tia-bridge/qa-results, z JSONL,
+TRX/unittest, raportem Markdown/JSON, grupowaniem błędów, porównaniem przebiegów
+i pełnym manifestem SHA-256. Osobny przykład i test kopiowania do niezależnego
+katalogu nie wymagają Siemens ani źródeł TIA_Bridge.
+
+QUALIFICATION deleguje niezmieniony validate_offline.py z jawnie wybranym
+SHARED_WORKSTATION 1.0.0 lub STRICT. Weryfikuje i kopiuje oryginalny sealed bundle,
+raportuje oddzielnie wykonanie funkcjonalne, kwalifikację środowiska i performance;
+NF-11/full NF-08 NOT_RUN nie są promowane do PASS. Nie uruchamia live, grantu,
+Attach, enrollment lub nowej ścieżki IPC. Dokonano przeglądu logowania Host/Worker/
+CLI i narzędzi: kolektor koreluje istniejące identyfikatory z zatwierdzonych nowych
+logów; rozszerzenie sinku Host pozostaje osobnym zadaniem. IPC 1.1 bez zmian.
+Pierwszy preflight w świeżym worktree został BLOCKED przez brak pustych katalogów
+QA; dowód pozostaje zachowany. Jawny helper integracyjny tworzy wyłącznie dwa
+oczekiwane katalogi robocze z kontrolą containment/reparse i bez nadpisywania.
+Preflight, kanoniczny runner, progi i StatePath pozostają bez zmian.
+Końcowy przegląd QA dodał odrębny namespace snapshotów scenariuszy, exclusive
+copy i odrzucenie nazw urządzeń Windows/aliasów case. Chroni to snapshot
+konfiguracji przed kolizją z ID scenariusza; report sprawdza również binding
+Run ID manifestu. Są to zmiany samego runnera, z osobnymi regresjami.
+
+Ocena wpływu instrukcji, sekcja po sekcji:
+
+- AGENTS: zakres/stan, hierarchia, niezmienne granice, autoryzacja/testy,
+  dyscyplina, standard Git oraz dane nieufne — zachowane. QA-01 jest narzędziem
+  offline, zatwierdzone zadania pozostają rootem zaufania, a wyniki w .tia-bridge.
+  Instrukcja pozostaje bez zmian: obecne wymagania obejmują nowy runner i nie
+  wymagają dodawania nowego uprawnienia ani wyjątku.
+- Instrukcja_ChatGPT: sekcje 1–3 cel/role/źródła, 4 architektura, 5 zadania,
+  6 wyniki, 7 bezpieczeństwo/recovery, 8 spójność, 9 GitHub/dokumentacja,
+  10 styl — zgodne. Pozostawiono bez zmian, ponieważ status profilu nie jest
+  kwalifikacją/Engineering, a autonomia kodu nie nadaje praw TIA.
+- ADR 0001–0003 oraz dokumenty 03/04/05/06, 09/10, E1/B0 i 20/21:
+  brak zmiany architektury Bridge, synchronizacji, capability, grantów,
+  IPC/HTTP/DTO, StatePath lub progów. Nie wymagają zmian kontraktów ani nowego ADR.
+  Aktualizowane są README, instrukcje scripts/tests, strategia 07, backlog 08
+  i szczegółowa specyfikacja QA_RUNNER. Historyczne dowody pozostają bez zmian.
+
+Walidacja i identyfikatory nowych przebiegów: [raport QA-01](docs/QA01_VALIDATION.md).
+Wyniki lokalne są ignorowane, bez raw logów, DLL, projektów, sekretów lub danych
+klienta w commicie. ENGINEERING LIVE i RUNTIME: NOT_RUN.
+
 ## 2026-10-28 — B-03A/E2-B1-I: izolacja IPC, heartbeat i finalizacji net48
 
 Baza 2c5b142 na sprawdzonej gałęzi diagnostycznej, clean; origin/main=16916d4,

@@ -1,0 +1,195 @@
+{
+  "schema_version": "1.0",
+  "project_id": "TIA_Bridge",
+  "default_profile": "fast",
+  "scenario_root": "tests/qa/scenarios",
+  "results_root": ".tia-bridge/qa-results",
+  "runtimes": {
+    "python": {
+      "candidates": [
+        "${LOCALAPPDATA}/TIA_Bridge2/dev/qa-b01a-20261025/Scripts/python.exe",
+        "{python}"
+      ],
+      "modules": [
+        "jsonschema",
+        "openapi_spec_validator"
+      ]
+    },
+    "dotnet": {
+      "candidates": [
+        "dotnet"
+      ]
+    },
+    "git": {
+      "candidates": [
+        "git"
+      ]
+    }
+  },
+  "tasks": {
+    "restore": {
+      "type": "dotnet_restore",
+      "offline": true,
+      "runtime": "dotnet",
+      "timeout_seconds": 600,
+      "project": "TiaBridge.slnx"
+    },
+    "build": {
+      "type": "dotnet_build",
+      "offline": true,
+      "runtime": "dotnet",
+      "timeout_seconds": 600,
+      "project": "TiaBridge.slnx"
+    },
+    "core": {
+      "type": "dotnet_test",
+      "offline": true,
+      "runtime": "dotnet",
+      "timeout_seconds": 600,
+      "project": "tests/unit/TiaBridge.Core.Tests/TiaBridge.Core.Tests.csproj"
+    },
+    "host": {
+      "type": "dotnet_test",
+      "offline": true,
+      "runtime": "dotnet",
+      "timeout_seconds": 900,
+      "project": "tests/integration/TiaBridge.Host.Tests/TiaBridge.Host.Tests.csproj",
+      "filter": "FullyQualifiedName!~ResiliencePerformanceTests",
+      "collect": [
+        ".tia-bridge/b02c/**/*.json",
+        ".tia-bridge/resilience/*/*.json"
+      ]
+    },
+    "runner-tests": {
+      "type": "python_test",
+      "offline": true,
+      "runtime": "python",
+      "timeout_seconds": 600,
+      "path": "tests/qa"
+    },
+    "contracts": {
+      "type": "python_test",
+      "offline": true,
+      "runtime": "python",
+      "timeout_seconds": 600,
+      "path": "tests/contracts"
+    },
+    "quality": {
+      "type": "python_script",
+      "offline": true,
+      "runtime": "python",
+      "timeout_seconds": 600,
+      "path": "scripts/audit_quality.py"
+    },
+    "contracts-check": {
+      "type": "python_script",
+      "offline": true,
+      "runtime": "python",
+      "timeout_seconds": 600,
+      "path": "scripts/generate_contracts.py"
+    },
+    "vectors-check": {
+      "type": "python_script",
+      "offline": true,
+      "runtime": "python",
+      "timeout_seconds": 600,
+      "path": "scripts/generate_test_vectors.py"
+    },
+    "format": {
+      "type": "approved_command",
+      "offline": true,
+      "runtime": "dotnet",
+      "timeout_seconds": 600,
+      "args": [
+        "format",
+        "whitespace",
+        "TiaBridge.slnx",
+        "--no-restore",
+        "--verify-no-changes"
+      ]
+    },
+    "diff": {
+      "type": "approved_command",
+      "offline": true,
+      "runtime": "git",
+      "timeout_seconds": 600,
+      "args": [
+        "diff",
+        "--check"
+      ]
+    },
+    "canonical": {
+      "type": "python_script",
+      "offline": true,
+      "runtime": "python",
+      "timeout_seconds": 3600,
+      "path": "scripts/validate_offline.py",
+      "args": [
+        "--profile",
+        "{performance_profile}"
+      ],
+      "receipt": {
+        "pattern": ".tia-bridge/resilience/*/validation/run.json",
+        "status_field": "status",
+        "layers": {
+          "functional": "test_execution_status",
+          "environment_qualification": "qualification_status",
+          "performance": "performance_status"
+        },
+        "bundle": true,
+        "counts": {
+          "dotnet": "dotnet",
+          "python": "python"
+        },
+        "diagnostics": {
+          "path": "resilience.json",
+          "fields": [
+            "gate_blockers"
+          ]
+        }
+      }
+    },
+    "worker-handles": {
+      "type": "dotnet_test",
+      "offline": true,
+      "runtime": "dotnet",
+      "timeout_seconds": 600,
+      "project": "tests/integration/TiaBridge.Host.Tests/TiaBridge.Host.Tests.csproj",
+      "filter": "FullyQualifiedName~WorkerResourceTests|FullyQualifiedName~InfrastructureHandleTests"
+    },
+    "qualification-layout": {
+      "type": "python_script",
+      "offline": true,
+      "runtime": "python",
+      "timeout_seconds": 30,
+      "path": "scripts/qa_prepare_tia_bridge.py"
+    }
+  },
+  "profiles": {
+    "fast": [
+      "fast.json"
+    ],
+    "standard": [
+      "standard.json"
+    ],
+    "qualification": [
+      "qualification.json"
+    ]
+  },
+  "performance_profiles": {
+    "default": "SHARED_WORKSTATION",
+    "allowed": [
+      "SHARED_WORKSTATION",
+      "STRICT"
+    ],
+    "definition": "tests/resilience/performance-profiles.json"
+  },
+  "environment": {
+    "clear_prefixes": [
+      "TIA_BRIDGE_"
+    ],
+    "values": {
+      "TIA_BRIDGE_QUALIFICATION_PROFILE": "{performance_profile}"
+    }
+  }
+}

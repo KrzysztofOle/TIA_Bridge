@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "id": "worker-handles",
+  "description": "Synthetic Worker resource and IPC infrastructure regression; no Siemens",
+  "tags": [
+    "offline",
+    "worker-handles"
+  ],
+  "mode": "offline",
+  "timeout_seconds": 600,
+  "requires": [],
+  "on_failure": "stop",
+  "steps": [
+    {
+      "id": "restore",
+      "type": "dotnet_restore",
+      "task": "restore",
+      "timeout_seconds": 600,
+      "required": true
+    },
+    {
+      "id": "build",
+      "type": "dotnet_build",
+      "task": "build",
+      "timeout_seconds": 600,
+      "required": true
+    },
+    {
+      "id": "worker-handles",
+      "type": "dotnet_test",
+      "task": "worker-handles",
+      "timeout_seconds": 600,
+      "required": true
+    }
+  ]
+}

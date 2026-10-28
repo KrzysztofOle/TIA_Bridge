@@ -1,5 +1,11 @@
 # Testy offline B-01A–C, B-02A–D oraz Discovery B-03A — bez Siemens
 
+QA-01 dodaje [uniwersalny runner](../docs/QA_RUNNER.md): `.\qa.ps1 run fast`,
+`.\qa.ps1 run standard` i `.\qa.ps1 run qualification`. Ten ostatni deleguje
+niezmieniony runner kanoniczny z jawnym SHARED_WORKSTATION; STRICT pozostaje
+dostępny. Wynik formalnej kwalifikacji pozostaje osobny od wykonania testów.
+Testy runnera: `py -3 -B -m unittest discover -s tests/qa -v`.
+
 [E2-B1-I](../docs/B03A_E2_B1_IPC_HANDLE_INVESTIGATION.md) izoluje net48 baseline,
 rzeczywistą pętlę Program Workera z syntetyczną granicą vendor, IPC/heartbeat,
 normalny Host/FakeWorker oraz sampler/audit. Testowy

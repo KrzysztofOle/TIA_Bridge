@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "id": "portable-smoke",
+  "description": "Independent standard-library Python project",
+  "tags": ["offline", "example"],
+  "mode": "offline",
+  "timeout_seconds": 30,
+  "requires": ["python"],
+  "on_failure": "stop",
+  "steps": [
+    {"id": "unit", "type": "python_test", "task": "unit-tests", "timeout_seconds": 30, "required": true}
+  ]
+}

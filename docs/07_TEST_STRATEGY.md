@@ -1,5 +1,10 @@
 # 07 — Strategia testowania i dowody
 
+[QA-01](QA_RUNNER.md) automatyzuje zatwierdzone scenariusze offline przez konfigurację
+projektu. FAST/STANDARD nie kwalifikują środowiska; QUALIFICATION zachowuje
+kanoniczny preflight, RT/NF i oryginalne manifesty, z osobnym BLOCKED/NOT_RUN.
+Nie zmienia D-11, NF-11, autoryzacji live ani istniejących progów.
+
 Plan docelowy, nie wynik testów nowej aplikacji. Aktualnie wykonane kontrole opisuje [10](10_EVIDENCE_AND_QUALITY.md). Każdy wynik ma warstwy `OFFLINE`, `ENGINEERING`, `SIMULATION`, `RUNTIME` z `PASS|FAIL|ERROR|BLOCKED|NOT_RUN|SKIP`. SKIP/NOT_RUN nie agreguje się do pełnego PASS. SYNCED jest odrębnym statusem obiektu, a nie wynikiem testów działania.
 
 B-01C realizuje ograniczoną walidację offline istniejących kontraktów/Core: [macierz pokrycia i odroczone testy](../tests/COVERAGE.md), [jedno polecenie uruchomienia](../tests/README.md). 100 deterministycznych przypadków modeli nie stanowi testu planera B-04A, trwałości B-02 ani zachowania Siemens.

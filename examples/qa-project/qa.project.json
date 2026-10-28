@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "project_id": "portable-example",
+  "default_profile": "fast",
+  "scenario_root": "scenarios",
+  "results_root": ".qa-results",
+  "runtimes": {
+    "python": {"candidates": ["{python}"], "modules": []}
+  },
+  "tasks": {
+    "unit-tests": {
+      "type": "python_test",
+      "offline": true,
+      "runtime": "python",
+      "timeout_seconds": 30,
+      "path": "tests"
+    }
+  },
+  "profiles": {"fast": ["smoke.json"]}
+}

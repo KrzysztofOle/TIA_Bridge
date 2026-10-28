@@ -1,5 +1,10 @@
 # TIA_Bridge 2
 
+QA-01: `.\qa.ps1 run fast`, `.\qa.ps1 run standard`, `.\qa.ps1 run qualification`;
+raport: `.\qa.ps1 report --latest --failures-only`. [Instrukcja QA Runner](docs/QA_RUNNER.md)
+opisuje JSON v1, konfigurację przenośną i dowody. Profile są offline; wybór
+QUALIFICATION nie uprawnia do Siemens ani NF-11. Pełna kwalifikacja ma własny wynik.
+
 Projekt nowej aplikacji Windows do integracji CODEX z Siemens TIA Portal. Stan 2026-10-26: zaimplementowano offline B-01A–B-01C, B-02A–C oraz bounded Discovery/Inventory B-03A. Działają Core, Host/API/CLI, trwały silnik Fake, registry default-deny i eksperymentalny worker V19 read-only. Discovery nie tworzy trwałych ObjectId, nie eksportuje treści i nie nadaje uprawnień Engineering; szczegóły [raportu B-03A](docs/B03A_DISCOVERY_QUALIFICATION.md). Przyjęcie operacji do SQLite nie oznacza jej wykonania ani autoryzacji TIA.
 
 B-02D dostarczył [harness odporności i raport bramki](docs/16_RESILIENCE_RECOVERY.md), z pełnym przepływem na Fake, kontrolowanymi crash/restart i pomiarami. D-11 rozdziela pełną kwalifikację offline od ograniczonej bramki X-01 read-only na lokalnym NTFS: bramka D-11 ma PASS, historyczny NF-03 exFAT pozostaje FAIL, a pełna kwalifikacja aktualnego profilu NTFS ma FAIL z powodu NF-08 (idle CPU 1,0288% przy progu 1,0%). NF-11 ≥8 h: NOT_RUN/B-10B; produkcja i Runtime pozostają niezakwalifikowane. [Raport kwalifikacji](docs/X01_TIA_V19_QUALIFICATION.md) opisuje Engineering, a [raport ponownej kwalifikacji NTFS](tests/resilience/X01_NTFS_REQUALIFICATION_2026-10-26.md) zachowuje odrębne dowody. X-01 nie wykonuje mutacji Siemens.

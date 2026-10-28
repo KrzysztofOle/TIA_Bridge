@@ -1,5 +1,13 @@
 # Scripts
 
+## QA-01 — portable scenario runner
+
+[qa.py](qa.py) and [qa_runner](qa_runner/__init__.py) require Python 3.12+ standard
+library only. Root wrapper: `.\qa.ps1 run fast`; CLI/configuration, adapters,
+profiles, diagnostic JSONL and reports: [QA_RUNNER](../docs/QA_RUNNER.md).
+TIA_Bridge tasks reuse the separately prepared QA dependencies below; the runner
+does not install them. Runtime artifacts stay in ignored `.tia-bridge/qa-results/`.
+
 Place repository maintenance and development scripts here. Scripts must not connect to or modify a TIA Portal project unless the command and its safeguards are explicit, documented, and separately reviewed.
 
 ## D-11 preparation — próbki i read-only preflight

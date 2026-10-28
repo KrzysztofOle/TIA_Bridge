@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0",
+  "id": "qualification",
+  "description": "Canonical offline RT/NF and preflight; full qualification remains separate",
+  "tags": [
+    "offline",
+    "qualification"
+  ],
+  "mode": "offline",
+  "timeout_seconds": 3600,
+  "requires": [],
+  "on_failure": "stop",
+  "steps": [
+    {
+      "id": "layout",
+      "type": "python_script",
+      "task": "qualification-layout",
+      "timeout_seconds": 30,
+      "required": true
+    },
+    {
+      "id": "canonical",
+      "type": "python_script",
+      "task": "canonical",
+      "timeout_seconds": 3600,
+      "required": true
+    }
+  ]
+}
