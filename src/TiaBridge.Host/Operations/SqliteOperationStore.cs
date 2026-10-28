@@ -17,6 +17,7 @@ public sealed partial class SqliteOperationStore : IOperationRepository, IOutbox
     private readonly SqliteDatabase database;
     private readonly TimeProvider clock;
     public IArtifactStore Artifacts { get; }
+    internal string ArtifactRoot => database.Location.RootPath;
     public SqliteOperationStore(StorageLocation location, IStorageFaults? faults = null, TimeProvider? clock = null)
         : this(location, faults ?? NoStorageFaults.Instance, clock ?? TimeProvider.System, SchemaVersion) { }
     internal SqliteOperationStore(StorageLocation location, IStorageFaults faults, TimeProvider clock, int targetVersion)

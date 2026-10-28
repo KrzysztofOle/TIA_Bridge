@@ -77,6 +77,13 @@ Każda metoda ma registry default/max. Queue timeout, execution deadline, heartb
 
 ## CLI i korzystanie przez CODEX
 
+HMI-JS-02 wykorzystuje istniejące `project.export` z jednym exact scope tokenem
+z chronionego bindingu operatora i `include_native=true`. Klient nie wybiera ścieżki,
+modułu, buildu lub okna. Osobne E1 ENGINEERING_TEST i binding HMI są wymagane przed
+dispatch; B1/Discovery nie dziedziczą praw. Wynik odsyła do manifestu i niezmiennych
+native/source artefaktów, a blokada splitu zachowuje native i kończy FAILED/COVERAGE_GAP.
+To nie zmienia schematu HTTP ani semantyki SYNCED. [Szczegóły](HMI_JS_SYNC_MVP.md).
+
 Docelowa składnia; B-02C implementuje submit METHOD --request FILE oraz operation status/result/events/cancel/wait i health. Skróty --scope/--workspace pozostają przyszłym zakresem; aktualne przykłady są w dokumencie 15:
 
 ```text

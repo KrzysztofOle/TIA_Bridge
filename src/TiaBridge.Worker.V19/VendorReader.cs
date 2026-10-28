@@ -45,7 +45,7 @@ internal static class VendorReader
     // synthetic API types. No test seam is exposed by IPC, Host or the public API.
     [MethodImpl(MethodImplOptions.NoInlining)]
     internal static V19Observation Inspect(V19Target target, Action<string> audit,
-        Action<Process, V19Target> checkProcess, Action<string>? resourcePhase)
+        Action<Process, V19Target> checkProcess, Action<string>? resourcePhase, Action<Project>? readProject = null)
     {
         int owner = Thread.CurrentThread.ManagedThreadId;
         var callbacks = new ConcurrentQueue<int>();
@@ -117,6 +117,7 @@ internal static class VendorReader
                     }
                 }
                 resourcePhase?.Invoke("inventory.returned");
+                if (!modified) readProject?.Invoke(project);
                 audit("Project.IdentityAndIsModified.ReadAfter");
                 if (!SamePath(project.Path?.FullName, target.ProjectPath)) throw new InvalidOperationException("IDENTITY_MISMATCH");
                 observation = new V19Observation(target.ProjectKey, Guid.NewGuid(), target.Pid, target.StartTicks, project.Path!.FullName, project.Name,

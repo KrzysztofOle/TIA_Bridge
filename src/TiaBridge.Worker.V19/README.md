@@ -1,5 +1,11 @@
 # Siemens V19 — worker read-only X-01 / B-03A
 
+HMI-JS-02 dodaje typowany eksport jednego modułu Unified przez istniejący owner i
+cykl VendorReader. `HmiSoftware.Scripts` / `HmiScriptModule.Export(DirectoryInfo)`
+zweryfikowano w lokalnych DLL i buildzie. Wymagane są osobny binding HMI oraz E1
+ENGINEERING_TEST; B1/Discovery nie kwalifikują eksportu. Brak live Attach/eksportu
+w tym zadaniu. [Format, ograniczenia i procedura](../../docs/HMI_JS_SYNC_MVP.md).
+
 Worker jest osobnym procesem .NET Framework 4.8/x64. Host i Core nie referencjonują Siemens. X-01 zakwalifikował ograniczony zestaw Attach/read/Dispose; B-03A dodaje offline implementację typed DiscoveryV1 i walidację hierarchii. Nowe pola modelu nie rozszerzają historycznej kwalifikacji Engineering. Aktualny status i ograniczenia zawiera [raport B-03A](../../docs/B03A_DISCOVERY_QUALIFICATION.md).
 
 ## Budowanie i wymagania

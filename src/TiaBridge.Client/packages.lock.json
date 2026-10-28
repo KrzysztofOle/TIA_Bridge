@@ -2,6 +2,11 @@
   "version": 1,
   "dependencies": {
     "net10.0": {
+      "Esprima": {
+        "type": "Transitive",
+        "resolved": "3.0.6",
+        "contentHash": "TpN21y4Ze2oOFcZGwn5LHDcrht5ORvHXh4okmOfOdNptoVK5v1GBKyN/7BZk5vg+y/om6ytdWgZ1LtQpCQd7RA=="
+      },
       "Humanizer.Core": {
         "type": "Transitive",
         "resolved": "2.14.1",
@@ -32,6 +37,7 @@
       "tiabridge.core": {
         "type": "Project",
         "dependencies": {
+          "Esprima": "[3.0.6, )",
           "JsonSchema.Net": "[7.3.3, )"
         }
       }

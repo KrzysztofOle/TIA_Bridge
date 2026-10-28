@@ -1,5 +1,12 @@
 # Testy offline B-01A–C, B-02A–D oraz Discovery B-03A — bez Siemens
 
+HMI-JS-02: `HmiScriptTests` (Core), `HmiScriptExportTests` (Host z typowanymi API
+doubles, bez vendor DLL) oraz `contracts/test_hmi_js_export.py` (niezależny schemat
+i rzeczywisty offline CLI). Wymagają Release build przed Python discovery. Sprawdzają
+10 pełnych syntetycznych plików, bajty/hash/ranges/nazwy, powtórzenie, pojedynczą
+zmianę, niekompletność, kolizje, native sidecars, owner/Dispose i bramki E1.
+Dokładny zakres, live NOT_RUN i brak importu: [HMI-JS-02](../docs/HMI_JS_SYNC_MVP.md).
+
 HMI-JS-01 offline tests are in `contracts/test_hmi_js_sync.py`; run with
 `py -3 -B -m unittest tests/contracts/test_hmi_js_sync.py -v`. They exercise byte-exact
 artifact copying, hashes, no-overwrite, safe Unicode names and observation-only

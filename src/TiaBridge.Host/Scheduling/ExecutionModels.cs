@@ -11,6 +11,7 @@ public sealed record AttemptBinding(OperationId OperationId, int Attempt, Guid W
 public sealed record ExecutionSpec(string PortalKey, string Capability, bool QualifiedEffectFreeRead, ArtifactDescriptor? SuccessReport, FakeScenario Scenario = FakeScenario.Success, int DelayMs = 0, ErrorCode FailureCode = ErrorCode.TIA_UNAVAILABLE, V19Target? V19Target = null, CapabilityBinding? CapabilityBinding = null, string? QualificationDecisionHash = null)
 {
     internal Qualification.BootstrapPermit? Bootstrap { get; init; }
+    internal V19HmiExportBinding? HmiExport { get; init; }
 }
 /// <summary>Explicit synthetic qualification. This does not grant any Siemens capability or session permission.</summary>
 public interface IExecutionProfile

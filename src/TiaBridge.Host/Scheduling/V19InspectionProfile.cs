@@ -30,7 +30,9 @@ internal sealed class V19InspectionProfile : IExecutionProfile
     private readonly Func<string?> workerBuild;
 
     internal V19InspectionProfile(HostConfiguration configuration)
-        : this(configuration, LoadRegistry(configuration.StatePath), new QualificationEvidenceProvider(configuration).Assess, GetInstalledTiaBuild,
+        : this(configuration, LoadRegistry(configuration.StatePath), requirement => requirement.Operation == OperationMethod.ProjectExport
+            ? new QualificationEvidenceProvider(configuration).AssessEngineering(requirement)
+            : new QualificationEvidenceProvider(configuration).Assess(requirement), GetInstalledTiaBuild,
         () => GetWorkerBuild(configuration.V19WorkerExe))
     { }
 
@@ -102,6 +104,7 @@ internal sealed class V19InspectionProfile : IExecutionProfile
     }
     public ExecutionSpec? Resolve(StoredOperation operation)
     {
+        if (operation.Report.Method == OperationMethod.ProjectExport) return ResolveHmiExport(operation);
         if (operation.Report.Method != OperationMethod.ProjectInspect) return null;
         var request = ContractJson.ReadRequest(operation.RequestJson);
         // X-01 qualifies live bounded all_supported only. Filtered inventory and
@@ -135,6 +138,46 @@ internal sealed class V19InspectionProfile : IExecutionProfile
             V19Target: target, CapabilityBinding: binding,
             QualificationDecisionHash: Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join("\n", decisionHashes.Order(StringComparer.Ordinal))))));
     }
+
+    internal static IReadOnlyList<string> HmiExportReadScope => [.. DiscoveryReadScope,
+        "HmiSoftware.Scripts", "HmiScriptModuleComposition.GetEnumerator", "HmiScriptModule.Name", "HmiScriptModule.Export(DirectoryInfo)"];
+
+    private ExecutionSpec? ResolveHmiExport(StoredOperation operation)
+    {
+        var grant = configuration.V19?.HmiExport;
+        if (configuration.QualificationBootstrap is not null || grant is null || !V19HmiExportPolicy.Valid(grant, DateTimeOffset.UtcNow)) return null;
+        var request = ContractJson.ReadRequest(operation.RequestJson);
+        if (request.Parameters is not ProjectExportParameters p || p.IncludeNative == false || p.ObservationId is not null
+            || p.Scope.Length != 1 || p.Scope[0] != grant.ScopeToken || request.Identity.Project?.ToString() != grant.ProjectKey) return null;
+        var target = configuration.V19!.Targets.SingleOrDefault(t => t.ProjectKey == grant.ProjectKey);
+        string tia = tiaBuild() ?? "unknown", worker = workerBuild() ?? "unknown";
+        if (target is null || tia != grant.TiaBuild || worker != grant.WorkerBuild) return null;
+        var key = new CapabilityKeyV2(OperationScope.PROJECT, tia, AdapterId, worker, null,
+            "hmi-script-module", V19HmiExportPolicy.Profile, null, OperationMethod.ProjectExport);
+        var query = new CapabilityQueryV2(key, registry.RegistryVersion, "1.0", V19HmiExportPolicy.Profile,
+            HmiExportReadScope, [], [CoverageDimension.CONTENT]);
+        var ids = registry.RequiredQualificationsFor(query);
+        if (ids.Count == 0) { _ = RecordDecision(operation, "", "HMI_EXPORT_NOT_QUALIFIED", ""); return null; }
+        var verified = new HashSet<string>(StringComparer.Ordinal);
+        var hashes = new List<string>();
+        foreach (string id in ids)
+        {
+            var decision = assessEvidence(new(id, tia, AdapterId, worker, worker, OperationMethod.ProjectExport,
+                OperationScope.PROJECT, null, "hmi-script-module", V19HmiExportPolicy.Profile, HmiExportReadScope,
+                [CoverageDimension.CONTENT], target.ProjectKey, HmiExportScopeClass(grant)));
+            if (!RecordDecision(operation, id, decision.Reason, decision.SnapshotHash) || !decision.Available) return null;
+            verified.Add(id); hashes.Add(decision.SnapshotHash);
+        }
+        if (!registry.Assess(query, verified).CapabilityConfirmed) return null;
+        hashes.Add(JsonSerializer.Serialize(grant, Protocol.Json));
+        return new ExecutionSpec("v19:" + target.Pid + ":" + target.StartTicks, V19HmiExportPolicy.Profile, false, null,
+            V19Target: target, CapabilityBinding: new(OperationScope.PROJECT, registry.RegistryVersion, registry.CapabilitySetHash, V19HmiExportPolicy.Profile),
+            QualificationDecisionHash: Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join("\n", hashes)))))
+        { HmiExport = grant };
+    }
+
+    internal static string HmiExportScopeClass(V19HmiExportBinding binding) => "hmi-scope:" + Convert.ToHexStringLower(
+        SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new { binding.ScopeToken, binding.DevicePath, binding.ModuleName }, Protocol.Json)));
 
     internal bool Revalidate(StoredOperation operation, ExecutionSpec admitted)
     {

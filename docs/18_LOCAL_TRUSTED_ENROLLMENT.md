@@ -1,5 +1,11 @@
 # E1 Local Trusted v1 — lokalna procedura operatora
 
+HMI-JS-02 dodaje osobną eligibility dla ENGINEERING_TEST/PASS `ProjectExport` modułu
+Unified: exact profil/read scope/build/projekt oraz `hmi-scope` digest z
+[procedury HMI](HMI_JS_SYNC_MVP.md). Discovery/OFFLINE_TEST/B1 nie kwalifikują eksportu.
+Ręczne inspect/approve/enroll/revoke, podpisy i ACL pozostają obowiązkowe; nie wykonano
+tu rzeczywistego enrollment ani nowego bootstrapu kwalifikacyjnego HMI.
+
 Zakres: przygotowanie deploymentu i lokalna obsługa zaufanych dowodów. [Architektura i granice](17_TRUSTED_QUALIFICATION_EVIDENCE.md). Instrukcja nie jest zgodą na utworzenie klucza produkcyjnego, ustawienie ACL, rejestrację rzeczywistego Engineering lub uruchomienie Siemens. CODEX nie wykonał tych czynności. W bieżącej implementacji wszystkie dowody testowe są syntetyczne.
 
 ## Tożsamość i ACL

@@ -12,6 +12,7 @@ using var interrupt = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) => { e.Cancel = true; interrupt.Cancel(); };
 try
 {
+    if (args.Length > 0 && args[0] == "hmi-js") return HmiScriptCommand.Run(args);
     var positional = new List<string>(); var options = new Dictionary<string, string?>(StringComparer.Ordinal);
     for (int i = 0; i < args.Length; i++)
     {

@@ -32,7 +32,18 @@ This is one store, not a parallel registry. Names are safe ASCII leaves, Windows
 
 The existing envelope has signer ID, base64 exact payload bytes and an ECDSA P-256/SHA-256 signature over those bytes. Payload fields bind evidence ID/revision, provenance/kind, exact TIA/adapter/Worker builds, operation/scope, object family/kind, Discovery profile/read scope/coverage, result/run ID, exact ProjectKey and artifact names/SHA-256. Host verifies signature, activation's envelope/package hashes, exact payload identity, all artifact bytes and the existing Core exact-match policy. Revision selection never falls back to an older qualification when the latest enrollment is revoked.
 
-Local Trusted v1 enrollment is bounded to PASS, registered exact ProjectKey, PROJECT `ProjectInspect`, the current DiscoveryV1 profile/read scope, exact adapter/Worker build and required STRUCTURE coverage. READ does not qualify WRITE/IMPORT/EXPORT, DEVICE or OBJECT operations. Missing fields, mismatched builds/project/scope, missing store/history, inaccessible files, unsafe ACLs, invalid signatures or hashes all deny.
+Local Trusted v1 Discovery enrollment is bounded to PASS, registered exact ProjectKey, PROJECT `ProjectInspect`, the current DiscoveryV1 profile/read scope, exact adapter/Worker build and required STRUCTURE coverage. Discovery READ does not qualify WRITE/IMPORT/EXPORT, DEVICE or OBJECT operations. Missing fields, mismatched builds/project/scope, missing store/history, inaccessible files, unsafe ACLs, invalid signatures or hashes all deny.
+
+HMI-JS-02 adds a separate, explicit read-only export eligibility branch: PROJECT
+`ProjectExport`, kind `hmi-script-module`, profile `v19.hmi.script-module.export.v1`,
+exact bounded getter/export scope, CONTENT COMPLETE, ENGINEERING_TEST/PASS, registered
+project and `project_class=hmi-scope:<64 lowercase hex>` as defined in
+[the HMI specification](HMI_JS_SYNC_MVP.md). Existing approval/signature/ACL/lifecycle/
+revocation/artifact checks apply unchanged. OFFLINE_TEST, Discovery/B1, other export
+families and all mutation operations remain ineligible. Host additionally matches
+the exact module scope digest and a new operator binding/window/build before dispatch;
+it never enrolls evidence automatically. This is an offline implementation extension,
+not a real HMI qualification or an authorization to run the first experiment.
 
 ## Approval, publication and revocation
 

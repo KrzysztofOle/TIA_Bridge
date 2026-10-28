@@ -39,6 +39,10 @@ internal sealed class QualificationEvidenceProvider
         return keys;
     }
     internal QualificationEvidenceDecision Assess(QualificationRequirement requirement)
+        => Assess(requirement, false);
+    internal QualificationEvidenceDecision AssessEngineering(QualificationRequirement requirement)
+        => Assess(requirement, true);
+    private QualificationEvidenceDecision Assess(QualificationRequirement requirement, bool engineeringRequired)
     {
         if (anchors.Count == 0) return QualificationEvidenceDecision.Denied("NO_TRUSTED_SIGNERS");
         if (!OperatingSystem.IsWindows()) return QualificationEvidenceDecision.Denied("WINDOWS_REQUIRED");
@@ -49,6 +53,8 @@ internal sealed class QualificationEvidenceProvider
             var active = store.Current(requirement.EvidenceId);
             if (active is null) return QualificationEvidenceDecision.Denied("EVIDENCE_NOT_ACTIVE");
             var selected = store.Verify(requirement.EvidenceId, active.Revision, anchors);
+            if (engineeringRequired && selected.Evidence.Kind != QualificationEvidenceKind.ENGINEERING_TEST)
+                return QualificationEvidenceDecision.Denied("ENGINEERING_EVIDENCE_REQUIRED");
             var match = QualificationEvidencePolicy.Assess(requirement, [selected.Evidence]);
             if (!match.Qualified) return QualificationEvidenceDecision.Denied(match.Denial.ToString());
             string snapshot = LocalTrustStore.Sha(Encoding.UTF8.GetBytes(requirement.EvidenceId + "\n" + selected.EnvelopeSha256));

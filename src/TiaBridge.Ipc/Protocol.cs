@@ -22,7 +22,27 @@ public sealed record StopBody(bool SyntheticShutdown);
 public sealed record StartedBody(int Attempt);
 public sealed record ProgressBody(string Phase);
 public sealed record V19Target(string ProjectKey, int Pid, long StartTicks, string ProjectPath);
-public sealed record V19Settings(V19Target[] Targets, string ProjectRoot, string Apartment = "STA");
+public sealed record V19HmiExportBinding(string AuthorizationId, string ProjectKey, string ScopeToken, string[] DevicePath,
+    string ModuleName, string TiaBuild, string WorkerBuild, DateTimeOffset NotBeforeUtc, DateTimeOffset ExpiresUtc, string[] ExpectedFunctions);
+public sealed record V19Settings(V19Target[] Targets, string ProjectRoot, string Apartment = "STA", V19HmiExportBinding? HmiExport = null);
+public sealed record V19HmiNativeFile(string Name, string Sha256, long Bytes);
+public sealed record V19HmiExportObservation(V19Observation Project, string AuthorizationId, string ScopeToken, string ModuleName,
+    string IdentityState, V19HmiNativeFile[] Files);
+public static class V19HmiExportPolicy
+{
+    public const string Profile = "v19.hmi.script-module.export.v1";
+    public static bool Valid(V19HmiExportBinding b, DateTimeOffset now) => Guid.TryParseExact(b.AuthorizationId, "D", out var id) && id != Guid.Empty
+        && Guid.TryParseExact(b.ProjectKey, "D", out var key) && key != Guid.Empty
+        && !string.IsNullOrWhiteSpace(b.ScopeToken) && b.ScopeToken.Length <= 128
+        && b.DevicePath is { Length: >= 2 and <= 10 } && b.DevicePath.All(s => !string.IsNullOrWhiteSpace(s) && s.Length <= 512)
+        && !string.IsNullOrWhiteSpace(b.ModuleName) && b.ModuleName.Length <= 160
+        && !string.IsNullOrWhiteSpace(b.TiaBuild) && b.TiaBuild.Length <= 128
+        && b.WorkerBuild is not null && Regex.IsMatch(b.WorkerBuild, "\\A1\\.0\\+[0-9a-f]{64}\\z", RegexOptions.CultureInvariant)
+        && b.NotBeforeUtc <= now && now < b.ExpiresUtc && b.ExpiresUtc - b.NotBeforeUtc <= TimeSpan.FromMinutes(30)
+        && b.ExpectedFunctions is { Length: >= 1 and <= 128 } && b.ExpectedFunctions.All(s => !string.IsNullOrWhiteSpace(s) && s.Length <= 160)
+        && b.ExpectedFunctions.Distinct(StringComparer.OrdinalIgnoreCase).Count() == b.ExpectedFunctions.Length;
+    public static string DirectoryName(Guid operationId) => "hmi-export-" + operationId.ToString("N");
+}
 public sealed record V19Bootstrap(Bootstrap Transport, V19Settings Settings);
 public sealed record InspectDispatch(ArtifactPointer Request, int Attempt, string InputHash, string? PlanHash);
 // Keep the IPC 1.1 observation field set stable. DiscoveryV1 metadata is encoded

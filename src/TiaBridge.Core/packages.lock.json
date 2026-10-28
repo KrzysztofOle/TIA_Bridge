@@ -2,6 +2,12 @@
   "version": 1,
   "dependencies": {
     "net10.0": {
+      "Esprima": {
+        "type": "Direct",
+        "requested": "[3.0.6, )",
+        "resolved": "3.0.6",
+        "contentHash": "TpN21y4Ze2oOFcZGwn5LHDcrht5ORvHXh4okmOfOdNptoVK5v1GBKyN/7BZk5vg+y/om6ytdWgZ1LtQpCQd7RA=="
+      },
       "JsonSchema.Net": {
         "type": "Direct",
         "requested": "[7.3.3, )",

@@ -89,6 +89,14 @@ py -3 scripts/generate_contracts.py --write
 
 ## IPC B-02B
 
+HMI-JS-02 dodaje odrębne schematy [manifestu źródeł](hmi-js/manifest.schema.json)
+i [bindingu operatora](hmi-js/export-binding.schema.json), z
+[syntetycznymi przykładami](../examples/hmi-js/export-binding.synthetic.json).
+To kontrakty Bridge, nie format Siemens. HTTP v1/project.export i envelope IPC 1.1
+pozostają bez zmian; opcjonalny startup binding i opaque receipt używają jawnego
+profilu `v19.hmi.script-module.export.v1`. Manifest deklaruje brak stabilnego ObjectId
+i niezakwalifikowany status Engineering. [Procedura](../docs/HMI_JS_SYNC_MVP.md).
+
 [Odrębny schemat IPC 1.0](ipc/v1/message.schema.json) i [opis transportu](../docs/14_SCHEDULER_IPC.md) definiują dziewięć typów komunikatów, epoch/fence/sequence i bounded artifact references. To kontrakt Host ↔ Fake Worker, bez zmian semantyki 19 operacji API. Shared fixtures są walidowane przez .NET i JSON Schema; hash/HMAC, limity bajtów i stan połączenia są dodatkowo sprawdzane w kodzie.
 
 B-02C: wymagane nullable ComponentHealth.age_ms zachowuje JSON null podczas typowanej serializacji. Poprawiono generator/DTO i dodano regresję, bez zmiany schematu lub semantyki 1.0. OpenAPI opisuje aktualny serwis oraz typowany status w odpowiedzi GET result/202; nie dodano endpointów/metod/grantów. Acceptance pozostaje zamkniętym dotychczasowym DTO, a X-TiaBridge-Contract-Version potwierdza wersję HTTP.

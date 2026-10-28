@@ -7,6 +7,11 @@ using TiaBridge.Ipc;
 namespace Siemens.Engineering { internal sealed class EngineeringSecurityException : Exception { } }
 namespace TiaBridge.Worker.V19
 {
+    internal static class HmiScriptExporter
+    {
+        internal static V19HmiExportObservation Export(V19Target target, V19HmiExportBinding binding, string root,
+            Guid id, Action<string> audit, Action<string>? phase) => throw new InvalidOperationException("OFFLINE_EXPORT_FORBIDDEN");
+    }
     internal static class VendorResolver
     {
         internal static string Validate(string _, string __) => throw new InvalidOperationException("OFFLINE_LOADER_FORBIDDEN");

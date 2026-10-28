@@ -307,12 +307,20 @@ public sealed class OperationScheduler : IAsyncDisposable
                     store.StopBootstrap(bootstrap.AuthorizationId, observed.IsModifiedBefore ? "DIRTY_PROJECT_BEFORE_READ" : "PROJECT_MODIFIED_DURING_READ");
                 if (observed.ApiBuild != authorization.TiaBuild || observed.ProjectName != authorization.ProjectName) throw new ProtocolException();
             }
-            var template = current.Spec.V19Target is { } target
+            var template = current.Spec.HmiExport is { } hmiExport
+                ? HmiScriptExportProjection.Create(store, previousReport, current.Spec.V19Target!, hmiExport, reportJson)
+                : current.Spec.V19Target is { } target
                 ? V19InspectionProjection.Create(store, previousReport, target, reportJson,
                     worker is IV19WorkerConnection native ? native.Build : throw new ProtocolException(),
                     current.Spec.CapabilityBinding ?? throw new ProtocolException(),
                     current.WorkerResourcesBefore ?? throw new ProtocolException(), native.SampleResources())
                 : ContractJson.ReadReport(Encoding.UTF8.GetBytes(reportJson));
+            if (current.Spec.HmiExport is not null && template.State == OperationState.FAILED)
+            {
+                store.Complete(Owner, binding, template);
+                active = null;
+                return;
+            }
             if (template.Method != previousReport.Method || template.State != OperationState.SUCCEEDED) throw new ProtocolException();
             store.Complete(Owner, binding, previousReport with { State = OperationState.SUCCEEDED, Outcome = OperationOutcome.CONFIRMED, Phase = current.Spec.Bootstrap is null ? "COMPLETED" : "QUALIFICATION_ONLY_COMPLETED", Result = template.Result, ArtifactRefs = template.ArtifactRefs, SessionEpoch = template.SessionEpoch ?? previousReport.SessionEpoch, CompletedAt = clock.GetUtcNow(), PollAfterMs = 0 });
             var breaker = LoadBreaker(current.Spec); breaker.Success(); PersistBreaker(current.Spec, breaker);

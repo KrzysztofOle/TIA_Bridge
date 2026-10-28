@@ -11,6 +11,7 @@ namespace TiaBridge.Host.Tests
         internal string? FailAt { get; set; }
         internal bool Dirty { get; set; }
         internal Action? ReadSoftware { get; set; }
+        internal object? Software { get; set; }
         internal int Disposes, ActiveEnumerators;
         internal List<WeakReference> References { get; } = [];
         internal void Check(string point) { if (FailAt == point) throw new InvalidOperationException("synthetic failure"); }
@@ -89,7 +90,23 @@ namespace Siemens.Engineering.HW
 }
 namespace Siemens.Engineering.HW.Features
 {
-    internal sealed class SoftwareContainer { public object Software => new object(); }
+    internal sealed class SoftwareContainer { public object Software => TiaBridge.Host.Tests.SyntheticVendorScenario.Current.Value?.Software ?? new object(); }
+}
+namespace Siemens.Engineering.HmiUnified
+{
+    internal sealed class HmiSoftware
+    {
+        public Scripts.HmiScriptModuleComposition Scripts { get; } = new();
+    }
+}
+namespace Siemens.Engineering.HmiUnified.Scripts
+{
+    internal sealed class HmiScriptModule(string name, Func<DirectoryInfo, IEnumerable<FileInfo>> export)
+    {
+        public string Name => name;
+        public IEnumerable<FileInfo> Export(DirectoryInfo directory) => export(directory);
+    }
+    internal sealed class HmiScriptModuleComposition : List<HmiScriptModule> { }
 }
 namespace TiaBridge.Worker.V19
 {
@@ -97,5 +114,6 @@ namespace TiaBridge.Worker.V19
     {
         internal static readonly string Root = System.IO.Path.GetTempPath();
         internal static AssemblyName Validate(string path, string name) => new(name);
+        internal static string Hash(string path) => Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path)));
     }
 }

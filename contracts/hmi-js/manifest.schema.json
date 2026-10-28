@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tia-bridge2:hmi-js:functions:1.0",
+  "title": "Bridge offline source projection, not Siemens native schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile",
+    "module_name",
+    "scope_binding",
+    "identity_state",
+    "object_id",
+    "source_status",
+    "split_status",
+    "reason",
+    "native_artifacts",
+    "parts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "tia-bridge-hmi-js-functions/1.0"
+    },
+    "profile": {
+      "const": "hmi.es-module-prefix.v1"
+    },
+    "module_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[^<>:\"/\\\\|?*\\x00-\\x1f]+$"
+    },
+    "scope_binding": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "identity_state": {
+      "const": "UNAVAILABLE"
+    },
+    "object_id": {
+      "type": "null"
+    },
+    "source_status": {
+      "const": "NOT_ENGINEERING_VERIFIED"
+    },
+    "split_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED"
+      ]
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "native_artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "path",
+          "kind",
+          "comparison_key",
+          "sha256",
+          "bytes",
+          "source_offset",
+          "identity_state"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[^<>:\"/\\\\|?*\\x00-\\x1f]+$"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "kind": {
+            "enum": [
+              "NATIVE",
+              "GLOBAL_PREFIX",
+              "EXPORTED_FUNCTION"
+            ]
+          },
+          "comparison_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 16777216
+          },
+          "source_offset": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "identity_state": {
+            "const": "SOURCE_LOCAL_NOT_SIEMENS_ID"
+          }
+        }
+      }
+    },
+    "parts": {
+      "type": "array",
+      "maxItems": 129,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "path",
+          "kind",
+          "comparison_key",
+          "sha256",
+          "bytes",
+          "source_offset",
+          "identity_state"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[^<>:\"/\\\\|?*\\x00-\\x1f]+$"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "kind": {
+            "enum": [
+              "NATIVE",
+              "GLOBAL_PREFIX",
+              "EXPORTED_FUNCTION"
+            ]
+          },
+          "comparison_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 16777216
+          },
+          "source_offset": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "identity_state": {
+            "const": "SOURCE_LOCAL_NOT_SIEMENS_ID"
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "split_status": {
+            "const": "BLOCKED"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "parts": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "split_status": {
+            "const": "PASS"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "parts": {
+            "minItems": 2
+          }
+        }
+      }
+    }
+  ]
+}

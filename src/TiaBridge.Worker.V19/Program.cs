@@ -117,16 +117,29 @@ internal static class Program
                     {
                         byte[] request = Protocol.ReadArtifact(bootstrap.ArtifactRoot, command.Request, 1024 * 1024); Protocol.CheckJson(request);
                         using var doc = JsonDocument.Parse(request);
-                        if (doc.RootElement.GetProperty("schema_version").GetString() != "1.0" || doc.RootElement.GetProperty("method").GetString() != "project.inspect") throw new InvalidOperationException("UNSUPPORTED");
+                        string? method = doc.RootElement.GetProperty("method").GetString();
+                        if (doc.RootElement.GetProperty("schema_version").GetString() != "1.0" || method is not ("project.inspect" or "project.export")) throw new InvalidOperationException("UNSUPPORTED");
                         string key = doc.RootElement.GetProperty("project_key").GetString()!;
                         var target = setup.Settings.Targets.SingleOrDefault(t => Guid.Parse(t.ProjectKey) == Guid.Parse(key)) ?? throw new InvalidOperationException("IDENTITY_MISMATCH");
+                        var exportBinding = setup.Settings.HmiExport;
+                        if (method == "project.export")
+                        {
+                            var parameters = doc.RootElement.GetProperty("params");
+                            if (exportBinding is null || !V19HmiExportPolicy.Valid(exportBinding, DateTimeOffset.UtcNow)
+                                || exportBinding.ProjectKey != key || parameters.GetProperty("scope").GetArrayLength() != 1
+                                || parameters.GetProperty("scope")[0].GetString() != exportBinding.ScopeToken
+                                || parameters.TryGetProperty("include_native", out var include) && !include.GetBoolean())
+                                throw new InvalidOperationException("UNSUPPORTED");
+                        }
                         if (cancelled.ContainsKey(id)) receipt = new Receipt("Cancelled", null, null, 0, true);
                         else
                         {
                             framed.SendAsync(MessageKind.Started, id, message.Fence, Protocol.Body(new StartedBody(1)), stop.Token).GetAwaiter().GetResult();
                             using var gate = VendorGate.Enter();
-                            var observation = VendorReader.Inspect(target, Audit, VendorReader.CheckProcess,
-                                resourceTrace is null ? null : phase => resourceTrace.Record(id, phase));
+                            Action<string>? phase = resourceTrace is null ? null : value => resourceTrace.Record(id, value);
+                            object observation = method == "project.export"
+                                ? HmiScriptExporter.Export(target, exportBinding!, bootstrap.ArtifactRoot, id, Audit, phase)
+                                : VendorReader.Inspect(target, Audit, VendorReader.CheckProcess, phase);
                             string report = JsonSerializer.Serialize(observation, Protocol.Json);
                             if (System.Text.Encoding.UTF8.GetByteCount(report) > Protocol.MaxReceiptBytes) throw new InvalidOperationException("LIMIT_EXCEEDED");
                             receipt = new Receipt("Succeeded", report, null, 0, true);

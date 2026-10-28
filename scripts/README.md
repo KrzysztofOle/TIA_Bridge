@@ -67,7 +67,17 @@ B-02D: validate_offline.py rozszerza ten sam pipeline o wymagane process/crash/s
 
 [audit_v19_environment.ps1](audit_v19_environment.ps1) wymaga Windows PowerShell/PowerShell na Windows, standardowych Win32/CIM/.NET i uprawnienia do odczytu lokalnej instalacji. Nie instaluje pakietów, nie zmienia grup/ACL/rejestru Siemens, nie wykonuje Attach i nie czyta kluczy licencyjnych. Parametry `-OutputDirectory` i `-ProjectRoot` wskazują uprzednio utworzony własny root StorageLocation pod LOCALAPPDATA/TIA_Bridge2/dev/x01 na NTFS oraz zatwierdzony katalog projektów. Wynik environment.json powstaje z CreateNew poza repo; powtórzenie nie nadpisuje dowodu. Skrypt zbiera wersje Windows/Framework/SDK, publiczne pliki i SHA, PID/start/SID, typy dysków i metadata AP19. Nie commituj prywatnego raportu. Gdy execution policy odmawia uruchomienia z exFAT, nie zmieniaj polityki: użyj zatwierdzonej kopii tego samego skryptu na własnym lokalnym NTFS z kontrolą SHA. Szczegóły i ograniczenia: [Engineering](../tests/engineering/README.md).
 
-## Bramka E2-G
+## HMI-JS-02 — lokalna inspekcja API
+
+[inspect_v19_hmi_api.ps1](inspect_v19_hmi_api.ps1) wymaga Windows PowerShell 5.1 x64
+i zainstalowanego V19. Używa wyłącznie reflection-only DLL z PublicAPI/Bin/PublicAPI,
+bez process enumeration/Attach. `-OutputPath` wskazuje nowy plik dowodu JSON; CreateNew
+nie nadpisuje wcześniejszego wyniku. Nie kopiuje vendor DLL do repo ani nie zmienia
+Siemens ACL/provisioningu. Source splitting jest w Core i offline CLI; szczegóły
+w [HMI_JS_SYNC_MVP](../docs/HMI_JS_SYNC_MVP.md). Nowa zależność Esprima 3.0.6 jest
+przypięta w .NET lockfiles; nie wymaga nowego pakietu Python.
+
+## Bramka E2-G — runner
 
 [e2_gate.py](e2_gate.py) wymaga Python 3.12/std library. Polecenie:
 `py -3 -B scripts/e2_gate.py --run-id <run-id> --dossier <reviewed-local-json> --output .tia-bridge/e2-g-reviewed.json`.

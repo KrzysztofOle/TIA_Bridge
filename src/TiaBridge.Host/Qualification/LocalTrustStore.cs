@@ -174,13 +174,20 @@ internal sealed class LocalTrustStore
         }
     }
     internal bool Eligible(QualificationEvidence e) => e.Result == QualificationResult.PASS
-        && e.Operation == OperationMethod.ProjectInspect && e.Scope == OperationScope.PROJECT && e.DeviceFamily is null
-        && e.ObjectKind == "project" && e.ProjectClass is null && e.ProjectKey is not null && config.RegisteredProjects.Contains(e.ProjectKey, StringComparer.Ordinal)
+        && e.Scope == OperationScope.PROJECT && e.DeviceFamily is null
+        && e.ProjectKey is not null && config.RegisteredProjects.Contains(e.ProjectKey, StringComparer.Ordinal)
         && e.AdapterId == "tia-bridge.worker.v19" && e.AdapterBuild == e.WorkerBuild
         && Regex.IsMatch(e.WorkerBuild, "\\A1\\.0\\+[0-9a-f]{64}\\z", RegexOptions.CultureInvariant)
+        && (e.Operation == OperationMethod.ProjectInspect && e.ObjectKind == "project" && e.ProjectClass is null
         && e.Profile == V19DiscoveryProfile.Id && e.ReadScope.Count == V19InspectionProfile.DiscoveryReadScope.Count
         && e.ReadScope.ToHashSet(StringComparer.Ordinal).SetEquals(V19InspectionProfile.DiscoveryReadScope)
-        && e.Coverage.Any(c => c.Dimension == CoverageDimension.STRUCTURE && c.State == CoverageState.COMPLETE);
+        && e.Coverage.Any(c => c.Dimension == CoverageDimension.STRUCTURE && c.State == CoverageState.COMPLETE)
+        || e.Operation == OperationMethod.ProjectExport && e.Kind == QualificationEvidenceKind.ENGINEERING_TEST
+        && e.ObjectKind == "hmi-script-module" && e.ProjectClass is not null
+        && Regex.IsMatch(e.ProjectClass, "\\Ahmi-scope:[0-9a-f]{64}\\z", RegexOptions.CultureInvariant)
+        && e.Profile == V19HmiExportPolicy.Profile && e.ReadScope.Count == V19InspectionProfile.HmiExportReadScope.Count
+        && e.ReadScope.ToHashSet(StringComparer.Ordinal).SetEquals(V19InspectionProfile.HmiExportReadScope)
+        && e.Coverage.Any(c => c.Dimension == CoverageDimension.CONTENT && c.State == CoverageState.COMPLETE));
     private static void Validate(QualificationEvidence e)
     {
         if (e.EvidenceId is null || e.ReadScope is null || e.Coverage is null || e.Artifacts is null

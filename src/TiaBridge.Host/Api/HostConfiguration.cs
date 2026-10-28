@@ -61,6 +61,16 @@ public sealed record HostConfiguration(string SchemaVersion, string StatePath, s
         }
         if (config.FakeWorkerDll is not null && (Path.GetFileName(config.FakeWorkerDll) != "TiaBridge.FakeWorker.dll" || !File.Exists(config.FakeWorkerDll))) throw new ArgumentException("Built Fake Worker required.");
         V19InspectionProfile.Validate(config);
+        if (config.V19?.HmiExport is { } export)
+        {
+            if (config.QualificationBootstrap is not null || !V19HmiExportPolicy.Valid(export, DateTimeOffset.UtcNow)
+                || !config.V19.Targets.Any(t => t.ProjectKey == export.ProjectKey)
+                || !Core.Hmi.HmiScriptSource.SafeName(export.ModuleName)
+                || export.ExpectedFunctions.Any(n => !Core.Hmi.HmiScriptSource.SafeName(n))
+                || config.QualificationTrust is not { TrustedSignerKeys.Length: 1, OperatorSid: not null, HostSid: not null })
+                throw new ArgumentException("Separate exact HMI export authorization and E1 trust configuration required.");
+            Qualification.LocalTrustAcl.Configuration(path, config.QualificationTrust);
+        }
         if (config.QualificationBootstrap is { } bootstrap)
         {
             if (config.V19?.Targets.Length != 1 || config.MaxInFlight != 1 || config.V19.Apartment != "STA"

@@ -3,7 +3,7 @@
 ## Zakres i stan
 
 - To nowe repozytorium; stary Bridge w `C:\RMA\t05_plc` jest materiałem audytu, nie celem zmian. Nie kopiuj jego kodu, konfiguracji T05 ani danych klienta bez zadania i przeglądu.
-- Stan obecny (2026-10-26): zaimplementowano Core, Host/API/CLI, trwały silnik Fake oraz eksperymentalny read-only Worker V19 dla X-01. B-03A rozwija wyłącznie bounded Discovery/Inventory; nie ma eksportu obiektów, synchronizacji ani adaptera mutacji. Nie przedstawiaj planowanego modułu jako funkcjonalności.
+- Stan obecny (2026-10-28): zaimplementowano Core, Host/API/CLI, trwały silnik Fake oraz eksperymentalny read-only Worker V19 dla X-01. B-03A obejmuje bounded Discovery/Inventory. Osobny HMI-JS-02 dodaje typowany eksport modułu Unified i projekcję funkcji, zweryfikowane offline, bez nowego Engineering PASS. Eksport PLC, synchronizacja i adapter mutacji pozostają niezaimplementowane. Nie przedstawiaj planowanego lub niezakwalifikowanego modułu jako potwierdzonej funkcjonalności Siemens.
 - Przed implementacją czytaj [architekturę](docs/03_ARCHITECTURE.md), [synchronizację](docs/04_SYNCHRONIZATION.md), [interfejs](docs/05_CODEX_INTERFACE.md), [integrację](docs/06_TIA_INTEGRATION.md) i [backlog](docs/08_IMPLEMENTATION_PLAN.md). Realizuj jeden ograniczony pakiet z kryterium akceptacji.
 
 ## Role instrukcji i hierarchia dokumentów
@@ -25,6 +25,8 @@
 - Źródła, manifest eksportu, potwierdzony baseline, kompilacja, symulacja i testy mają osobne rewizje. PASS offline nie oznacza Engineering ani Runtime PASS.
 
 ## Autoryzacja i testy
+
+- HMI-JS-02: `project.export` dla modułu Unified wymaga nowego exact bindingu `v19.hmi_export`, okna ≤30 min i osobnej aktywnej kwalifikacji E1 ENGINEERING_TEST dla profilu `v19.hmi.script-module.export.v1` oraz exact zakresu modułu. B1/Discovery/OFFLINE_TEST nie uprawniają do eksportu; brak nowego qualification-only bootstrapu ani fallbacku po E1 denial. Zachowaj cały native bundle i blokuj niejednoznaczne granice źródła; PASS projekcji bajtowej nie potwierdza obszarów edytora TIA, API/struktury ani SYNCED. [Procedura HMI](docs/HMI_JS_SYNC_MVP.md) nie jest autoryzacją Attach lub eksperymentu.
 
 - B-03A/E2-G zatwierdza `SHARED_WORKSTATION 1.0.0` dla ograniczonej D-11/E2-B1 na współdzielonym stanowisku. Zwykłe obciążenie CPU/dysku i PASS_WITH_LOAD nie blokują eksperymentu przy PASS safety i wymaganych KPI. [Bramka E2-G](docs/21_E2_B1_READINESS_GATE.md) nie aktywuje B0 ani Attach; pełne NF-08/NF-11 NOT_RUN nie stają się PASS, a NF-11 nadal blokuje pełną kwalifikację. STRICT i timeouty ochronne pozostają bez zmian.
 

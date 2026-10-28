@@ -60,7 +60,19 @@ Openness ma `DownloadProvider` API w lokalnym XML około 10066; to nie jest auto
 
 Advanced V6.0 UPD 1 manual, sekcja 7.1, dokumentuje OPC UA przez TCP/IP, niedostępne przez Softbus, oraz user authorization OPC UA w licencji Advanced dla dwóch symulowanych instancji. To nie potwierdza lokalnej aktywnej licencji, liczby dostępnych instances ani całego zestawu ograniczeń CPU/firmware. Sprawdzić ALM/provisioning bez ujawniania kluczy i dokumentację konkretnego build. [Siemens Advanced V6 manual](https://cache.industry.siemens.com/dl/files/578/109955578/att_1267815/v1/s7-plcsim_advanced_function_manual_en-US.pdf).
 
-## WinCC Runtime i HMI simulation
+## HMI-JS-02 — eksport modułu JavaScript, implementacja offline
+
+[Specyfikacja HMI-JS-02](HMI_JS_SYNC_MVP.md) uzupełnia historyczną tabelę API:
+lokalne DLL V19 potwierdzono reflection-only, a Worker kompiluje typowany dostęp
+`HmiSoftware.Scripts` → `HmiScriptModuleComposition` → `HmiScriptModule.Export(DirectoryInfo)`.
+Istniejący owner/Attach/read/Dispose, scheduler i IPC są wspólne z Discovery.
+Host `project.export` wymaga nowego exact bindingu HMI i osobnego E1 ENGINEERING_TEST
+dla exact modułu/buildów. B1/Discovery nie nadają capability eksportu; brak nowego
+bootstrapu. Core zachowuje native bundle i tworzy tylko konserwatywną projekcję
+źródła z hashami. Rzeczywisty format T05RecipeCatalog, odwzorowanie obszarów edytora
+i live export NOT_RUN; to nie jest pełne B-03D, round-trip ani SYNCED. Import NOT_IMPLEMENTED.
+
+## WinCC Runtime i HMI simulation — obserwacje historyczne
 
 INSTALLED: Unified PC V19, Runtime Advanced V17, Unified Runtime Manager executable ProductVersion 500.30.8901.3. WCCIL procesy są aktywne. To nie ustala projektu aktualnie obsługiwanego przez web klienta ani typu/ważności licencji. Obsługa Runtime Advanced V17 nie wynika z samego posiadania V19 Engineering.
 

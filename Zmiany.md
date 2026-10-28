@@ -1,5 +1,69 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-28 — HMI-JS-02: bounded eksport modułu Unified V19
+
+Baza: zweryfikowany clean HMI-JS-01 `05944ae`, osobny istniejący clean worktree
+`X:/Projects/TIA_Bridge-HMI-JS-02`, gałąź `feat/hmi-js-02`. Nie zmieniano pozostałych
+worktree ani historii Git. Lokalna reflection-only V19 DLL i kompilacja net48/x64
+potwierdzają HmiSoftware.Scripts, HmiScriptModuleComposition i typowane Export overloads;
+hashowane metadata są w ignorowanym `.tia-bridge/hmi-js-02/v19-api.json`, podsumowanie
+w [specyfikacji](docs/HMI_JS_SYNC_MVP.md). Brak Attach i eksportu rzeczywistego T05.
+
+Core dodaje konserwatywny parser ES-module-prefix (Esprima 3.0.6, przypięte lockfiles),
+surowe bajtowe zakresy, pełne funkcje i prefix globalny, SHA-256, manifest i porównanie
+pojedynczych funkcji. Brak normalizacji/wykonywania JS/parsing YAML. Nieznane granice,
+kolizje lub niekompletność blokują cały split przy zachowaniu native. CLI umożliwia
+offline split/compare bez Host/Siemens. Worker używa istniejącego owner/Attach/read/
+Dispose; Host zachowuje trwałe intent/idempotencję/IPC/timeout, sprawdza native hashes
+i publikuje osobne artefakty. Błąd splitu jest FAILED/COVERAGE_GAP z dowodami.
+
+Nowy exact binding HMI (projekt/PID/start/AP19 z targetu, path/module/build/scope/okno
+≤30 min) nie dziedziczy B1. Eligibility E1 rozszerzono wyłącznie o ENGINEERING_TEST/PASS
+PROJECT ProjectExport, hmi-script-module, exact profil/read scope, CONTENT i scope digest.
+OFFLINE_TEST/Discovery/B1 nie kwalifikują eksportu. Nie dodano bootstrapu kwalifikacyjnego
+HMI, automatycznego enrollment, praw mutacji ani retry. Pierwsza kwalifikacja wymaga
+osobno zatwierdzonego lane/planu i autoryzacji; normalny Host bez E1 pozostaje BLOCKED.
+
+Testy wykorzystują wyłącznie syntetyczny kod z wymaganymi nazwami. Pełny zestaw 10
+plików jest potwierdzony offline, rzeczywiste obszary edytora i format native pozostają
+UNKNOWN. Pierwszy FAST `20261028T142812323084Z-4355af597629406ca6c769faa66ecb25`
+zachowano jako FAIL: 2 testy wykazały istniejącą eligibility tylko Discovery, a diff
+wykrył CRLF wygenerowanych lockfiles. Naprawiono wąską eligibility eksportu i LF
+wyłącznie zmienionych lockfiles; końcowe przebiegi QA są raportowane osobno.
+
+Końcowy FAST `20261028T143708047689Z-c00ebad3f033427bb23b09e00aa257c7`:
+40/40 PASS (19 Core HMI, 12 Host HMI, 9 Python HMI). STANDARD
+`20261028T143748881578Z-356d63bd1e0a486a912a5c6f30bd00e7`: 1079/1079 PASS
+(583 Core, 416 Host, 80 Python), fail/skip 0. External QA Runner
+`2a286865bcffa1648ad81ab3b5c31689aa283746`, konfiguracja/scenariusze i niezmienne
+raporty w `.tia-bridge/hmi-js-02/`. Locked offline restore, Release build (także
+Worker V19), contract/vector generator, audit, format i diff-check PASS. STANDARD
+zachowuje istniejący filtr bez pięciu `ResiliencePerformanceTests`; nie jest nową
+kwalifikacją D-11. NF-11/Engineering/Runtime NOT_RUN. Końcowa korekta dokumentacyjna
+utrwala te wyniki i doprecyzowuje historyczny zakres HMI-JS-01 oraz kodowanie scope
+digest; po niej wykonano ponowny audyt dokumentacji i kontrolę diffu.
+
+Ocena instrukcji sekcja po sekcji:
+
+| AGENTS / Instrukcja_ChatGPT | Ocena i decyzja |
+|---|---|
+| Zakres i stan / 1 Cel, 3 Źródła | Zaktualizowano stan HMI; offline nie staje się Engineering. |
+| Role i hierarchia / 2 Odpowiedzialność, 3 Źródła | Bez zmian; brak nowej nadrzędności lub rozbieżności normatywnej. |
+| Niezmienne granice / 4 Architektura, 7 Recovery, 8 Decyzje | Zachowane owner/IPC/DTO/NTFS/UNKNOWN, brak nowego Attach klienta; dopisano rozdział źródeł HMI. |
+| Autoryzacja i testy / 5 Zadanie, 6 Kontrola, 7 Bezpieczeństwo | Dopisano exact binding/E1/zakaz B1 i oddzielenie byte-PASS od natywnych obszarów; nie rozszerzono bootstrapu/D-11/NF-11. |
+| Dyscyplina zmian / 5 Zadanie, 6 Kontrola, 8 Spójność, 9 Git | Bez zmiany zasad; nowe testy/schematy/dokumentacja i named-path staged review. |
+| Standard commitów / 9 Git | Bez zmian, angielski Conventional Commit i zwykły push gałęzi. |
+| Dane nieufne / 4 Architektura, 7 Bezpieczeństwo | Bez zmiany zasad; limity, strict UTF-8, opaque native, brak kodu klienta/wykonywania wejścia. |
+| Styl / 10 Styl | Bez zmian; raport rozdziela OFFLINE/ENGINEERING/RUNTIME i statusy NOT_RUN. |
+
+ADR 0001/0002/0003 pozostają bez zmian: architektura, asynchroniczna saga i granice
+CANONICAL/SOURCE/NATIVE zachowane. Zaktualizowano specyfikacje 05/06/08/17/18,
+kontrakty manifestu/bindingu i przykłady; HTTP v1 i envelope IPC 1.1 bez zmiany.
+Nie zmienia się semantyka SYNCED, baseline, importu ani historyczne dowody kwalifikacji.
+Nowa opcjonalna konfiguracja startowa i typed opaque receipt są ograniczone jawnym
+profilem HMI. REAL TIA EXPORT NOT_RUN, TIA IMPORT NOT_IMPLEMENTED, NF-11 NOT_RUN;
+kryterium sukcesu rzeczywistego eksportu nie jest spełnione.
+
 ## 2026-10-28 — HMI-JS-01 offline JavaScript export MVP
 
 Praca rozpoczęta w osobnym worktree `feat/hmi-js-01` od HEAD `a509a65`.

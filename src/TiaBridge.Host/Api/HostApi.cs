@@ -33,7 +33,8 @@ public static class HostApi
         foreach (string project in config.RegisteredProjects) store.RegisterProject(new(UuidIdentity.ParseValue(project)));
         var fakeProfile = new ConfiguredFakeProfile(config, store);
         IExecutionProfile profile = config.V19 is null ? fakeProfile : config.QualificationBootstrap is null ? new V19InspectionProfile(config) : new BootstrapInspectionProfile(config, store);
-        bool Supports(OperationMethod method) => config.V19 is null ? fakeProfile.Supports(method) : method == OperationMethod.ProjectInspect;
+        bool Supports(OperationMethod method) => config.V19 is null ? fakeProfile.Supports(method)
+            : method == OperationMethod.ProjectInspect || method == OperationMethod.ProjectExport && config.V19.HmiExport is not null && config.QualificationBootstrap is null;
         IWorkerSupervisor supervisor = config.V19 is not null ? new V19WorkerSupervisor(config.V19WorkerExe!, location.RootPath, config.V19)
             : config.FakeWorkerDll is null ? new DisabledSupervisor() : new FakeWorkerSupervisor(config.FakeWorkerDll, location.RootPath);
         await using var scheduler = new OperationScheduler(store, hooks?.Supervisor?.Invoke(supervisor) ?? supervisor, hooks?.Profile?.Invoke(profile) ?? profile);

@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:tia-bridge2:hmi-js:export-binding:1.0",
+  "title": "Operator-recorded HMI export binding, not self-authorizing",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "authorization_id",
+    "project_key",
+    "scope_token",
+    "device_path",
+    "module_name",
+    "tia_build",
+    "worker_build",
+    "not_before_utc",
+    "expires_utc",
+    "expected_functions"
+  ],
+  "properties": {
+    "authorization_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "project_key": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "scope_token": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "device_path": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 10,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      }
+    },
+    "module_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[^<>:\"/\\\\|?*\\x00-\\x1f]+$"
+    },
+    "tia_build": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "worker_build": {
+      "type": "string",
+      "pattern": "^1\\.0\\+[0-9a-f]{64}$"
+    },
+    "not_before_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expected_functions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160,
+        "pattern": "^[^<>:\"/\\\\|?*\\x00-\\x1f]+$"
+      }
+    }
+  }
+}

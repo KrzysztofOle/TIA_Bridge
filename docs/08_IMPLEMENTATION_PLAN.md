@@ -75,6 +75,13 @@ Zamknięcie prac B-02D wymaga wykonania i jawnego raportu RT/NF, bez ukrywania F
 | B-03C / REQUIRED | matrix DB/UDT/FB/OB/IDB/tag tables/groups | golden export fixtures i coverage per kind; brak reklamy importu na podstawie export |
 | B-03D / REQUIRED | `Worker.V19/HmiUnified,HmiClassic`, typed model | scripts/tags i read-only screen/event mapping z error coverage, native YAML zachowany; rodziny rozdzielone |
 
+HMI-JS-02 (osobno zlecony przyrost B-03D): typowany eksport jednego modułu Unified
+V19, zachowanie natywnych plików i konserwatywna projekcja funkcji są zaimplementowane
+i testowane offline. [Specyfikacja/procedura](HMI_JS_SYNC_MVP.md) wymaga nowego
+bindingu i kwalifikacji E1 ENGINEERING_TEST; brak nowego bootstrapu, live export NOT_RUN.
+Nie zamyka pełnego B-03D, X-04, rozpoznania ekranów/tagów, importu ani globalnej
+kwalifikacji; rzeczywisty format i granice obszarów edytora pozostają UNKNOWN.
+
 **Ryzyka:** know-how/Safety/inconsistent blocks, brak API Unified screen round-trip, nieznane ID. **Testy:** fresh identity, export twice, rename/group/Unicode collisions, unsupported inventories. **Akceptacja:** każdy odkryty obiekt ma artifact lub jawny powód; pliki CODEX zachowane; brak setter/Compile/Save/Archive w R. **Rezultat:** Git-friendly pliki + obiektowe locatory. **Bramka:** pierwsza FC ma native i editable reprezentację oraz kwalifikowany comparison profile; HMI może nadal pozostać RO.
 
 Uszczegółowienie przygotowania B-03A, 2026-10-27: [E2-A](B03A_E2_A_PREPARATION.md)
