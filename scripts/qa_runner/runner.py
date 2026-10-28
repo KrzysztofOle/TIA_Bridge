@@ -13,7 +13,7 @@ import uuid
 import xml.etree.ElementTree as ET
 
 from . import adapters
-from .diagnostics import Logger, correlate, digest, redact, utc, verify_manifest, write_json
+from .diagnostics import Logger, correlate, digest, normalize_logs, redact, utc, verify_manifest, write_json
 from .evaluator import STATUSES, aggregate, failure, group_failures, test_results
 from .loader import Invalid, contained, load_scenario, read_json, require
 from .reports import comparison, finalize
@@ -61,6 +61,7 @@ def matches(root, pattern):
 
 
 def collect(root, patterns, before, output, logger, scenario, step):
+    collected = []
     for pattern in patterns:
         for source in sorted(matches(root, pattern) - before):
             require(source.stat().st_size <= 128 * 1024 * 1024, "Collected artifact exceeds 128 MiB")
@@ -70,9 +71,12 @@ def collect(root, patterns, before, output, logger, scenario, step):
                 continue
             # Preserve authoritative evidence byte-for-byte. Only approved synthetic sources.
             copy_new(source, destination)
+            if source.suffix.lower() in {".json", ".jsonl"}:
+                collected.append((destination, destination.relative_to(output.parent.parent).as_posix()))
             logger.event("QA_ARTIFACT_COLLECTED", "Collected approved new artifact", level="TRACE", scenario_id=scenario, step_id=step, log_reference=source.relative_to(root).as_posix())
             if source.suffix == ".jsonl":
                 correlate(destination, logger, scenario, step)
+    return collected
 
 
 def receipt(root, task, before, output):
@@ -140,6 +144,7 @@ def run(root, project, config_path, profile, scenario_path=None, performance=Non
         (folder / "artifacts").mkdir()
         (folder / "artifacts/scenarios").mkdir()
         logger = Logger(folder / "logs/runner.jsonl", run_id, level)
+        diagnostic_sources = []
         logger.event("QA_RUN_STARTED", "Offline run started")
         summary = {"schema_version": "1.0", "project_id": project["project_id"], "profile": profile,
                    "run_id": run_id, "started_at": utc(), "status": "NOT_RUN", "git": git_state(root),
@@ -147,6 +152,7 @@ def run(root, project, config_path, profile, scenario_path=None, performance=Non
                    "config_sha256": digest(config_path), "steps": [], "tests": dict(passed=0, failed=0, skipped=0),
                    "layers": {"functional": "NOT_RUN", "environment_qualification": "NOT_RUN", "engineering": "NOT_RUN", "runtime": "NOT_RUN"},
                    "report_path": str(folder / "report.md")}
+        summary["diagnostics"] = {"status": "NOT_RUN", "reason": "NO_STRUCTURED_LOGS_COLLECTED"}
         execution = {"schema_version": "1.0", "run_id": run_id, "runtime_paths": {}, "scenarios": [], "commands": []}
         copy_new(config_path, folder / "artifacts/qa.project.json")
         if threading.current_thread() is threading.main_thread():
@@ -242,7 +248,7 @@ def run(root, project, config_path, profile, scenario_path=None, performance=Non
                             if not step["failures"]:
                                 category = "BUILD_FAILURE" if task["type"] in {"dotnet_restore", "dotnet_build"} else "PROCESS_FAILURE"
                                 step["failures"].append(failure(category, "Process exit code " + str(exit_code)))
-                        collect(root, patterns, before, output, logger, scenario["id"], definition["id"])
+                        diagnostic_sources.extend(collect(root, patterns, before, output, logger, scenario["id"], definition["id"]))
                     except FileNotFoundError as error:
                         step["status"] = "BLOCKED"
                         step["failures"].append(failure("ENVIRONMENT", str(error)))
@@ -278,6 +284,10 @@ def run(root, project, config_path, profile, scenario_path=None, performance=Non
             summary["layers"]["functional"] = summary["status"]
         summary.update(ended_at=utc(), duration_ms=round((time.monotonic() - started) * 1000, 3), failures=group_failures(summary["steps"]))
         summary["comparison"] = comparison(summary, previous_run(results, project["project_id"], profile, summary["performance_profile"], run_id))
+        if diagnostic_sources:
+            summary["diagnostics"] = normalize_logs(diagnostic_sources, folder / "diagnostics.jsonl")
+            summary["diagnostics"]["status"] = "AVAILABLE"
+            summary["diagnostics"]["normalized_reference"] = "diagnostics.jsonl"
         logger.event("QA_RUN_COMPLETED", summary["status"], duration_ms=summary["duration_ms"])
         logger.close()
         logger = None

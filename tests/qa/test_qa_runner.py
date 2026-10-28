@@ -21,7 +21,7 @@ SCRIPTS = Path(__file__).resolve().parents[2] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 from qa_runner import adapters
 from qa_runner.cli import main
-from qa_runner.diagnostics import Logger, correlate, digest, inventory, redact, verify_manifest, write_json
+from qa_runner.diagnostics import Logger, correlate, digest, inventory, normalize_logs, redact, verify_manifest, write_json
 from qa_runner.evaluator import aggregate, failure, group_failures, test_results
 from qa_runner.loader import Invalid, contained, discover, load_project, load_scenario, read_json
 from qa_runner.runner import collect, matches, receipt, run
@@ -296,6 +296,75 @@ class RunnerTests(unittest.TestCase):
         event = json.loads((self.root / 'runner.jsonl').read_text())
         self.assertEqual(event['operation_id'], 'op-01')
         self.assertEqual(event['worker_epoch'], 'epoch-01')
+
+    def test_normalization_v1_missing_null_and_field_order(self):
+        source = self.root / 'ordered.jsonl'
+        source.write_text('{"operation_id":"op-a","message":"Frame sent","event_id":"IPC_FRAME_SENT","component":"IPC","application":"Host","level":"INFO","timestamp_utc":"2026-10-28T10:00:00+00:00"}\n{"message":"sparse"}\n{"operation_id":null}\n')
+        output = self.root / 'diagnostics.jsonl'
+        summary = normalize_logs([(source, 'raw/ordered.jsonl')], output)
+        events = [json.loads(line) for line in output.read_text().splitlines()]
+        self.assertEqual(events[0]['schema_version'], '1.0')
+        self.assertEqual(events[0]['timestamp_utc'], '2026-10-28T10:00:00Z')
+        self.assertEqual(events[0]['operation_id'], 'op-a')
+        self.assertIn('scenario_id', events[1]['absent_fields'])
+        self.assertIn('operation_id', events[2]['unavailable_fields'])
+        self.assertNotIn('operation_id', events[2]['absent_fields'])
+        self.assertEqual(summary['count'], 3)
+        self.assertEqual(summary['without_correlation_ids'], 2)
+        self.assertEqual(len(summary['top_events']), 1)
+
+    def test_normalization_malformed_json_and_non_object_are_invalid(self):
+        source = self.root / 'bad.jsonl'
+        source.write_text('{bad json}\n42\nplain text\n')
+        output = self.root / 'diagnostics.jsonl'
+        summary = normalize_logs([(source, 'raw/bad.jsonl')], output)
+        self.assertEqual(summary['count'], 0)
+        self.assertEqual([item['reason'] for item in summary['invalid_records']], ['INVALID_JSON', 'RECORD_NOT_OBJECT', 'INVALID_JSON'])
+
+    def test_correlation_groups_explicit_ids_and_keeps_unknown_flow(self):
+        source = self.root / 'events.json'
+        source.write_text(json.dumps([
+            {'timestamp_utc':'2026-10-28T10:00:02Z','level':'ERROR','application':'worker','component':'Worker','event_id':'WORKER_FAILED','message':'token=abc','operation_id':'op-1','worker_epoch':'epoch-1'},
+            {'timestamp_utc':'2026-10-28T10:00:01Z','level':'INFO','application':'host','component':'Host','event_id':'OP_ACCEPTED','message':'accepted','operation_id':'op-1'},
+            {'timestamp_utc':'2026-10-28T10:00:03Z','level':'WARN','application':'host','component':'Host','event_id':'NO_ID','message':'separate'}]))
+        output = self.root / 'diagnostics.jsonl'
+        summary = normalize_logs([(source, 'raw/events.json')], output)
+        self.assertEqual(len(summary['correlations']['operation_id']), 1)
+        flow = summary['operation_flows']['op-1']
+        self.assertEqual(flow['Host']['event_id'], 'OP_ACCEPTED')
+        self.assertEqual(flow['Worker']['event_id'], 'WORKER_FAILED')
+        self.assertEqual(flow['IPC'], 'UNKNOWN')
+        normalized = output.read_text()
+        self.assertNotIn('token=abc', normalized)
+        self.assertEqual(summary['warn_error'], 2)
+
+    def test_duplicate_records_preserved_and_raw_integrity_unchanged(self):
+        source = self.root / 'duplicates.jsonl'
+        record = '{"timestamp_utc":"2026-10-28T10:00:00Z","level":"INFO","application":"x","component":"IPC","event_id":"DUP","message":"same","operation_id":"op"}\n'
+        source.write_text(record + record)
+        before = source.read_bytes()
+        output = self.root / 'diagnostics.jsonl'
+        summary = normalize_logs([(source, 'raw/duplicates.jsonl')], output)
+        self.assertEqual(summary['count'], 2)
+        self.assertEqual(source.read_bytes(), before)
+        self.assertEqual(len(output.read_text().splitlines()), 2)
+
+    def test_no_diagnostics_source_creates_no_diagnostics(self):
+        self.assertFalse((self.root / 'diagnostics.jsonl').exists())
+        result = self.execute()
+        self.assertEqual(result['diagnostics']['status'], 'NOT_RUN')
+        self.assertIn('Status: **NOT_RUN**', (self.folder(result) / 'report.md').read_text())
+
+    def test_qa_report_includes_optional_diagnostics_without_changing_verdict(self):
+        raw = '{"timestamp_utc":"2026-10-28T10:00:00Z","level":"WARN","application":"fixture","component":"IPC","event_id":"FRAME_WARN","message":"sample","operation_id":"op-report"}\n'
+        (self.root / 'fixture.py').write_text("from pathlib import Path\nPath('diagnostic-sample.jsonl').write_text(" + repr(raw) + ")\n", encoding='utf-8')
+        self.project['tasks']['smoke']['collect'] = ['diagnostic-sample.jsonl']
+        result = self.execute()
+        folder = self.folder(result)
+        self.assertEqual(result['status'], 'PASS')
+        self.assertEqual(result['diagnostics']['warn_error'], 1)
+        self.assertIn('## Diagnostics', (folder / 'report.md').read_text())
+        self.assertEqual((folder / 'artifacts/smoke--one/collected/diagnostic-sample.jsonl').read_text(), raw)
 
     def test_lock_prevents_concurrent_run_and_is_not_removed(self):
         (self.root / 'results').mkdir()

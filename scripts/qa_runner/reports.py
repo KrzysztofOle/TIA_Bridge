@@ -24,6 +24,13 @@ def compact(summary, failures_only=False):
             tests = f"; {counts['passed']} PASS/{counts['failed']} FAIL/{counts['skipped']} SKIPPED" if counts else ""
             lines.append(f"{s['scenario_id']}/{s['step_id']}: {s['status']} ({s['duration_ms']/1000:.2f}s{tests})")
     lines += [f"{f['category']}: {f.get('test') or f['message']} (x{f['occurrences']}; {f.get('log_reference')})" for f in summary["failures"][:10]]
+    if "diagnostics" in summary:
+        d = summary["diagnostics"]
+        if d["status"] == "AVAILABLE":
+            lines.append(f"DIAGNOSTICS: {d['count']} events; {d['warn_error']} WARN/ERROR; {len(d['invalid_records'])} invalid; {d['without_correlation_ids']} without IDs")
+            lines.append("DIAGNOSTICS FILE: " + d["normalized_reference"])
+        else:
+            lines.append("DIAGNOSTICS: NOT_RUN (" + d["reason"] + ")")
     if len(summary["failures"]) > 10:
         lines.append("Additional failure groups: see failures.json")
     lines += ["REPORT: " + summary["report_path"]]
@@ -51,6 +58,21 @@ def markdown(summary):
     for f in summary["failures"]:
         lines += [f"- **{f['category']}** ({f['occurrences']} occurrences): {cell(f.get('test') or f['message'])}",
                   f"  First failure: {cell(f['message'])}", f"  Source: {cell(f.get('source_location'))}; log: {cell(f.get('log_reference'))}"]
+    if "diagnostics" in summary:
+        d = summary["diagnostics"]
+        if d["status"] != "AVAILABLE":
+            lines += ["", "## Diagnostics", "", "Status: **NOT_RUN** — no structured diagnostic logs were collected. This is not a PASS result."]
+        else:
+            lines += ["", "## Diagnostics", "", f"Events: {d['count']}; WARN/ERROR: {d['warn_error']}; without correlation IDs: {d['without_correlation_ids']}; invalid records: {len(d['invalid_records'])}.",
+                  "Normalized events: `diagnostics.jsonl`. Raw log references are retained in each normalized record.", "", "Grouped errors:"]
+            lines += [f"- {cell(key)}: {count}" for key, count in d["error_groups"].items()] or ["- None"]
+            lines += ["", "Important events:"]
+            lines += [f"- {cell(e.get('timestamp_utc'))} **{cell(e.get('level'))} {cell(e.get('component'))}/{cell(e.get('event_id'))}**: {cell(e.get('message'))} (`{cell(e.get('log_reference'))}`)" for e in d["top_events"]] or ["- None"]
+            lines += ["", "Invalid records:"]
+            lines += [f"- {cell(e['log_reference'])} record {e['record']}: {e['reason']}" for e in d["invalid_records"][:20]] or ["- None"]
+            lines += ["", "Operation flows use only explicit operation IDs and recognized component values; unobserved stages remain UNKNOWN."]
+            for operation, flow in list(d["operation_flows"].items())[:10]:
+                lines.append("- `" + cell(operation) + "`: " + " → ".join(f"{stage}={cell(value.get('event_id') if isinstance(value, dict) else value)}" for stage, value in flow.items()))
     remaining = [s for s in summary["steps"] if s["status"] in {"NOT_RUN", "SKIPPED"}]
     if remaining:
         lines += ["", "Not executed: " + ", ".join(s["scenario_id"] + "/" + s["step_id"] for s in remaining)]

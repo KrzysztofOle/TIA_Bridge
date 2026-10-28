@@ -226,14 +226,19 @@ observations; monotonic time measures durations/deadlines.
 Existing application logging was reviewed: Host persists operation journal/events
 and intentionally drains worker stdout/stderr; Worker emits error_type/hresult,
 audit and opt-in resource JSONL with operation/epoch; CLI emits contract JSON.
-The collector imports approved new log files and preserves their originals.
-For JSONL it wraps known correlation fields into QA_APPLICATION_LOG, preserving
-source timestamps separately and leaving unavailable identity null. Correlation
-is capped at 4096 entries/file; full approved source logs remain. Collection limit
-is 5000 matching files/pattern and 128 MiB/file. It neither queries production
-state nor enables Worker tracing. IPC 1.1 and all application logging are unchanged.
-Future work: compatible Host structured diagnostic sink and explicit journal export
-with existing operation/epoch IDs; separate task and review, no new IPC route.
+The collector imports only approved new log files and preserves their original
+bytes. JSONL and structured JSON objects/arrays are normalized to an optional
+`diagnostics.jsonl` sidecar with source references, absent/null markers and selected
+original values. Malformed rows are listed; free-form text is not parsed. Reports
+include event counts, warnings/errors, missing IDs, error groups and important
+events. Correlation uses only explicit IDs, and partial operation flows show
+unobserved components as UNKNOWN. See [QA-02A format and limits](QA02_UNIFIED_DIAGNOSTICS.md).
+The existing JSONL wrapper remains for QA runner events; its per-file correlation
+is capped at 4096 entries. Collection limits remain 5000 matching files/pattern
+and 128 MiB/file. The collector does not query production state or enable Worker
+tracing. IPC 1.1 and application logging are unchanged. Future work may define a
+reviewed Host journal export and event mapping; this requires a separate QA-02B
+scope and no new IPC route.
 
 Classification uses explicit evidence: BUILD_FAILURE for build/restore exit,
 TEST_ASSERTION for structured failed tests, TEST_TIMEOUT for deadline, ENVIRONMENT
