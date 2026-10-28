@@ -13,6 +13,18 @@ test używa kontrolowanego GC wyłącznie w procesie testowym. Net48 FrameworkPr
 sprawdza 20 sekwencyjnych dispatch/heartbeat/receipt i identyfikatory trace, bez
 Siemens DLL. To regresje własnego kodu, nie dowód usunięcia historycznego wzrostu.
 
+E2-B1-D dodaje BootstrapDiagnosticTests: stały budżet 3 przed IPC, odmowę czwartego,
+crossed kind/schema/plan/budget, crash/restart/revoke/expiry/dirty/worker loss,
+kompletność faz i zakaz B1 PASS/review/enrollment. Dotychczasowe B1 20-cyklowe
+testy i E1 pozostają obowiązkowe. Nowe testy również nie uruchamiają Siemens.
+
+Rzeczywisty, osobno autoryzowany E2-B1-D może użyć
+[e2_diagnostic_session.py](../scripts/e2_diagnostic_session.py) z prywatnym --run-root.
+Wymaga Python 3.12 i opcjonalnego psutil (lokalnie 7.0.0), istniejącego deploymentu,
+nowego grantu 1.1 i E2-G-D READY. Nie tworzy grantu ani nie woła Siemens bezpośrednio.
+Kontrole start-host/go-01..03 rozdzielają review operatora; brak parametrów liczby
+cykli i retry. Po niepewnym call zachowuje własne stdin/Host do jawnego review STOP.
+
 Wymagania: .NET SDK 10.0.4xx (global.json dopuszcza najnowszy patch tego pasma), Python 3.12. Zależności .NET są przypięte w csproj/packages.lock.json; QA Python w [requirements-qa.txt](../scripts/requirements-qa.txt). Pierwszy restore/install wymaga dostępu do repozytoriów pakietów; testy B-02C łączą się wyłącznie z własnym lokalnym Host; nie łączą się z Siemens lub obcymi endpointami.
 
 ## Pełny przebieg offline jednym poleceniem

@@ -53,7 +53,7 @@ public sealed class WorkerResourceTests
     {
         var scenario = new SyntheticVendorScenario(); var phases = new List<string>();
         var result = Read(scenario, phase: phases.Add);
-        Assert.Equal(new[] { "cycle.enter", "enumeration.returned", "attach.enter", "attach.returned", "project.checked", "devices.returned",
+        Assert.Equal(new[] { "cycle.enter", "enumeration.returned", "attach.enter", "attach.returned", "project.checked", "devices.enter", "devices.returned",
             "software.returned.present", "device_items.traversed", "device.classified", "inventory.returned",
             "dispose.enter", "dispose.returned", "cycle.returned" }, phases);
         Assert.Single(result.CallbackThreads); Assert.Equal(0, scenario.ActiveEnumerators); Assert.Equal(1, scenario.Disposes);

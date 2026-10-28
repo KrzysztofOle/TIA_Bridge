@@ -1,5 +1,55 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-28 — B-03A/E2-B1-D: profil diagnostyczny i bezpieczny STOP po 1 cyklu
+
+Baza 28eb6ea na fix/e2-b1-worker-resource-investigation, clean; po fetch main=16916d4,
+raport B1=30011c9, bez merge/rebase/cherry-pick. Jawne zlecenie użytkownika dopuszcza
+nowy, osobny eksperyment HANDLE_DIAGNOSTICS do 3 sekwencyjnych odczytów na B1.
+Stary grant pozostaje zakończony. Historyczne plany, dowody i B1 BLOCKED zachowane.
+
+Minimalne rozszerzenie lokalnego B0: document 1.1/purpose HANDLE_DIAGNOSTICS,
+plan E2-B1-D/max3; stary 1.0/E2-B1/max20 bez zmiany zakresu. Budżet bierze się
+z niezmiennego, weryfikowanego dokumentu w transakcji istniejącego ledgeru v4;
+bez nowej migracji, resetu lub retry. Rezerwacja, completion i resolution używają
+tego samego ograniczenia. Diagnostic capture wymaga faz, daje co najwyżej
+DIAGNOSTIC_COMPLETE po release; review jako B1 PASS jest zabroniony.
+
+Instrumentacja dodaje devices.enter i Operation ID ostatniego ukończonego cyklu
+w idle; nie dodaje getterów Siemens/forced GC. E2-G-D zachowuje safety/D-11/KPI
+SHARED_WORKSTATION, sprawdza nowe suite i dossier 1.1. HTTP/IPC/Core/E1/registry
+bez rozszerzeń; nadal jeden scheduler/Worker/owner. Klasyfikacja typów wymaga
+bezpiecznej dostępności; brak narzędzia jest NOT_AVAILABLE bez obejść.
+
+Ocena obu instrukcji sekcja po sekcji: AGENTS zakres/hierarchia/niezmienniki/
+autoryzacja/testy/dyscyplina/Git/dane oraz Instrukcja 1–10 cel/role/źródła/
+architektura/zadania/kontrola/recovery/decyzje/Git/styl. Dodano wyłącznie jawny
+wyjątek E2-B1-D w autoryzacji/recovery, pozostałe sekcje bez zmian. ADR 0001–0003,
+specyfikacje 03–08/16/18, publiczne kontrakty i kryteria B1 pozostają bez zmian:
+brak drugiego schedulera, mutacji, nowego canonical modelu, E1 fallbacku lub
+produkcji. Specyfikacje 19/21, osobny plan, README i testy rozwijają autoryzowany
+lokalny profil.
+
+[Raport wykonania](docs/B03A_E2_B1_D_HANDLE_DIAGNOSTICS.md): run 09c962a0,
+nowy grant 4ad6efe6, aktualna D-11 051565cc/E2-G-D READY, exact build/binding.
+1/3 rzeczywistych cykli zakończony CONFIRMED, false/false i Dispose.Returned.
+Kontroler błędnie porównał Discovery ProjectKey.Value z tekstem raw DTO; STOP
+zachowany, niezależny review artefaktów/binding/release, revoke i kontrolowany
+Host exit=0/Worker ended. Nie było retry ani cykli 2–3. Naprawiono porównanie
+w pomocniczym Python i dodano syntetyczną regresję; bez ponownego grantu/live.
+Po poprawce fingerprint źródeł zmieniony, następne wejście wymaga nowej D-11.
+
+126 fazowych próbek: cold Attach 418→455, inventory 455→455, Dispose 456→446,
+idle ostatnie 474 po 191,761 s. Typy handles NOT_AVAILABLE, warm NOT_RUN,
+ROOT_CAUSE_UNEXPLAINED. Framework kontrola samego trace bez Siemens nie odtworzyła
+wzrostu; nie dowodzi to naprawy. Plan następnej kontroli offline i osobnego live
+w raporcie. Bez zmian historycznych dowodów B1, progów lub wyniku BLOCKED.
+Oryginalne 1069 plików/manifest zweryfikowane ponownie. Prywatny pakiet poza Git.
+
+Pełny canonical runner przed live: Release 0 warnings/errors, Core 564/564,
+Host 399/399, Python 70/70, resilience/E1/B0/Framework PASS; D-11 limited PASS,
+pełna kwalifikacja BLOCKED (NF-11/full NF-08 NOT_RUN). Po fix kontrolera Python
+71/71; format obu rozwiązań, audit i diff check PASS. NF-11 nie uruchamiano.
+
 ## 2026-10-27 — B-03A/E2-B1-R: analiza uchwytów i instrumentacja offline
 
 Baza `30011c9774cda09c3d8d2ffbb3ae1be7e0506678` na gałęzi raportu B1;

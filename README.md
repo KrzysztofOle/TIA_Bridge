@@ -31,7 +31,13 @@ przygotowanie dokumentacji samo nie aktywuje deploymentu ani praw Engineering.
 także podczas Attach, lecz pozostawia ROOT_CAUSE_UNEXPLAINED. Dostarcza domyślnie
 wyłączoną instrumentację faz Windows/CLR, regresje bez Siemens i propozycję osobno
 autoryzowanej diagnostyki. Historyczny B1 BLOCKED i Worker Handle Risk UNKNOWN
-pozostają bez zmian; nie wykonano nowych Attach ani grantu.
+pozostają bez zmian; w B1-R nie wykonano nowych Attach ani grantu.
+
+[E2-B1-D](docs/B03A_E2_B1_D_HANDLE_DIAGNOSTICS.md) rozdziela osobny profil
+HANDLE_DIAGNOSTICS/3 od B1/20. Wykonanie 2026-10-28: 1/3, kontroler STOP przez
+format ProjectKey (naprawiony offline), grant odwołany i cleanup potwierdzony.
+Cold Attach +37, Dispose −10, idle +28; ROOT_CAUSE_UNEXPLAINED. Diagnostyka
+nie przyznaje kwalifikacji B1; historyczny BLOCKED i Worker risk UNKNOWN zachowane.
 
 | Dokument | Zawartość |
 |---|---|

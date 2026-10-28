@@ -61,6 +61,7 @@ internal static class Program
         if ((await framed.ReadAsync(stop.Token).ConfigureAwait(false)).Kind != MessageKind.Ready) throw new ProtocolException();
         var resourceTrace = WorkerResourceTrace.Open(bootstrap.ArtifactRoot, bootstrap.WorkerEpoch,
             Environment.GetEnvironmentVariable(WorkerResourceTrace.EnvironmentSwitch));
+        string? lastCompletedOperation = null;
         var work = new BlockingCollection<Action>(1);
         var owner = new Thread(() => { foreach (var action in work.GetConsumingEnumerable()) action(); }) { IsBackground = false, Name = "Siemens owner" };
         owner.SetApartmentState(setup.Settings.Apartment == "STA" ? ApartmentState.STA : ApartmentState.MTA); owner.Start();
@@ -77,7 +78,7 @@ internal static class Program
                 host.Refresh(); if (host.HasExited) { pipe.Dispose(); stop.Cancel(); return; }
                 if (Volatile.Read(ref busy) == 0 && resourceTrace is not null)
                 {
-                    try { resourceTrace.Record(null, "worker.idle"); }
+                    try { resourceTrace.Record(Guid.TryParse(Volatile.Read(ref lastCompletedOperation), out var last) ? last : null, "worker.idle"); }
                     catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or System.ComponentModel.Win32Exception)
                     { stop.Cancel(); pipe.Dispose(); throw; }
                 }
@@ -143,7 +144,9 @@ internal static class Program
                 execution = Task.Run(async () =>
                 {
                     var receipt = await done.Task.ConfigureAwait(false);
-                    var reply = new WorkerReply(1, command.InputHash, null, receipt); completed[id] = reply; Interlocked.Exchange(ref busy, 0);
+                    var reply = new WorkerReply(1, command.InputHash, null, receipt); completed[id] = reply;
+                    if (resourceTrace is not null) Interlocked.Exchange(ref lastCompletedOperation, id.ToString("D"));
+                    Interlocked.Exchange(ref busy, 0);
                     try { await framed.SendAsync(MessageKind.Receipt, id, message.Fence, Protocol.Body(reply), stop.Token).ConfigureAwait(false); }
                     catch (Exception e) when (e is IOException or OperationCanceledException) { stop.Cancel(); pipe.Dispose(); }
                 });

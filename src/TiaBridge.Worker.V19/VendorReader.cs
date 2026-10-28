@@ -83,6 +83,7 @@ internal static class VendorReader
                 // Preserve a raw dirty-state observation and Dispose without continuing inventory.
                 if (!modified)
                 {
+                    resourcePhase?.Invoke("devices.enter");
                     var projectDevices = project.Devices;
                     resourcePhase?.Invoke("devices.returned");
                     foreach (var device in projectDevices)

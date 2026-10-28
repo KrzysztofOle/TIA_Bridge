@@ -59,7 +59,8 @@ internal sealed class BootstrapLocal(HostConfiguration config, SqliteOperationSt
         var projectDrive = new DriveInfo(Path.GetPathRoot(auth.ProjectPath)!);
         if (projectDrive.DriveType != DriveType.Fixed || projectDrive.DriveFormat != "NTFS") return false;
         if (FileBuild(config.V19WorkerExe!) != auth.WorkerBuild || HostBuild != auth.HostBuild) return false;
-        string plan = Path.Combine(config.RepositoryRoot, "docs", "E2-B1_TEST_PLAN.md");
+        _ = auth.CycleBudget;
+        string plan = Path.Combine(config.RepositoryRoot, "docs", auth.PlanFile);
         StorageLocation.CheckChain(plan);
         if (BootstrapAuthorization.Sha(File.ReadAllBytes(plan)) != auth.PlanSha256) return false;
         string portalRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Siemens", "Automation", "Portal V19");

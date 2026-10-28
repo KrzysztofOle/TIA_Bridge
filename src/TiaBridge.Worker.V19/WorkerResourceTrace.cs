@@ -13,7 +13,7 @@ internal sealed class WorkerResourceTrace
     private static readonly HashSet<string> Phases = new(StringComparer.Ordinal)
     {
         "worker.start", "worker.idle", "cycle.enter", "enumeration.returned", "attach.enter", "attach.returned",
-        "project.checked", "devices.returned", "software.returned.null", "software.returned.present",
+        "project.checked", "devices.enter", "devices.returned", "software.returned.null", "software.returned.present",
         "device_items.traversed", "device.classified", "inventory.returned", "dispose.enter",
         "dispose.returned", "cycle.returned"
     };

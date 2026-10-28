@@ -23,6 +23,8 @@ internal sealed class BootstrapEvidence(HostConfiguration config, SqliteOperatio
         var local = new BootstrapLocal(config, store); local.Check(asOperator: true);
         string id = config.QualificationBootstrap!.AuthorizationId;
         var state = store.ReadBootstrap(id) ?? throw new IOException("BOOTSTRAP_NOT_FOUND");
+        bool diagnostic = state.Authorization.IsHandleDiagnostics;
+        if (diagnostic && reviewRequested) throw new IOException("DIAGNOSTIC_IS_NOT_QUALIFICATION");
         string directory = Path.Combine(local.Root, "reports", Guid.NewGuid().ToString("N"));
         StorageLocation.CheckChain(directory); System.IO.Directory.CreateDirectory(directory);
         var issues = new List<string>(); var files = new List<object>();
@@ -39,7 +41,7 @@ internal sealed class BootstrapEvidence(HostConfiguration config, SqliteOperatio
         if (BootstrapAuthorization.Sha(authorization) != state.Sha256) throw new IOException("BOOTSTRAP_AUTHORIZATION_CORRUPT");
         Write("authorization.json", authorization);
         var cycles = store.BootstrapCycles(id); Json("cycles.json", cycles);
-        bool confirmed = cycles.Count == 20 && state.UsedCycles == 20
+        bool confirmed = cycles.Count == state.Authorization.CycleBudget && state.UsedCycles == state.Authorization.CycleBudget
             && cycles.Select(c => (c.WorkerEpoch, c.WorkerPid, c.WorkerStartTicks)).Distinct().Count() == 1;
         var audited = new HashSet<string>(StringComparer.Ordinal);
         foreach (var epoch in cycles.Select(c => c.WorkerEpoch).Distinct())
@@ -58,8 +60,17 @@ internal sealed class BootstrapEvidence(HostConfiguration config, SqliteOperatio
                     if (entry.RootElement.GetProperty("call").GetString() == "TiaPortal.DisposeAttachedSession.Returned")
                         audited.Add(entry.RootElement.GetProperty("operation_id").GetString()!);
                 }
+                if (diagnostic)
+                {
+                    string traceName = "v19-resources-" + epoch.ToString("N") + ".jsonl";
+                    string tracePath = Path.Combine(config.StatePath, traceName); StorageLocation.CheckChain(tracePath);
+                    using var trace = new FileStream(tracePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                    if (trace.Length > 1024 * 1024) throw new IOException("PHASE_TRACE_LIMIT");
+                    byte[] traceBytes = new byte[checked((int)trace.Length)]; trace.ReadExactly(traceBytes); Write(traceName, traceBytes);
+                    BootstrapPhaseTrace.Verify(traceBytes, epoch, cycles.Where(c => c.WorkerEpoch == epoch).ToArray());
+                }
             }
-            catch (Exception e) when (e is IOException or JsonException or ProtocolException or InvalidOperationException or KeyNotFoundException)
+            catch (Exception e) when (e is IOException or JsonException or ProtocolException or InvalidOperationException or KeyNotFoundException or FormatException or OverflowException)
             { confirmed = false; issues.Add("AUDIT:" + e.GetType().Name); }
         }
         foreach (var cycle in cycles)
@@ -157,7 +168,8 @@ internal sealed class BootstrapEvidence(HostConfiguration config, SqliteOperatio
             { issues.Add("REVIEW:" + e.GetType().Name); }
         }
         string status = issues.Count > 0 ? "BLOCKED" : cycles.Any(c => c.State == "UNCERTAIN_OR_FAILED") ? "FAIL"
-            : !confirmed ? "INCOMPLETE" : !released || !reviewed ? "REVIEW_REQUIRED" : "PASS";
+            : !confirmed ? "INCOMPLETE" : diagnostic ? released ? "DIAGNOSTIC_COMPLETE" : "RELEASE_REQUIRED"
+            : !released || !reviewed ? "REVIEW_REQUIRED" : "PASS";
         Json("report.json", new
         {
             status,
@@ -178,7 +190,7 @@ internal sealed class BootstrapEvidence(HostConfiguration config, SqliteOperatio
             first_cycle = "cold",
             subsequent_cycles = "warm",
             enrollment = "NOT_REGISTERED",
-            engineering_scope = "qualification-only candidate; no capability grant",
+            engineering_scope = diagnostic ? "HANDLE_DIAGNOSTICS only; B1 qualification NOT_RUN; no enrollment candidate" : "qualification-only candidate; no capability grant",
             nf11 = "NOT_RUN",
             worker_handle_risk = "UNKNOWN",
             production = "NOT_RUN"

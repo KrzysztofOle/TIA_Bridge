@@ -129,3 +129,18 @@ DIRTY_OR_UNKNOWN_PROJECT i DOSSIER_INVALID. Opis wskazuje konkretną rozbieżno�
 E2-B2 jest odrzucane. Dopiero B1 qualification PASS, pełny manifest/release/trend review
 i oddzielna decyzja mogą otworzyć nowe przygotowanie B2. Instrukcja działań operatora:
 [E2_OPERATOR](E2_OPERATOR.md). Timeout/hang/unknown → STOP bez retry/Save/kill.
+
+## E2-G-D — osobna gotowość diagnostyczna
+
+Lokalny przełącznik `--experiment HANDLE_DIAGNOSTICS` wybiera plan
+[E2-B1-D](E2-B1-D_TEST_PLAN.md), scope purpose HANDLE_DIAGNOSTICS, plan_id E2-B1-D,
+maximum_cycles=3 i automatic_retry=false. Dossier ma schema_version 1.1, pozostałe
+dotychczasowe pola oraz phase_telemetry_ready=true i handle_type_analysis równe
+AVAILABLE lub NOT_AVAILABLE (brak bezpiecznego narzędzia nie jest obchodzony).
+Pozostałe exact scope/binding/13 getters i review mają te same reguły. Wymagane są
+także pełne suite BootstrapDiagnosticTests i WorkerResourceTests w aktualnym TRX.
+
+Default/B1 pozostaje 1.0/20 i odrzuca dossier diagnostyczne. E2-G-D używa tej samej
+D-11/profile/bytes/build/safety kontroli i nie tworzy auth/SQLite/Attach. READY nadal
+oznacza wyłącznie gotowość do jawnej lokalnej autoryzacji. Wynik task=E2-G-D,
+b1_qualification=NOT_RUN; trzy cykle nie mogą zamknąć B1 jako PASS.
