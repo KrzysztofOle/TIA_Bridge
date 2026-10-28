@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "TIA Bridge: FORCE EXPORT — TIA → Folder",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "& \"X:\\TESTY_TIA_Bridge\\bin\\LabExporter.exe\" force-export --project \"X:\\TESTY_TIA_Bridge\\T05_RecipeSim_V19_Testowy\" --output \"X:\\TESTY_TIA_Bridge\\Scripts\"",
+      "cwd": "X:\\TESTY_TIA_Bridge"
+    },
+    {
+      "name": "TIA Bridge: FORCE IMPORT — Folder → TIA",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "& \"X:\\TESTY_TIA_Bridge\\bin\\LabExporter.exe\" force-import --project \"X:\\TESTY_TIA_Bridge\\T05_RecipeSim_V19_Testowy\" --input \"X:\\TESTY_TIA_Bridge\\Scripts\"",
+      "cwd": "X:\\TESTY_TIA_Bridge"
+    }
+  ]
+}

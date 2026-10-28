@@ -77,6 +77,12 @@ Repozytorium kodu jest odrębne od trwałej bazy operacji, sekretów i spool wyk
 
 Kontrola dokumentacji: `py -3 scripts/audit_quality.py`. Wymaga Python 3.12 i `jsonschema`; nie łączy się z Siemens. [Instrukcja](scripts/README.md), [zasady agentów](AGENTS.md).
 
+### Laboratoryjne uruchamianie FORCE EXPORT / FORCE IMPORT
+
+Repozytorium zawiera konfiguracje VS Code dla istniejącego laboratoryjnego narzędzia `X:\TESTY_TIA_Bridge\bin\LabExporter.exe`. Otwórz `X:\Projects\TIA_Bridge` w VS Code, przejdź do **Run and Debug**, wybierz **TIA Bridge: FORCE EXPORT — TIA → Folder** albo **TIA Bridge: FORCE IMPORT — Folder → TIA** i naciśnij **F5**. Polecenia uruchamiają się w widocznym terminalu VS Code; ewentualne okno Siemens Openness zatwierdź ręcznie.
+
+Ścieżki laboratorium są jawnie ustawione w `.vscode\launch.json`: projekt `X:\TESTY_TIA_Bridge\T05_RecipeSim_V19_Testowy` oraz katalog `X:\TESTY_TIA_Bridge\Scripts` jako cel eksportu i źródło importu. Zmień odpowiednie argumenty `--project`, `--output` lub `--input`, aby użyć innych lokalizacji. Eksport zastępuje zawartość katalogu docelowego; import aktualizuje moduły przy zgodnym zestawie nazw i ich nie usuwa. Te konfiguracje nie wykonują Download ani operacji Runtime.
+
 ## Materiały wejściowe
 
 Pierwotne opracowania [architecture](docs/architecture.md), [sync-model](docs/sync-model.md), [formats](docs/formats.md), [safety](docs/safety.md), [roadmap](docs/roadmap.md) i ADR 0001 zachowano i powiązano z aktualnymi specyfikacjami. [ADR 0002](docs/decisions/0002-async-host-and-versioned-worker.md) doprecyzowuje autonomię w zatwierdzonej sesji.

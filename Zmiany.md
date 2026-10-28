@@ -1,5 +1,13 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-28 — LAB-03E: VS Code launch dla eksportera laboratoryjnego
+
+Dodano `.vscode/launch.json` z konfiguracjami **TIA Bridge: FORCE EXPORT — TIA → Folder** i **TIA Bridge: FORCE IMPORT — Folder → TIA**. Obie uruchamiają istniejący `X:\TESTY_TIA_Bridge\bin\LabExporter.exe` przez typ `node-terminal`, z argumentami LAB-03C/03D, widocznym terminalem i katalogiem roboczym laboratorium. Nie uruchamiano rzeczywistego eksportu ani importu; F5 pozostaje NOT_RUN, aby test konfiguracji nie zmieniał danych laboratorium/TIA. Zaktualizowano README o wybór konfiguracji, F5 i edycję ścieżek.
+
+`.vscode/` jest ignorowane przez `.gitignore`; sam `launch.json` dodano jawnie do indeksu Git (`git add -f`). Kontrola: składnia JSON, dwie nazwy i typy konfiguracji, ścieżka programu, operacje i argumenty projektu/katalogów oraz istnienie celów PASS. `py -3 scripts/audit_quality.py` i `git diff --check` wykonano po zmianach.
+
+Ocena wpływu: zmiana dotyczy wyłącznie lokalnego launchera laboratoryjnego i instrukcji README. Nie zmienia workflow CODEX, architektury, synchronizacji, autoryzacji ani bezpieczeństwa PLC/HMI; `AGENTS.md`, `Instrukcja_ChatGPT.md`, ADR, specyfikacje i kontrakty pozostają bez zmian.
+
 ## 2026-10-28 — B-03A/E2-B1-I: izolacja IPC, heartbeat i finalizacji net48
 
 Baza 2c5b142 na sprawdzonej gałęzi diagnostycznej, clean; origin/main=16916d4,
