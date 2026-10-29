@@ -38,3 +38,6 @@ coverage/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Python bytecode
+__pycache__/
