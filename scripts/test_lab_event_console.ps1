@@ -51,12 +51,22 @@ Console.Error.WriteLine("EXPORT EVENTS FAILED; exception_type=" + ex.GetType().F
 '@
 $expectedVendor = $expectedVendor.Replace($oldFailure.Replace("`r`n","`n"), 'LabEventConsole.Failure(Console.Error, ex, output);')
 $actualVendor = [IO.File]::ReadAllText((Join-Path $LabRoot 'src\LabEventVendor.cs')).Replace("`r`n","`n")
-if ($expectedVendor -cne $actualVendor) { throw 'Vendor lifecycle changed beyond the four console edits' }
+# LAB-03N changes only destination validation and run path composition, outside Siemens lifecycle.
+$expectedVendor = $expectedVendor.Replace('output = Path.Combine(root, runId);', 'output = LabEventOutput.RunDirectory(root, runId);')
+$expectedVendor = [regex]::Replace($expectedVendor, '(?s)(private static string ValidateEventOutput\(string argument, string projectDirectory\)\n    \{).*?\n    \}', '$1' + "`n        return LabEventOutput.Root(argument);`n    }")
+# LAB-03O: exact CLI/default mode and publisher dispatch edits; Siemens lifecycle stays byte-identical.
+$expectedVendor = $expectedVendor.Replace('"--project", "--output", "--hmi" }.Contains(args[i])', '"--project", "--output", "--hmi", "--mode" }.Contains(args[i])')
+$expectedVendor = $expectedVendor.Replace('if (options.Count != 3) throw new ArgumentException("EXPORT_EVENTS_REQUIRES_PROJECT_OUTPUT_HMI");', 'if (!new[] { "--project", "--output", "--hmi" }.All(options.ContainsKey)) throw new ArgumentException("EXPORT_EVENTS_REQUIRES_PROJECT_OUTPUT_HMI");' + "`n            " + 'string mode = LabEventSync.Mode(options.ContainsKey("--mode") ? options["--mode"] : null);')
+$expectedVendor = $expectedVendor.Replace('output = LabEventOutput.RunDirectory(root, runId);', 'output = mode == "snapshot" ? LabEventOutput.RunDirectory(root, runId) : root;')
+$expectedVendor = $expectedVendor.Replace('LabEventArtifacts.Write(output, result);', 'string readStatus = result.status;' + "`n            " + 'Console.WriteLine("READ RESULT; status=" + readStatus);' + "`n            " + 'string artifactStatus;' + "`n            " + 'if (mode == "snapshot") LabEventArtifacts.Write(output, result);' + "`n            " + 'if (mode == "snapshot") artifactStatus = result.status;' + "`n            " + 'else artifactStatus = LabEventSync.Write(output, result);' + "`n            " + 'Console.WriteLine("PUBLICATION COMPLETE; mode=" + mode + "; read_status=" + readStatus + "; artifact_status=" + artifactStatus);')
+$expectedVendor = $expectedVendor.Replace('return result.status == "COMPLETE_FOR_PUBLIC_SCOPE" ? 0 : 2;', 'return artifactStatus == "COMPLETE_FOR_PUBLIC_SCOPE" ? 0 : 2;')
+$expectedVendor = $expectedVendor.Replace('ENCODED_DEVICE_ITEM_PATH");', 'ENCODED_DEVICE_ITEM_PATH [--mode overwrite|snapshot]");')
+if ($expectedVendor -cne $actualVendor) { throw 'Vendor lifecycle changed beyond console, LAB-03N paths and LAB-03O CLI/publication dispatch' }
 $ErrorActionPreference = 'Continue'
 $invalid = & (Join-Path $LabRoot 'bin\LabExporter.exe') export-events 2>&1
 $invalidExit = $LASTEXITCODE
 $ErrorActionPreference = 'Stop'
 if ($invalidExit -ne 1 -or ($invalid -join "`n") -notmatch 'ERROR EXPORT EVENTS FAILED' -or ($invalid -join "`n") -match 'read-only Attach') { throw 'Invalid CLI exit/pre-Attach failure changed' }
-[ordered]@{status='PASS';unchanged_artifacts=$compared;manifest_change='tool_sha256 only';vendor_change='four console edits only';exit_codes='0/2/1 branches unchanged; invalid CLI exit 1 executed without Attach';invalid_cli_output=@($invalid | ForEach-Object ToString)} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $run 'compatibility.json') -Encoding UTF8
+[ordered]@{status='PASS';unchanged_artifacts=$compared;manifest_change='tool_sha256 only';vendor_change='console, LAB-03N paths and LAB-03O CLI/publication only';exit_codes='0/2/1 semantics preserved; artifact omissions return 2; invalid CLI exit 1 executed without Attach';invalid_cli_output=@($invalid | ForEach-Object ToString)} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $run 'compatibility.json') -Encoding UTF8
 Write-Output "LAB-03M compatibility PASS: $($compared.Count) identical artifacts. Evidence: $run"
 exit $testExit

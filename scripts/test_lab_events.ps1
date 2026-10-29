@@ -10,7 +10,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Offline test compilation failed' }
 & $exe $run (Join-Path $LabRoot 'bin\LabExporter.exe') | Tee-Object -FilePath (Join-Path $run 'console.txt')
 $testExit = $LASTEXITCODE
 $launch = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\.vscode\launch.json') -Raw | ConvertFrom-Json
-$configuration = @($launch.configurations | Where-Object { $_.name -like 'TIA Bridge: EXPORT EVENTS*' })
+$configuration = @($launch.configurations | Where-Object { $_.name -like 'TIA Bridge: EXPORT EVENTS*' -and $_.name -notlike '*SNAPSHOT*' })
 if ($configuration.Count -ne 1) { throw 'EXPORT EVENTS launch configuration missing or duplicated' }
 # Verify the exact configured CLI arguments without invoking the exporter.
 $expected = @(
@@ -23,6 +23,9 @@ foreach ($argument in $expected) {
     if (-not $configuration[0].command.Contains($argument)) { throw "Launch argument missing: $argument" }
 }
 if ($configuration[0].command -match 'Read-Host|ReadLine') { throw 'Complete launch configuration still prompts interactively' }
+if ($configuration[0].command -match '--mode') { throw 'Default export launch must use implicit overwrite' }
+$snapshot = @($launch.configurations | Where-Object { $_.name -like '*EXPORT EVENTS*SNAPSHOT*' })
+if ($snapshot.Count -ne 1 -or $snapshot[0].command -cne ($configuration[0].command + ' --mode snapshot')) { throw 'Snapshot launch arguments differ beyond explicit mode' }
 $forceExport = @($launch.configurations | Where-Object { $_.name -like 'TIA Bridge: FORCE EXPORT*' })
 $forceImport = @($launch.configurations | Where-Object { $_.name -like 'TIA Bridge: FORCE IMPORT*' })
 if ($forceExport.Count -ne 1 -or $forceExport[0].command -cne '& "X:\TESTY_TIA_Bridge\bin\LabExporter.exe" force-export --project "X:\TESTY_TIA_Bridge\T05_RecipeSim_V19_Testowy" --output "X:\TESTY_TIA_Bridge\Scripts"') { throw 'FORCE EXPORT configuration changed' }

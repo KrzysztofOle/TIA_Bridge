@@ -269,7 +269,7 @@ internal static class LabEventsTests
             Check(Directory.GetFiles(root, ".incomplete", SearchOption.AllDirectories).Any(x => File.ReadAllText(x).Contains("LIMIT_EXCEEDED")), "limit reason not retained");
         });
         Test("production_adapter_IL_allows_only_public_read_members", AuditAdapter);
-        Test("production_output_policy_rejects_repo_scripts_source_project", AuditOutputPolicy);
+        Test("lab_output_policy_accepts_user_selected_directories", AuditOutputPolicy);
         File.WriteAllText(Path.Combine(root, "results.json"), Json.Serialize(new { tests = Results, failed = Results.Count(x => Json.Serialize(x).Contains("\"FAIL\"")), production_binary_sha256 = LabEventArtifacts.Digest(File.ReadAllBytes(binary)) }), new UTF8Encoding(false));
         int failed = Results.Count(x => Json.Serialize(x).Contains("\"FAIL\""));
         Console.WriteLine("TOTAL " + Results.Count + "; FAILED " + failed);
@@ -338,7 +338,7 @@ internal static class LabEventsTests
         MethodInfo method = type.GetMethod("ValidateEventOutput", BindingFlags.NonPublic | BindingFlags.Static);
         string project = @"X:\TESTY_TIA_Bridge\T05_RecipeSim_V19_Testowy";
         foreach (string path in new[] { @"X:\Projects\TIA_Bridge\EventExports", @"X:\Projects\TIA_Bridge-HMI-JS-02\events", @"X:\TESTY_TIA_Bridge\Scripts\events", @"X:\TESTY_TIA_Bridge\src\events", project + @"\events", @"X:\TESTY_TIA_Bridge\bin\events", @"X:\" })
-            Check(Reject(() => method.Invoke(null, new object[] { path, project })), "unsafe output accepted: " + path);
+            Check((string)method.Invoke(null, new object[] { path, project }) == Path.GetFullPath(path), "selected output rejected: " + path);
         Check((string)method.Invoke(null, new object[] { Path.Combine(root, "EventExports"), project }) == Path.Combine(root, "EventExports"), "valid external output rejected");
     }
 }
