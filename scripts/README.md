@@ -82,3 +82,14 @@ Siemens ani nie aktywuje bootstrapu. Format, kody i znaczenie trzech statusów s
 [21](../docs/21_E2_B1_READINESS_GATE.md). Runner z jawnym SHARED_WORKSTATION buduje także Worker V19 Release
 z lokalnych referencji i cache (locked offline restore), bez uruchamiania Workera;
 CreateNew build-metadata wiąże exact Host/Worker z dowodem i źródłami.
+
+## Porównywanie zdarzeń HMI offline
+
+[compare_events.py](compare_events.py) wymaga Python 3.12 i tylko stdlib. CLI:
+`py -3 -B scripts/compare_events.py compare-events --before <events.json> --after <events.json> --output <parent>`.
+[compare-events.ps1](compare-events.ps1) wymaga Windows PowerShell 5.1 i py launcher;
+przy braku parametrów pyta wyłącznie o trzy ścieżki. Jest launcherem konfiguracji VS Code COMPARE EVENTS.
+Nie ładuje Siemens ani nie wykonuje JS. Wyniki w nowych `EventComparisons/<run-id>/`, np. pod ignorowanym `.tia-bridge/`.
+Exit 0 = ukończone porównanie, 2 = opublikowane PARTIAL/UNKNOWN, 1 = błąd.
+Testy: `py -3 -B scripts/test_compare_events.py` (stdlib, syntetyczne dane, bez TIA).
+Format raportu, semantyka coverage, limity i ograniczenia: [dokumentacja](../docs/LAB_EVENT_COMPARISON.md).

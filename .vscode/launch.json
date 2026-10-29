@@ -21,6 +21,13 @@
       "request": "launch",
       "command": "& \"X:\\TESTY_TIA_Bridge\\bin\\LabExporter.exe\" export-events --project \"X:\\TESTY_TIA_Bridge\\T05_RecipeSim_V19_Testowy\" --output \"X:\\TESTY_TIA_Bridge\\EventExports\" --hmi \"HMI_JSON_TEST/HMI_RT_1\"",
       "cwd": "X:\\TESTY_TIA_Bridge"
+    },
+    {
+      "name": "TIA Bridge: COMPARE EVENTS — Export ↔ Export",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/compare-events.ps1",
+      "cwd": "${workspaceFolder}"
     }
   ]
 }

@@ -1,5 +1,7 @@
 # LAB-03K — laboratoryjny eksport zdarzeń Unified V19
 
+Kolejne eksporty `events.json` można porównać całkowicie offline przez [compare-events](LAB_EVENT_COMPARISON.md), bez uruchamiania tego eksportera lub Siemens Openness. Narzędzie zachowuje rozróżnienie częściowego odczytu, pustych handlerów i potwierdzonego braku oraz nie używa indeksowanych locatorów jako trwałej tożsamości.
+
 Data: 2026-10-29. Baza repo: `ded62b7`, `main`, początkowo czyste drzewo. Zlecenie obejmuje implementację i testy offline, bez Attach ani operacji TIA, commita i push. Laboratorium `X:\TESTY_TIA_Bridge` nie jest repozytorium Git; poprzednie źródło, EXE i README zachowano w `evidence\LAB-03K-before-dbb3a3bd7cdc40c4a74270168b60583b`.
 
 ## Polecenie i granica architektury
