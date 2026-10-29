@@ -96,6 +96,8 @@ Test B i readback: **NOT_RUN**, ponieważ test A nie dostarczył kompletnej świ
 
 ## Zmienione pliki i ograniczenia
 
+Odrębne polecenie [LAB-03K `export-events`](LAB_03K_HMI_EVENT_EXPORT.md) zapisuje obserwacje zdarzeń poza `Scripts` i nie używa ani nie zmienia formatu modułów LAB-03I. Jego testy offline nie rozszerzają poniższych historycznych dowodów Engineering.
+
 W laboratorium: `src\LabExporter.cs`, `src\SplitModules.ps1`, `src\RebuildImportPackages.ps1`, `bin\LabExporter.exe`, `README.md`. W repo: `scripts\test_lab03i.ps1`, `scripts\README.md`, `README.md`, ten raport i `Zmiany.md`. Nowe syntetyczne fixtures, logi, raporty i diffy znajdują się poza Git pod `X:\TESTY_TIA_Bridge`; wcześniejsze źródła/binary zachowano w `evidence\LAB-03I-before-a344a799e577417e8765d01e2f72cd26`.
 
 `LabExporter.exe` jest zbudowany i gotowy do testów nowego formatu offline. **Nie potwierdzono gotowości do użycia w T05_PLC**: live eksport całej paczki zakończył się FAIL, a import/readback nie zostały wykonane. Błąd natywnego eksportu wymaga osobnej diagnozy przed deklaracją pełnego live PASS. Istniejące laboratoryjne `Scripts` zachowano bez ręcznej migracji; nowy importer wymaga ponownego udanego FORCE EXPORT. Repozytorium/projekt `C:\RMA\t05_plc` pozostawiono bez zmian.

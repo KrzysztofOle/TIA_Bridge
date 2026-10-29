@@ -17,6 +17,8 @@ Rekomendacja: host C#/.NET 10, trwałe operacje i SQLite na lokalnym NTFS, wykon
 
 ## Dokumentacja projektu
 
+[LAB-03K — eksport zdarzeń Unified](docs/LAB_03K_HMI_EVENT_EXPORT.md): nowe ręczne `LabExporter.exe export-events` w `X:\TESTY_TIA_Bridge`, osobne JSON/raport/JS/manifest w nowym katalogu poza repo i `Scripts`. Konfiguracja VS Code **TIA Bridge: EXPORT EVENTS — TIA → Folder** pyta w terminalu o projekt, wynik i dokładny locator HMI. Implementacja i testy offline; rzeczywisty eksport/Attach oraz Engineering qualification **NOT_RUN**, `RowSelected` **UNKNOWN**. Wnętrza kontenerów bez publicznego odczytu pozostają `UNKNOWN/PARTIAL`; nie jest to produkcyjna synchronizacja. Dotychczasowe FORCE EXPORT/IMPORT zachowane.
+
 Bieżące przygotowanie B-03A/E2: [pakiet E2-A](docs/B03A_E2_A_PREPARATION.md),
 [plan B1 — T05_RecipeSim_V19_Testowy](docs/E2-B1_TEST_PLAN.md),
 [plan B2 — T04_T05-000_Testowy](docs/E2-B2_TEST_PLAN.md),

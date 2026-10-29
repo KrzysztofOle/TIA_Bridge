@@ -85,6 +85,8 @@ Autoryzację Siemens/UAC obsługiwał operator. Umiejętność `computer-use` s�
 
 ## Pliki i gotowość
 
+Dalszy niezależny pakiet: [LAB-03K — eksport zdarzeń](LAB_03K_HMI_EVENT_EXPORT.md), implementacja i testy offline nowego `export-events`. Nie zmienia opisanych niżej historycznych wyników, zabezpieczeń ani ścieżek FORCE EXPORT/IMPORT.
+
 Zmiany LAB-03J: laboratoryjne `src\LabExporter.cs`, `bin\LabExporter.exe`, `README.md`; repozytoryjne `scripts\test_lab03j.ps1`, `scripts\README.md`, ten raport, README i `Zmiany.md`. Dowody, archiwa i fixtures są poza Git. `C:\RMA\t05_plc`, kod biznesowy poza jednym zaplanowanym komentarzem testowym, PLC i konfiguracja urządzeń pozostają poza zmianą. Brak commita/push.
 
 Gotowość do T05_PLC: **NO** do czasu rozstrzygnięcia historycznej przyczyny. Bieżący sukces laboratoryjny nie oznacza potwierdzonej naprawy nieodtworzonej awarii. Wymaganie LAB-03J dotyczące ustalenia i usunięcia konkretnej przyczyny pozostaje niezamknięte; nie raportujemy całego zadania jako bezwarunkowego PASS.

@@ -14,6 +14,13 @@
       "request": "launch",
       "command": "& \"X:\\TESTY_TIA_Bridge\\bin\\LabExporter.exe\" force-import --project \"X:\\TESTY_TIA_Bridge\\T05_RecipeSim_V19_Testowy\" --input \"X:\\TESTY_TIA_Bridge\\Scripts\"",
       "cwd": "X:\\TESTY_TIA_Bridge"
+    },
+    {
+      "name": "TIA Bridge: EXPORT EVENTS — TIA → Folder",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "& \"X:\\TESTY_TIA_Bridge\\bin\\LabExporter.exe\" export-events --project \"X:\\TESTY_TIA_Bridge\\T05_RecipeSim_V19_Testowy\" --output \"X:\\TESTY_TIA_Bridge\\EventExports\" --hmi \"HMI_JSON_TEST/HMI_RT_1\"",
+      "cwd": "X:\\TESTY_TIA_Bridge"
     }
   ]
 }
