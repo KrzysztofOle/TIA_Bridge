@@ -63,6 +63,12 @@ Po utracie rodzica/IPC worker nie abortuje vendor call: kończy na właścicielu
 
 Testy i odrębna zgoda Engineering: [instrukcja X-01](../../tests/engineering/README.md). Dostęp do nowego EXE może wymagać dialogu Siemens. Nie stosuj automatycznej whitelisty, edycji rejestru lub grantów innych sesji; GUI wyłącznie według AGENTS.md.
 
+## Wewnętrzny diagnostyczny HMI event reader — offline
+
+[HmiEventDiagnosticReader.cs](HmiEventDiagnosticReader.cs) jest typowanym, ograniczonym komponentem dla `HmiSoftware` Unified V19. Obsługuje sześć ustalonych par obiekt/event na `T05_Recipes_Main`, przez `Screens`, `ScreenGroups`, `ScreenItems` i typowane `EventHandlers`. Czyta dokładne stringi `ScriptCode`/`GlobalDefinitionAreaScriptCode`, `EventType`, typ/nazwę/locator oraz `IHmiScript.Async`. Obsługiwane typy elementów: `HmiButton`, `HmiCustomWidgetContainer`, `HmiCustomWebControlContainer`; pozostałe pozostają jawnie UNSUPPORTED. Dla custom eventów sprawdza `GetValidEnumValues()`, bez założenia, że nazwa tabeli potwierdza dostępność `RowSelected`.
+
+Nie ma wywołania z Program, `VendorReader`, IPC ani Host; brak nowego argumentu CLI, capability i grantu. Komponent wymaga już zweryfikowanego software/locator oraz bieżącego owner thread; sam nie sprawdza tożsamości projektu, nie wykonuje Attach i nie tworzy sesji. Przyszłe podłączenie wymaga osobnego zadania w istniejącym lifecycle z zachowaniem identity/IsModified, warunków STOP i dotychczasowych bramek. Testy kompilują dokładny kod readera przeciw atrapom publicznych typów, bez Siemens reference i bez działającego TIA. Raport, statusy, limity, polecenia oraz ograniczenia: [implementacja offline](../../docs/HMI_EVENT_READER_OFFLINE.md). Engineering i Runtime NOT_RUN; offline PASS nie rozszerza kwalifikacji X-01/DiscoveryV1.
+
 ## Capability matrix X-01
 
 | Zakres | Kontrakt | Implementacja | Kwalifikacja / dopuszczenie |
