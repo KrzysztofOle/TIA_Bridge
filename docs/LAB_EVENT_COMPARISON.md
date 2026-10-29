@@ -1,5 +1,65 @@
 # Offline comparison of LAB-03K event exports
 
+## 2026-10-29 — naprawa INCOMPLETE_LOGICAL_IDENTITY
+
+Zakres: wyłącznie porównywarka offline, jej testy i dokumentacja. Baza repo `4fa6887`, main, z zachowanymi wcześniejszymi zmianami LAB-03L/M. LAB-03K/L/M, EXE, projekty TIA, eksporty historyczne i ich JSON pozostały bez zmian. Bez Siemens Openness, importu/synchronizacji, commita i push.
+
+### Przyczyna i reguły parsowania
+
+Problem odtworzono na wskazanych rzeczywistych eksportach A/B: 422 obiekty UNKNOWN, 96 handlerów UNKNOWN, wszystkie z INCOMPLETE_LOGICAL_IDENTITY. LAB-03K zapisuje `identity.device_path` jako **tablicę segmentów**, np. `["HMI_JSON_TEST", "HMI_RT_1"]`. Porównywarka wymagała stringa zarówno przy budowaniu klucza SOFTWARE, jak i ocenie bindingu. Poprawny korzeń nie otrzymywał klucza, a niepełna tożsamość propagowała się na wszystkie dzieci i handlery. Dotychczasowe fixtures używały wyłącznie stringa `Device/Runtime`, dlatego nie wykryły błędu. To nie był brak metadanych w eksporcie ani problem publicznego coverage.
+
+Naprawa akceptuje natywną tablicę nazw i zachowuje obsługę wcześniejszego stringa ścieżki z kodowaniem procentowym. Binding porównuje uporządkowane segmenty, zachowując granice nazw: `["A/B", "C"]` różni się od `["A", "B/C"]`. Nie normalizuje Unicode, case lub nazw. Nieprawidłowe/niepełne segmenty i błędne escape procentowe pozostają UNKNOWN. Surowe identity wejścia pozostaje w raporcie bez zmian.
+
+Poprawny korzeń SOFTWARE ma locator `/HMI/<zakodowane-segmenty-urządzenia>` zgodny z device_path. Każdy kolejny rekord musi mieć dokładnie jednego obserwowanego rodzica oraz poprawną krawędź:
+
+| Krawędź w locatorze | Kind dziecka | Kind rodzica |
+|---|---|---|
+| ScreenGroups[n] | GROUP | SOFTWARE |
+| Groups[n] | GROUP | GROUP |
+| Screens[n] | SCREEN | SOFTWARE lub GROUP |
+| ScreenItems[n] | ITEM | SCREEN lub ITEM |
+| EventHandlers[n] | handler | dokładny obiekt wskazany przez object_locator |
+
+Bezpośrednie `/HMI/HMI_JSON_TEST/HMI_RT_1/Screens[0]/ScreenItems[0]` jest prawidłowe; grupa nie jest wymagana. Wspierane pozostają grupy/podgrupy i zagnieżdżenia elementów. Ordinal ma format nieujemnej liczby Int32 bez dodatkowych zer wiodących. Nieznane kompozycje, zły kind, nieprawidłowy suffix lub brak/duplikat rodzica nie otrzymują zgadywanego klucza. Dodano kontrolowane `identity_issue`, np. DEVICE_PATH_INVALID, ROOT_DEVICE_BINDING_MISMATCH, OBJECT_LOCATOR_INVALID, PARENT_MISSING_OR_AMBIGUOUS, ANCESTOR_IDENTITY_INCOMPLETE i HANDLER_LOCATOR_INVALID. Główny reason INCOMPLETE_LOGICAL_IDENTITY pozostaje zachowany dla takich rekordów.
+
+Locatory służą wyłącznie do rekonstrukcji relacji **wewnątrz jednego eksportu**. Klucz porównania nadal składa się z urządzenia i kolejnych par kind/nazwa; handler dodaje nazwę zdarzenia. Indeksy i pełne locatory nie stają się zastępczym dopasowaniem między eksportami. Duplikaty nazw i niejednoznaczność przodków nadal blokują dopasowanie/diff. Potwierdzanie braku nadal wymaga kompletnego publicznego zakresu; niepełne lub nieidentyfikowalne inventory nie dowodzi usunięcia.
+
+### Czytelność raportu
+
+comparison.json zachowuje wszystkie szczegółowe entries. Do lokalnego kontraktu raportu lab-events-comparison/1.0 dodano pola `matched_counts` i `diagnostic_summary`; dla niepełnej tożsamości także `entries[].identity_issue`. Pierwszy licznik oznacza pary z jednoznaczną tożsamością, w tym pary PARTIAL; nie jest dodatkowym statusem ani sumą tylko UNCHANGED.
+
+Markdown grupuje diagnostykę według kind/status/reason/identity_issue i podaje liczby oraz maks. trzy przykłady z JSON Pointer do entries. Każdy przykład pokazuje maks. trzy locatory na stronę i pełną liczbę locatorów; pełne listy pozostają w entries. Nie generuje setek jednakowych wierszy UNKNOWN. Pozostałe sparowane rekordy, zmiany konfiguracji i linki do diffów pozostają w tabelach ekranów/grup. Raport jawnie odróżnia UNKNOWN tożsamości od PARTIAL pokrycia lub odczytu właściwości; globalny PARTIAL nie oznacza błędnej identyfikacji.
+
+### Wynik rzeczywistego porównania A/B
+
+Wejścia, bez modyfikacji:
+
+- A: `X:\TESTY_TIA_Bridge\EventExports\20261029T111051984Z-a2e5858d75d44a659edf6bbb2791e92d\events.json` — 135658 bajtów, SHA-256 `acc02440cb4c1aff9784b7d73640f7d6f386f01d9724bee1bc3954c408dc7118`.
+- B: `X:\TESTY_TIA_Bridge\EventExports\20261029T114706775Z-fdaba0c94f3c481292800b0280d1db39\events.json` — 135658 bajtów, SHA-256 `4dbe974f9a64ee30b3364285e91c94a36aa9cab2a20ce6e32f49b0c43046b257`.
+
+Oba mają kompletne metadane identyfikacyjne 211 obiektów: SOFTWARE 1, SCREEN 7, ITEM 203; po 48 handlerów i po 3 obserwacje ENCAPSULATED_CHILDREN_NOT_PUBLIC. **Dopasowano 211 obiektów i 48 handlerów.**
+
+| Rekordy | UNCHANGED | MODIFIED | UNKNOWN | PARTIAL | ADDED | REMOVED |
+|---|---|---|---|---|---|---|
+| Obiekty | 208 | 0 | 0 | 3 | 0 | 0 |
+| Handlery | 48 | 0 | 0 | 0 | 0 | 0 |
+
+Ogólny wynik **PARTIAL**, exit **2**, zachowany wyłącznie z powodu niepełnego pokrycia trzech kontenerów. Brak INCOMPLETE_LOGICAL_IDENTITY. Nie wymuszano UNCHANGED: niezależne porównanie surowych ScriptCode, GlobalDefinitionAreaScriptCode i async dla wszystkich 48 sparowanych handlerów potwierdziło zero różnic. Testy syntetyczne dowodzą, że zmiany każdej z tych właściwości nadal dają MODIFIED.
+
+Dowody w ignorowanym katalogu `.tia-bridge/compare-identity-fix-fde0af11b46c4198ae74169530190e66/`:
+
+- Odtworzenie starego błędu: EventComparisons/20261029T115117Z-1a6327264acb4358a4d51aa4c272f0e1/.
+- Finalne porównanie: final/EventComparisons/20261029T120243Z-c57ef0dbd70e41abaa7387cb1d0965c1/ — comparison.json, comparison-report.md i manifest.
+- real-comparison-verification-final.json: exit 2, liczniki, hashe wejść i kodu porównywarki, niezależne porównanie właściwości i weryfikacja całego zestawu plików/manifestu; real-comparison-cli-final.txt zachowuje CLI. Poprzednie przebiegi pozostawiono obok.
+- tests-final.txt: **44/44 PASS**, w tym 30 istniejących i 14 nowych testów. Fixture powtarza format LAB-03K i przykładowy locator urządzenia z zadania; pozostałe dane i kod JS są syntetyczne, bez kopiowania kodu z rzeczywistych eksportów.
+- final-report.json: zbiorcze wyniki, ścieżki dowodów i kontrola niezmienności LAB-03K/L/M oraz historii eksportów.
+
+Nowe testy obejmują model 211/48 z array device_path i bezpośrednimi Screens, niezależne przestawianie ekranów/elementów, code/GDA/Async, granice segmentów z procentami/slash/Unicode, błędny binding, grupy/nesting, duplikaty, rename przy tych samych indeksach, brak obiektu przy COMPLETE/PARTIAL, nieprawidłowe locatory i związek handler–owner. Raport testowy 518 UNKNOWN zachowuje wszystkie entries w JSON, a Markdown ma mniej niż 10000 znaków. Osobny przypadek stu zduplikowanych nazw sprawdza ograniczenie liczby locatorów w przykładach. Manifest, marker, diff i zachowanie historii pozostają sprawdzane.
+
+Regresja laboratoryjna bez przebudowy lub edycji LAB: LAB-03K 42/42, LAB-03L 16/16, LAB-03M 14/14, LAB-03I 18/18, LAB-03J 15/15, LAB-03H 10/10 PASS. Razem z porównywarką **159/159 PASS**, dodatkowo kontrole CLI/launch i byte regression. Zależności i polecenia porównywarki poniżej pozostają aktualne; regresje L/M uruchamiane istniejącymi test_lab_event_view.ps1 i test_lab_event_console.ps1 z zachowanymi baseline z ich dokumentacji.
+
+Poniżej zachowano opis pierwotnego wdrożenia oraz jego historyczne wyniki 30/30; powyższe wyniki dotyczą bieżącej naprawy.
+
 Data: 2026-10-29. Baza: `421958c`, `main`, początkowo czyste drzewo. Narzędzie laboratoryjne offline; bez Siemens Openness, vendor DLL, uruchamiania LabExporter lub JavaScript. Nie rozszerza produkcyjnego Host/API/CLI, synchronizacji ani uprawnień. Wejście to rzeczywisty format [LAB-03K](LAB_03K_HMI_EVENT_EXPORT.md), `lab-03k-events/1.0`; zasady niepełnego odczytu pozostają zgodne z [ADR 0003](decisions/0003-hmi-canonical-model-and-native-artifacts.md).
 
 ## CLI i zależności
@@ -26,7 +86,7 @@ Exit 0: ukończone porównanie, także z wykrytymi zmianami. Exit 2: opublikowan
 
 ## Tożsamość i reguły dopasowania
 
-Oba eksporty muszą mieć dokładnie taki sam, niepusty `identity.project_path` i `identity.device_path`. To binding deklaracji eksportu, bez niezależnego potwierdzenia projektu. Różnica lub brak daje `UNKNOWN`, bez zgadywania zgodności kopii projektu. PID, czas, numer odczytu i kolejność nie są tożsamością obiektu.
+Oba eksporty muszą mieć dokładnie taki sam, niepusty `identity.project_path` i zgodne uporządkowane segmenty `identity.device_path` (natywna tablica LAB-03K albo wcześniejszy kodowany string). To binding deklaracji eksportu, bez niezależnego potwierdzenia projektu. Różnica lub brak daje `UNKNOWN`, bez zgadywania zgodności kopii projektu. PID, czas, numer odczytu i kolejność nie są tożsamością obiektu.
 
 Locator służy wyłącznie do odtworzenia relacji rodzic–dziecko wewnątrz pojedynczego eksportu oraz do odwołań w raporcie. Klucz logiczny to urządzenie oraz kolejne pary kind/nazwa grupy, ekranu i elementu; handler dodaje nazwę zdarzenia. Typ obiektu, handlera i zdarzenia jest porównywaną konfiguracją. Zmiana typu przy jednoznacznej hierarchii daje `MODIFIED`; zduplikowane nazwy w tej samej hierarchii dają `UNKNOWN`, również gdy typ mógłby sugerować wybór. Niejednoznaczność przodka propaguje się do potomków. Takie wpisy nie otrzymują spekulacyjnego diffu kodu.
 
@@ -61,8 +121,8 @@ Stałe limity: 64 MiB na wejście, głębokość JSON i hierarchii 64, maks. 163
 
 Każdy przebieg zapisuje:
 
-- `comparison.json`: wersja, run-id, identyfikacja wejść, raw SHA-256/długości, coverage/obserwacje, klucze logiczne, locatory obu stron, lokalne statusy odczytu, zmienione właściwości i liczniki.
-- `comparison-report.md`: liczniki wszystkich sześciu statusów, zakres wiarygodności, lista według ekranów/grup, zmiany konfiguracji i linki do diffów. Nazwy/ścieżki są escapowane przeciw interpretacji jako HTML, obrazy lub linki Markdown.
+- `comparison.json`: wersja, run-id, identyfikacja wejść, raw SHA-256/długości, coverage/obserwacje, klucze logiczne, pełne locatory obu stron, lokalne statusy odczytu, zmienione właściwości i liczniki. matched_counts i diagnostic_summary opisują dopasowania oraz powody niepewności; entries zachowują wszystkie szczegóły, w tym identity_issue.
+- `comparison-report.md`: liczniki wszystkich sześciu statusów, zakres wiarygodności, zbiorcze przyczyny UNKNOWN/PARTIAL z przykładami, lista sparowanych wpisów według ekranów/grup, zmiany konfiguracji i linki do diffów. Nazwy/ścieżki są escapowane przeciw interpretacji jako HTML, obrazy lub linki Markdown.
 - `diffs/*.diff`: dokładne zmiany kodu/GDA, bez nazw użytkownika w nazwach plików.
 - `manifest.json`: ścieżki względne, długości i SHA-256 wszystkich trzech powyższych rodzajów artefaktów. Wyłącza siebie i marker `.incomplete`, co zapisuje jawnie.
 

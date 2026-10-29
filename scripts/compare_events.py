@@ -10,7 +10,9 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+import re
 import sys
+from urllib.parse import quote, unquote
 import uuid
 
 
@@ -19,6 +21,9 @@ MAX_BYTES = 64 * 1024 * 1024
 MAX_DEPTH = 64
 MAX_ROWS = 16384
 TEXT_FIELDS = ("ScriptCode", "GlobalDefinitionAreaScriptCode")
+EDGE = re.compile(r"(ScreenGroups|Groups|Screens|ScreenItems|EventHandlers)\[(0|[1-9][0-9]{0,9})\]\Z")
+PARENTS = {"ScreenGroups": ("GROUP", ("SOFTWARE",)), "Groups": ("GROUP", ("GROUP",)),
+           "Screens": ("SCREEN", ("SOFTWARE", "GROUP")), "ScreenItems": ("ITEM", ("SCREEN", "ITEM"))}
 
 
 def digest(data):
@@ -87,12 +92,42 @@ def nonempty(value):
     return isinstance(value, str) and bool(value)
 
 
+def path_segments(value):
+    """Decode an explicitly delimited path; encoded slash stays inside its segment."""
+    if not nonempty(value) or re.search(r"%(?![0-9a-fA-F]{2})", value):
+        return None
+    try:
+        return tuple(unquote(part, errors="strict") for part in value.split("/"))
+    except UnicodeError:
+        return None
+
+
+def device_segments(value):
+    # LAB-03K emits an array. Keep the former encoded string representation usable.
+    parts = tuple(value) if isinstance(value, list) else path_segments(value)
+    if (parts is None or not 2 <= len(parts) <= 16
+            or any(not nonempty(p) or not p.strip() or len(p) > 512 for p in parts)):
+        return None
+    return parts
+
+
+def locator_edge(locator):
+    if not nonempty(locator) or not locator.startswith("/HMI/"):
+        return None
+    parent, _, last = locator.rpartition("/")
+    match = EDGE.fullmatch(last)
+    if match is None or int(match[2]) > 2147483647:
+        return None
+    return parent, match[1]
+
+
 class Snapshot:
     def __init__(self, data, source):
         self.data, self.source = data, source
         self.locators = defaultdict(list)
         self.objects, self.handlers = defaultdict(list), defaultdict(list)
-        self.keys, self.bad = {}, []
+        self.keys, self.bad, self.identity_issues = {}, [], {}
+        self.device = device_segments(data["identity"].get("device_path"))
         for row in data["objects"]:
             if nonempty(row.get("locator")):
                 self.locators[row["locator"]].append(row)
@@ -103,9 +138,15 @@ class Snapshot:
             else:
                 self.objects[key].append(row)
         for row in data["handlers"]:
-            owners = self.locators.get(row.get("object_locator"), [])
+            owner_locator = row.get("object_locator")
+            owners = self.locators.get(owner_locator, []) if nonempty(owner_locator) else []
             key = self.keys.get(id(owners[0])) if len(owners) == 1 else None
-            if key is None or not all(nonempty(row.get(p)) for p in ("event_name", "event_type_type")):
+            edge = locator_edge(row.get("locator"))
+            issue = ("HANDLER_LOCATOR_INVALID" if edge != (owner_locator, "EventHandlers") else
+                     "HANDLER_OWNER_IDENTITY_INCOMPLETE" if key is None else
+                     "HANDLER_EVENT_IDENTITY_INCOMPLETE" if not all(nonempty(row.get(p)) for p in ("event_name", "event_type_type")) else None)
+            if issue:
+                self.identity_issues[id(row)] = issue
                 self.bad.append(("handler", row))
             else:
                 self.handlers[key + (("EVENT", row["event_name"]),)].append(row)
@@ -114,20 +155,39 @@ class Snapshot:
         if id(row) in self.keys:
             return self.keys[id(row)]
         locator = row.get("locator")
-        if (not nonempty(locator) or len(self.locators[locator]) != 1 or locator in visiting
-                or len(visiting) >= MAX_DEPTH or not nonempty(row.get("name"))
-                or not nonempty(row.get("object_type")) or row.get("kind") not in ("SOFTWARE", "GROUP", "SCREEN", "ITEM")):
+        def invalid(issue):
+            self.keys[id(row)] = None
+            self.identity_issues[id(row)] = issue
             return None
-        parent_locator = locator.rsplit("/", 1)[0]
-        parents = self.locators.get(parent_locator, [])
+        if not nonempty(locator) or not locator.startswith("/HMI/"):
+            return invalid("OBJECT_LOCATOR_INVALID")
+        if len(self.locators[locator]) != 1:
+            return invalid("DUPLICATE_OBJECT_LOCATOR")
+        if locator in visiting or len(visiting) >= MAX_DEPTH:
+            return invalid("IDENTITY_HIERARCHY_LIMIT_OR_CYCLE")
+        if not nonempty(row.get("name")) or not nonempty(row.get("object_type")):
+            return invalid("OBJECT_METADATA_INCOMPLETE")
+        if row.get("kind") not in ("SOFTWARE", "GROUP", "SCREEN", "ITEM"):
+            return invalid("OBJECT_KIND_UNKNOWN")
         if row["kind"] == "SOFTWARE":
-            device = self.data["identity"].get("device_path")
-            key = (("DEVICE", device),) if nonempty(device) and not parents else None
-        elif len(parents) == 1:
-            parent = self.object_key(parents[0], visiting | {locator})
-            key = parent + ((row["kind"], row["name"]),) if parent else None
+            if self.device is None:
+                return invalid("DEVICE_PATH_INVALID")
+            if path_segments(locator[len("/HMI/"):]) != self.device:
+                return invalid("ROOT_DEVICE_BINDING_MISMATCH")
+            key = (("DEVICE", "/".join(quote(p, safe="") for p in self.device)),)
         else:
-            key = None
+            edge = locator_edge(locator)
+            if edge is None or edge[1] not in PARENTS or PARENTS[edge[1]][0] != row["kind"]:
+                return invalid("OBJECT_LOCATOR_INVALID")
+            parents = self.locators.get(edge[0], [])
+            if len(parents) != 1:
+                return invalid("PARENT_MISSING_OR_AMBIGUOUS")
+            if parents[0].get("kind") not in PARENTS[edge[1]][1]:
+                return invalid("PARENT_KIND_MISMATCH")
+            parent = self.object_key(parents[0], visiting | {locator})
+            if parent is None:
+                return invalid("ANCESTOR_IDENTITY_INCOMPLETE")
+            key = parent + ((row["kind"], row["name"]),)
         self.keys[id(row)] = key
         return key
 
@@ -139,7 +199,8 @@ class Snapshot:
         object_key = key[:-1] if handler else key
         if any(kind == "object" for kind, _ in self.bad):
             return False
-        if any(kind == "handler" and row.get("object_locator") not in self.locators
+        if any(kind == "handler" and (not nonempty(row.get("object_locator"))
+                                      or row["object_locator"] not in self.locators)
                for kind, row in self.bad):
             return False
         if handler and object_key in self.objects:
@@ -180,9 +241,9 @@ def readable(row):
 
 def compare(before, after):
     result = []
-    binding = all(nonempty(s.data["identity"].get(p)) for s in (before, after)
-                  for p in ("project_path", "device_path")) and all(
-        before.data["identity"][p] == after.data["identity"][p] for p in ("project_path", "device_path"))
+    binding = (all(nonempty(s.data["identity"].get("project_path")) for s in (before, after))
+               and before.data["identity"]["project_path"] == after.data["identity"]["project_path"]
+               and before.device is not None and before.device == after.device)
     for handler in (False, True):
         left, right = (before.handlers, after.handlers) if handler else (before.objects, after.objects)
         for key in sorted(left.keys() | right.keys()):
@@ -223,6 +284,7 @@ def compare(before, after):
         for kind, row in snapshot.bad:
             result.append({"kind": kind, "identity": None, "status": "UNKNOWN",
                            "reason": "INCOMPLETE_LOGICAL_IDENTITY", "side": side,
+                           "identity_issue": snapshot.identity_issues[id(row)],
                            "before_locators": [row.get("locator")] if side == "before" else [],
                            "after_locators": [row.get("locator")] if side == "after" else [],
                            "changed_properties": {}})
@@ -235,8 +297,30 @@ def compare(before, after):
     return {"schema_version": "lab-events-comparison/1.0", "status": overall,
             "execution_evidence": "OFFLINE", "engineering_qualification": "NOT_RUN",
             "before": before.source, "after": after.source, "counts": counts,
+            "matched_counts": matched_counts(result), "diagnostic_summary": diagnostic_summary(result),
             "coverage_partial": coverage, "entries": result,
             "reliable_scope": "Unique logical identities and independently readable properties; absence only under complete observed owners/ancestors. Public LAB-03K scope only."}
+
+
+def matched_counts(entries):
+    return {kind: sum(e["kind"] == kind and e["status"] != "UNKNOWN"
+                      and len(e["before_locators"]) == len(e["after_locators"]) == 1 for e in entries)
+            for kind in ("object", "handler")}
+
+
+def diagnostic_summary(entries):
+    groups = {}
+    for index, entry in enumerate(entries):
+        if entry["status"] not in ("UNKNOWN", "PARTIAL"):
+            continue
+        key = (entry["kind"], entry["status"], entry["reason"], entry.get("identity_issue", ""))
+        group = groups.setdefault(key, dict(kind=key[0], status=key[1], reason=key[2], identity_issue=key[3], count=0, examples=[]))
+        group["count"] += 1
+        if len(group["examples"]) < 3:
+            group["examples"].append({"entry_ref": "/entries/" + str(index),
+                                      "before_locators": entry["before_locators"][:3], "after_locators": entry["after_locators"][:3],
+                                      "before_locator_count": len(entry["before_locators"]), "after_locator_count": len(entry["after_locators"])})
+    return [groups[key] for key in sorted(groups)]
 
 
 def md(value):
@@ -253,8 +337,26 @@ def markdown(report):
         lines.append("| " + kind + " | " + " | ".join(str(counts[s]) for s in STATUSES) + " |")
     lines += ["", "Coverage partial: " + str(report["coverage_partial"]), "", report["reliable_scope"], "",
               "Export limitations and observations are retained in comparison.json."]
+    matched = report.get("matched_counts", matched_counts(report["entries"]))
+    lines += ["", "## Identity and coverage diagnostics", "",
+              "Uniquely matched objects: " + str(matched["object"]) + "; handlers: " + str(matched["handler"]) + ".", "",
+              "UNKNOWN means unconfirmed/ambiguous identity; PARTIAL retains incomplete coverage or properties. "
+              "Global export PARTIAL does not imply identity failure.", "",
+              "All detailed records remain in comparison.json. UNKNOWN entries are summarized here, with up to three examples per cause.", "",
+              "| Kind | Status | Reason | Identity detail | Count |", "|---|---|---|---|---|"]
+    summaries = report.get("diagnostic_summary", diagnostic_summary(report["entries"]))
+    for group in summaries:
+        lines.append("| " + " | ".join(md(group[p]) for p in ("kind", "status", "reason", "identity_issue", "count")) + " |")
+    for group in summaries:
+        lines += ["", "Examples: " + md(group["kind"] + " / " + group["reason"] + " / " + group["identity_issue"]), ""]
+        for example in group["examples"]:
+            lines.append("- " + md(example["entry_ref"]) + ": before(" + str(example["before_locator_count"]) + ")="
+                         + md(", ".join(str(x) for x in example["before_locators"])) + "; after(" + str(example["after_locator_count"])
+                         + ")=" + md(", ".join(str(x) for x in example["after_locators"])))
     groups = defaultdict(list)
     for entry in report["entries"]:
+        if entry["status"] == "UNKNOWN":
+            continue
         key = entry["identity"] or []
         screen = " / ".join(name for kind, name in key if kind in ("DEVICE", "GROUP", "SCREEN")) or "Unresolved identity"
         groups[screen].append(entry)

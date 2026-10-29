@@ -1,5 +1,9 @@
 # TIA_Bridge 2
 
+[LAB-03M — diagnostyka konsoli EXPORT EVENTS](docs/LAB_03M_EVENT_CONSOLE_DIAGNOSTICS.md): podsumowanie projektu/HMI, statusu i liczników, wszystkie obserwacje jako WARN/ERROR z czytelnymi nazwami i fallbackiem do locatorów. Ograniczenia kontenerów to WARN; PARTIAL nie zwiększa liczby błędów. Artefakty i kody wyjścia bez zmian, poza hashem nowego EXE w manifeście. Testy offline 145/145 PASS; Attach/Engineering/F5 NOT_RUN.
+
+[LAB-03L — czytelne zdarzenia HMI](docs/LAB_03L_READABLE_EVENT_EXPORT.md): export-events automatycznie dodaje screens/ z osobnymi plikami JS/GDA, README i lekki events-index.json. Źródłem pozostaje events.json LAB-03K; nowe pliki obejmuje wspólny manifest. Testy offline 131/131 PASS, dodatkowo kontrole CLI/launch i identyczność 9 oryginalnych artefaktów. Historyczne eksporty bez zmian; render-events pozostaje rekomendacją osobnego pakietu. Attach/Engineering/F5 w LAB-03L NOT_RUN.
+
 [Porównywanie eksportów zdarzeń HMI](docs/LAB_EVENT_COMPARISON.md): offline `py -3 -B scripts/compare_events.py compare-events --before <events.json> --after <events.json> --output <parent>`. Nowe raporty `EventComparisons/<run-id>/` zawierają JSON, Markdown, dokładne diffy JS/GDA i manifest SHA-256. Dopasowanie hierarchiczne niezależne od indeksów, lokalne coverage i rozłączne statusy; brak Siemens i wykonania JS. VS Code: **TIA Bridge: COMPARE EVENTS — Export ↔ Export**, trzy pytania o ścieżki. Testy 30/30 i regresje laboratorium 85/85 PASS; F5/Engineering/Runtime NOT_RUN.
 
 Projekt nowej aplikacji Windows do integracji CODEX z Siemens TIA Portal. Stan 2026-10-26: zaimplementowano offline B-01A–B-01C, B-02A–C oraz bounded Discovery/Inventory B-03A. Działają Core, Host/API/CLI, trwały silnik Fake, registry default-deny i eksperymentalny worker V19 read-only. Discovery nie tworzy trwałych ObjectId, nie eksportuje treści i nie nadaje uprawnień Engineering; szczegóły [raportu B-03A](docs/B03A_DISCOVERY_QUALIFICATION.md). Przyjęcie operacji do SQLite nie oznacza jej wykonania ani autoryzacji TIA.
@@ -19,7 +23,7 @@ Rekomendacja: host C#/.NET 10, trwałe operacje i SQLite na lokalnym NTFS, wykon
 
 ## Dokumentacja projektu
 
-[LAB-03K — eksport zdarzeń Unified](docs/LAB_03K_HMI_EVENT_EXPORT.md): nowe ręczne `LabExporter.exe export-events` w `X:\TESTY_TIA_Bridge`, osobne JSON/raport/JS/manifest w nowym katalogu poza repo i `Scripts`. Konfiguracja VS Code **TIA Bridge: EXPORT EVENTS — TIA → Folder** pyta w terminalu o projekt, wynik i dokładny locator HMI. Implementacja i testy offline; rzeczywisty eksport/Attach oraz Engineering qualification **NOT_RUN**, `RowSelected` **UNKNOWN**. Wnętrza kontenerów bez publicznego odczytu pozostają `UNKNOWN/PARTIAL`; nie jest to produkcyjna synchronizacja. Dotychczasowe FORCE EXPORT/IMPORT zachowane.
+[LAB-03K — eksport zdarzeń Unified](docs/LAB_03K_HMI_EVENT_EXPORT.md): nowe ręczne `LabExporter.exe export-events` w `X:\TESTY_TIA_Bridge`, osobne JSON/raport/JS/manifest w nowym katalogu poza repo i `Scripts`. Konfiguracja VS Code **TIA Bridge: EXPORT EVENTS — TIA → Folder** przekazuje jawne ścieżki projektu, wyniku i dokładny locator HMI z launch.json. Implementacja i testy offline; rzeczywisty eksport/Attach oraz Engineering qualification **NOT_RUN**, `RowSelected` **UNKNOWN**. Wnętrza kontenerów bez publicznego odczytu pozostają `UNKNOWN/PARTIAL`; nie jest to produkcyjna synchronizacja. Dotychczasowe FORCE EXPORT/IMPORT zachowane.
 
 Bieżące przygotowanie B-03A/E2: [pakiet E2-A](docs/B03A_E2_A_PREPARATION.md),
 [plan B1 — T05_RecipeSim_V19_Testowy](docs/E2-B1_TEST_PLAN.md),

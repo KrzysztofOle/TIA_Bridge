@@ -5,7 +5,7 @@ $run = Join-Path $LabRoot ('evidence\LAB-03K-offline-' + [guid]::NewGuid().ToStr
 New-Item -ItemType Directory -Path $run | Out-Null
 $csc = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $exe = Join-Path $run 'LabEventsTests.exe'
-& $csc /nologo /platform:x64 /target:exe "/out:$exe" /reference:System.Web.Extensions.dll (Join-Path $LabRoot 'src\LabEventExport.cs') (Join-Path $PSScriptRoot 'lab_events_tests.cs')
+& $csc /nologo /platform:x64 /target:exe "/out:$exe" /reference:System.Web.Extensions.dll (Join-Path $LabRoot 'src\LabEventExport.cs') (Join-Path $LabRoot 'src\LabEventView.cs') (Join-Path $PSScriptRoot 'lab_events_tests.cs')
 if ($LASTEXITCODE -ne 0) { throw 'Offline test compilation failed' }
 & $exe $run (Join-Path $LabRoot 'bin\LabExporter.exe') | Tee-Object -FilePath (Join-Path $run 'console.txt')
 $testExit = $LASTEXITCODE
