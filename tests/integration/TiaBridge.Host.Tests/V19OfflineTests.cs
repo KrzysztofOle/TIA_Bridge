@@ -325,15 +325,18 @@ public class V19OfflineTests
         foreach (string reference in result.CoverageRefs)
         { using var proof = store.Artifacts.OpenVerified(reference); Assert.True(proof.Content.Length > 0); }
     }
-    [Fact]
-    public async Task Net48_x64_child_uses_the_same_authenticated_framing_without_any_vendor_library()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Net48_x64_child_uses_the_same_authenticated_framing_without_any_vendor_library(bool repeated)
     {
-        using var files = new StoreFixture();
+        using var files = new StoreFixture(); _ = files.Location;
         string binary = Path.Combine(files.Repository, "tests", "integration", "TiaBridge.Ipc.FrameworkProbe", "bin", new DirectoryInfo(AppContext.BaseDirectory).Parent!.Name, "net48", "TiaBridge.Ipc.FrameworkProbe.exe");
         string name = "tia-bridge2-" + Guid.NewGuid().ToString("N"); Guid epoch = Guid.NewGuid(), nonce = Guid.NewGuid(); byte[] secret = RandomNumberGenerator.GetBytes(32);
         using var server = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly | PipeOptions.FirstPipeInstance);
         using var host = Process.GetCurrentProcess();
         var start = new ProcessStartInfo(binary) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
+        if (repeated) start.ArgumentList.Add("--resource-ipc-probe");
         using var child = Process.Start(start)!;
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         try
@@ -345,12 +348,43 @@ public class V19OfflineTests
             Assert.Equal(child.Id, hello.Pid); Assert.Equal(nonce, hello.Nonce); Assert.Equal("framework-probe", hello.WorkerId);
             await framed.SendAsync(MessageKind.Ready, null, 0, Protocol.Body(new ReadyBody(true)), timeout.Token);
             var dispatch = new InspectDispatch(new("artifact-" + new string('a', 32), new string('b', 64)), 1, new string('c', 64), null);
-            Guid id = Guid.NewGuid(); await framed.SendAsync(MessageKind.Dispatch, id, 1, Protocol.Body(dispatch), timeout.Token);
-            Assert.Equal(MessageKind.Heartbeat, (await framed.ReadAsync(timeout.Token)).Kind);
-            var receipt = await framed.ReadAsync(timeout.Token); Assert.Equal(id, receipt.OperationId);
-            Assert.Equal("UNSUPPORTED", Protocol.Read<WorkerReply>(receipt.Body).Receipt.ErrorCode);
+            var ids = new List<Guid>();
+            for (int cycle = 0; cycle < (repeated ? 20 : 1); cycle++)
+            {
+                Guid id = Guid.NewGuid(); ids.Add(id);
+                await framed.SendAsync(MessageKind.Dispatch, id, 1, Protocol.Body(dispatch), timeout.Token);
+                Assert.Equal(MessageKind.Heartbeat, (await framed.ReadAsync(timeout.Token)).Kind);
+                var receipt = await framed.ReadAsync(timeout.Token); Assert.Equal(id, receipt.OperationId);
+                Assert.Equal("UNSUPPORTED", Protocol.Read<WorkerReply>(receipt.Body).Receipt.ErrorCode);
+            }
             await framed.SendAsync(MessageKind.Stop, null, 0, Protocol.Body(new StopBody(false)), timeout.Token);
             await child.WaitForExitAsync(timeout.Token); Assert.Equal(0, child.ExitCode);
+            if (repeated)
+            {
+                string trace = Path.Combine(files.Root, "v19-resources-" + epoch.ToString("N") + ".jsonl");
+                var records = File.ReadAllLines(trace).Select(line => JsonDocument.Parse(line)).ToArray();
+                try
+                {
+                    Assert.Equal(41, records.Length);
+                    Assert.All(records, record => Assert.Equal(epoch, record.RootElement.GetProperty("worker_epoch").GetGuid()));
+                    Assert.Equal(ids, records.Where(r => r.RootElement.GetProperty("phase").GetString() == "cycle.enter")
+                        .Select(r => r.RootElement.GetProperty("operation_id").GetGuid()));
+                    Assert.Equal(ids, records.Where(r => r.RootElement.GetProperty("phase").GetString() == "cycle.returned")
+                        .Select(r => r.RootElement.GetProperty("operation_id").GetGuid()));
+                    // Supplemental observations are not another RT/NF scenario in the
+                    // reporter's closed root set. The recursive manifest still seals them.
+                    string diagnostics = Path.Combine(files.Repository, ".tia-bridge", "resilience", ResilienceEvidence.CurrentRunId, "resource-diagnostics");
+                    Directory.CreateDirectory(diagnostics);
+                    PerformanceEvidence.WriteNew(Path.Combine(diagnostics, "framework-ipc.json"), JsonSerializer.SerializeToUtf8Bytes(new
+                    {
+                        schema_version = "worker-resource-ipc-probe/1",
+                        run_id = ResilienceEvidence.CurrentRunId,
+                        scope = "net48 authenticated IPC and resource logger only; no Siemens; no stability verdict",
+                        records = records.Select(record => record.RootElement.Clone()).ToArray()
+                    }));
+                }
+                finally { foreach (var record in records) record.Dispose(); }
+            }
         }
         finally
         {

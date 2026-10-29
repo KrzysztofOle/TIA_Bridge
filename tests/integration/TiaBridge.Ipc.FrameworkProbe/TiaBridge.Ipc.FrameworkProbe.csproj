@@ -6,6 +6,7 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../../src/TiaBridge.Worker.V19/WorkerResourceTrace.cs" Link="WorkerResourceTrace.cs" />
     <ProjectReference Include="../../../src/TiaBridge.Ipc/TiaBridge.Ipc.csproj" />
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
   </ItemGroup>

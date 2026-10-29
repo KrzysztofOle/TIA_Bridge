@@ -59,6 +59,9 @@ internal static class Program
         using var own = Process.GetCurrentProcess();
         await framed.SendAsync(MessageKind.Hello, null, 0, Protocol.Body(new Hello(own.Id, own.StartTime.ToUniversalTime().Ticks, bootstrap.Nonce, "tia-bridge.v19.read-only", "1.0+" + VendorResolver.Hash(own.MainModule!.FileName))), stop.Token).ConfigureAwait(false);
         if ((await framed.ReadAsync(stop.Token).ConfigureAwait(false)).Kind != MessageKind.Ready) throw new ProtocolException();
+        var resourceTrace = WorkerResourceTrace.Open(bootstrap.ArtifactRoot, bootstrap.WorkerEpoch,
+            Environment.GetEnvironmentVariable(WorkerResourceTrace.EnvironmentSwitch));
+        string? lastCompletedOperation = null;
         var work = new BlockingCollection<Action>(1);
         var owner = new Thread(() => { foreach (var action in work.GetConsumingEnumerable()) action(); }) { IsBackground = false, Name = "Siemens owner" };
         owner.SetApartmentState(setup.Settings.Apartment == "STA" ? ApartmentState.STA : ApartmentState.MTA); owner.Start();
@@ -73,6 +76,12 @@ internal static class Program
             {
                 await Task.Delay(2000, stop.Token).ConfigureAwait(false);
                 host.Refresh(); if (host.HasExited) { pipe.Dispose(); stop.Cancel(); return; }
+                if (Volatile.Read(ref busy) == 0 && resourceTrace is not null)
+                {
+                    try { resourceTrace.Record(Guid.TryParse(Volatile.Read(ref lastCompletedOperation), out var last) ? last : null, "worker.idle"); }
+                    catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or System.ComponentModel.Win32Exception)
+                    { stop.Cancel(); pipe.Dispose(); throw; }
+                }
                 await framed.SendAsync(MessageKind.Heartbeat, null, 0, Protocol.Body(new HeartbeatBody(false)), stop.Token).ConfigureAwait(false);
             }
         }
@@ -116,7 +125,8 @@ internal static class Program
                         {
                             framed.SendAsync(MessageKind.Started, id, message.Fence, Protocol.Body(new StartedBody(1)), stop.Token).GetAwaiter().GetResult();
                             using var gate = VendorGate.Enter();
-                            var observation = VendorReader.Inspect(target, Audit);
+                            var observation = VendorReader.Inspect(target, Audit, VendorReader.CheckProcess,
+                                resourceTrace is null ? null : phase => resourceTrace.Record(id, phase));
                             string report = JsonSerializer.Serialize(observation, Protocol.Json);
                             if (System.Text.Encoding.UTF8.GetByteCount(report) > Protocol.MaxReceiptBytes) throw new InvalidOperationException("LIMIT_EXCEEDED");
                             receipt = new Receipt("Succeeded", report, null, 0, true);
@@ -134,7 +144,9 @@ internal static class Program
                 execution = Task.Run(async () =>
                 {
                     var receipt = await done.Task.ConfigureAwait(false);
-                    var reply = new WorkerReply(1, command.InputHash, null, receipt); completed[id] = reply; Interlocked.Exchange(ref busy, 0);
+                    var reply = new WorkerReply(1, command.InputHash, null, receipt); completed[id] = reply;
+                    if (resourceTrace is not null) Interlocked.Exchange(ref lastCompletedOperation, id.ToString("D"));
+                    Interlocked.Exchange(ref busy, 0);
                     try { await framed.SendAsync(MessageKind.Receipt, id, message.Fence, Protocol.Body(reply), stop.Token).ConfigureAwait(false); }
                     catch (Exception e) when (e is IOException or OperationCanceledException) { stop.Cancel(); pipe.Dispose(); }
                 });

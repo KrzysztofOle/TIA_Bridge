@@ -22,7 +22,7 @@ registry_version artefaktu ma `qualification-only`, capability key schedulera
 `QUALIFICATION_ONLY_COMPLETED`. SUCCEEDED oznacza potwierdzony odczyt, **nie kwalifikację**.
 Nie zapisuje się fikcyjnego PASS ani dowodu E1. READ nie daje WRITE/IMPORT/EXPORT.
 
-Zakres jest stały: `T05_RecipeSim_V19_Testowy`, plan `E2-B1`, dokładnie jeden
+Kontrakt kwalifikacji 1.0 pozostaje stały: `T05_RecipeSim_V19_Testowy`, plan `E2-B1`, dokładnie jeden
 ProjectKey/PID/start/path/SID; STA, max_in_flight=1; project.inspect/PROJECT,
 v19.discovery.v1, all_supported/fresh=true, timeout 120 s, queue timeout 300 s,
 20 cykli, 64 Device / 256 nodes / MaxDepth 8 (pierwszy DeviceItem depth=0).
@@ -281,3 +281,41 @@ exact hash/plan/window/binding/buildy. Mechanizmy Validate/VerifyLiveBinding, ch
 ACL i trwałe 20 cykli pozostają bez zmian. Dossier to review claims, nie live proof.
 IsModified=false jest sprawdzane dopiero w autoryzowanym odczycie i false/false
 w każdym cyklu. Nie aktywowano rzeczywistego B0, nie dodano auto enrollment ani kluczy.
+
+## E2-B1-D — osobna autoryzacja HANDLE_DIAGNOSTICS
+
+Jawna decyzja użytkownika 2026-10-27 dopuszcza diagnostykę według
+[osobnego planu](E2-B1-D_TEST_PLAN.md). Dotychczasowe dokumenty 1.0/E2-B1/20,
+ich walidacja i kryteria kwalifikacji pozostają zachowane. Nowy lokalny dokument
+ma ten sam exact binding/read scope/stops/window, ale obowiązkowo:
+
+```json
+{
+  "schema_version": "1.1",
+  "purpose": "HANDLE_DIAGNOSTICS",
+  "plan_id": "E2-B1-D",
+  "maximum_cycles": 3
+}
+```
+
+To fragment różnic, nie kompletny grant. Inne kombinacje schema/purpose/plan/budget
+są odrzucane; 1.0 nadal odrzuca pole purpose, także null. Operator nie może
+wykorzystać diagnostyki jako krótszej kwalifikacji B1. HTTP/CLI submit nie otrzymują
+nowych pól ani komend wyboru celu/budżetu. Normalny config bez bootstrapu wymaga E1.
+
+Nie dodano migracji ani kolumny z domyślnym limitem: źródłem budżetu jest
+niezmienny, zahashowany dokument zapisany w istniejącym ledgerze v4. Rezerwacja
+czyta i weryfikuje jego bajty/hash w tej samej transakcji BEGIN IMMEDIATE przed
+atomowym used_cycles<budget i dispatch intent. Completion również używa tego
+budżetu. Dotychczasowy SQL CHECK ≤20 jest górną granicą struktury, nie autoryzacją
+cykli 4–20 dla dokumentu 1.1. Restart/crash/revoke/expiry i unique ID zachowują
+dotychczasowe reguły; rezerwacja jest zużyta bez retry. Czwarty dispatch jest zabroniony.
+
+VerifyLiveBinding hashuje E2-B1-D_TEST_PLAN.md dla diagnostyki i stary plan dla B1.
+Po trzech potwierdzonych cyklach stan FINISHED, po wcześniejszym STOP budżet nie
+wraca. Capture wymaga pełnej zgodnej telemetry fazowej z Operation ID/epoch/PID/
+start, monotonic clock/GC i punktami przed/po Attach, Devices i Dispose oraz idle.
+Kopiuje/hashuje trace wraz z pozostałymi dowodami. Brak/błąd faz blokuje kompletność.
+Po potwierdzonym release poprawna seria daje DIAGNOSTIC_COMPLETE, nigdy PASS.
+bootstrap-review dla diagnostyki jest odrzucany. Nie powstaje kandydat B1/E1 ani B2.
+Gotowość ocenia E2-G z lokalnym --experiment HANDLE_DIAGNOSTICS, bez aktywacji grantu.

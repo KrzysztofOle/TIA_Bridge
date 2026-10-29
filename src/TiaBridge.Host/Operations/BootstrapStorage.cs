@@ -55,15 +55,16 @@ public sealed partial class SqliteOperationStore
     {
         var state = ReadBootstrap(permit.AuthorizationId);
         return state is { State: "ACTIVE" } && state.Sha256 == permit.AuthorizationSha256 && state.HostEpoch == owner.Epoch.ToString()
-            && (state.UsedCycles < 20 || BootstrapCycles(permit.AuthorizationId).Any(c => c.OperationId == id.ToString() && c.State == "RESERVED"));
+            && (state.UsedCycles < state.Authorization.CycleBudget || BootstrapCycles(permit.AuthorizationId).Any(c => c.OperationId == id.ToString() && c.State == "RESERVED"));
     }
     private void ReserveBootstrap(Microsoft.Data.Sqlite.SqliteConnection c, Microsoft.Data.Sqlite.SqliteTransaction t,
         OwnerToken owner, OperationId id, Guid workerEpoch, ExecutionSpec spec, int attempt)
     {
         if (spec.Bootstrap is not { } permit) return;
         if (attempt != 1 || spec.QualifiedEffectFreeRead || spec.V19Target is null) throw new IOException("BOOTSTRAP_REPLAY_DENIED");
-        using var update = Command(c, t, "UPDATE bootstrap_authorizations SET used_cycles=used_cycles+1 WHERE authorization_id=$id AND sha256=$sha AND state='ACTIVE' AND host_epoch=$h AND used_cycles<20",
-            ("$id", permit.AuthorizationId), ("$sha", permit.AuthorizationSha256), ("$h", owner.Epoch.ToString()));
+        int budget = BootstrapBudget(c, t, permit.AuthorizationId, permit.AuthorizationSha256);
+        using var update = Command(c, t, "UPDATE bootstrap_authorizations SET used_cycles=used_cycles+1 WHERE authorization_id=$id AND sha256=$sha AND state='ACTIVE' AND host_epoch=$h AND used_cycles<$budget",
+            ("$id", permit.AuthorizationId), ("$sha", permit.AuthorizationSha256), ("$h", owner.Epoch.ToString()), ("$budget", budget));
         if (update.ExecuteNonQuery() != 1) throw new IOException("BOOTSTRAP_BUDGET_OR_SESSION_DENIED");
         int cycle = checked((int)ScalarLong(c, t, "SELECT used_cycles FROM bootstrap_authorizations WHERE authorization_id=$id", ("$id", permit.AuthorizationId)));
         Exec(c, t, "INSERT INTO bootstrap_cycles(operation_id,authorization_id,cycle,host_epoch,worker_epoch,worker_pid,worker_start_ticks,reserved_at) SELECT $op,$id,$n,$h,worker_epoch,pid,start_ticks,$at FROM worker_processes WHERE worker_epoch=$w AND host_epoch=$h",
@@ -83,8 +84,20 @@ public sealed partial class SqliteOperationStore
         string? auth = Scalar(c, t, "SELECT authorization_id FROM bootstrap_cycles WHERE operation_id=$id", ("$id", report.OperationId.ToString())) as string;
         if (auth is null) return;
         Exec(c, t, "UPDATE bootstrap_cycles SET state=$s,terminal_report=$b WHERE operation_id=$id AND state='RESERVED'", ("$id", report.OperationId.ToString()), ("$s", report.State == OperationState.SUCCEEDED ? "COMPLETED" : "UNCERTAIN_OR_FAILED"), ("$b", ContractJson.WriteReport(report)));
-        Exec(c, t, "UPDATE bootstrap_authorizations SET state=$s,stop_reason=$r WHERE authorization_id=$id AND state='ACTIVE' AND (used_cycles=20 OR $failed=1)",
-            ("$id", auth), ("$s", report.State == OperationState.SUCCEEDED ? "FINISHED" : "STOPPED"), ("$r", report.State == OperationState.SUCCEEDED ? "BUDGET_COMPLETED" : report.Phase), ("$failed", report.State == OperationState.SUCCEEDED ? 0 : 1));
+        int budget = BootstrapBudget(c, t, auth);
+        Exec(c, t, "UPDATE bootstrap_authorizations SET state=$s,stop_reason=$r WHERE authorization_id=$id AND state='ACTIVE' AND (used_cycles=$budget OR $failed=1)",
+            ("$id", auth), ("$s", report.State == OperationState.SUCCEEDED ? "FINISHED" : "STOPPED"), ("$r", report.State == OperationState.SUCCEEDED ? "BUDGET_COMPLETED" : report.Phase), ("$failed", report.State == OperationState.SUCCEEDED ? 0 : 1), ("$budget", budget));
+    }
+    private static int BootstrapBudget(Microsoft.Data.Sqlite.SqliteConnection c, Microsoft.Data.Sqlite.SqliteTransaction t, string id, string? expectedSha = null)
+    {
+        using var command = Command(c, t, "SELECT document,sha256 FROM bootstrap_authorizations WHERE authorization_id=$id", ("$id", id));
+        using var row = command.ExecuteReader();
+        if (!row.Read()) throw new IOException("BOOTSTRAP_NOT_FOUND");
+        byte[] bytes = (byte[])row[0]; string sha = Hash(bytes);
+        if (sha != row.GetString(1) || expectedSha is not null && sha != expectedSha) throw new IOException("BOOTSTRAP_DOCUMENT_CORRUPT");
+        var auth = BootstrapAuthorization.Read(bytes);
+        if (auth.AuthorizationId != id) throw new IOException("BOOTSTRAP_DOCUMENT_MISMATCH");
+        return auth.CycleBudget;
     }
     internal IReadOnlyList<BootstrapCycleRecord> BootstrapCycles(string id) => database.Read(c =>
     {

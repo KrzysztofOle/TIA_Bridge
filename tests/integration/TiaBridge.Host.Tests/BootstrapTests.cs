@@ -324,7 +324,7 @@ internal sealed class BootstrapFixture : IDisposable
     internal string ConfigPath => Path.Combine(Files.Root, "bootstrap-config.json");
     internal string DocumentPath => Path.Combine(Local.Root, "authorization.json");
     internal string DocumentSha => BootstrapAuthorization.Sha(File.ReadAllBytes(DocumentPath));
-    internal BootstrapFixture()
+    internal BootstrapFixture(bool diagnostic = false)
     {
         Store = new(Files.Location, clock: Clock);
         string sid = LocalTrustAcl.CurrentSid, project = "11111111-1111-4111-8111-111111111111";
@@ -343,6 +343,7 @@ internal sealed class BootstrapFixture : IDisposable
             BootstrapAuthorization.B1, project, projectPath, Files.Root, 123, 456, "C:\\synthetic-portal.exe", sid, "19.synthetic", worker, host,
             "project.inspect", "PROJECT", V19DiscoveryProfile.Id, V19InspectionProfile.DiscoveryReadScope.ToArray(), "all_supported", true, 120, 300, 20, 64, 256, 8,
             "E2-B1", new string('d', 64), new string('e', 40), BootstrapAuthorization.RequiredStops);
+        if (diagnostic) Auth = Auth with { SchemaVersion = "1.1", Purpose = BootstrapAuthorization.HandleDiagnostics, PlanId = "E2-B1-D", MaximumCycles = 3 };
         WriteAuthorization(Auth); Store.RegisterProject(new(Guid.Parse(project)));
         Connection = new(Auth, Clock, Files.Root); Supervisor = new BootstrapSupervisor(Connection);
     }
@@ -391,7 +392,7 @@ internal sealed class BootstrapConnection(BootstrapAuthorization authorization, 
     public Task SendAsync(MessageKind kind, Guid? operationId, long fence, JsonElement body, CancellationToken ct)
     {
         if (kind != MessageKind.Dispatch) return Task.CompletedTask;
-        Dispatches++; if (Fault == "worker-loss") return Task.CompletedTask;
+        Dispatches++; if (Fault is "worker-loss" or "hang") return Task.CompletedTask;
         var request = Protocol.Read<InspectDispatch>(body);
         var node = new V19Node(V19NodeLocatorCodec.Encode(new(0, null, 0, "synthetic-device", "Synthetic.Device", "NOT_APPLICABLE", "UNKNOWN", "UNAVAILABLE")), "unknown");
         var observation = new V19Observation(authorization.ProjectKey, Guid.NewGuid(), authorization.TiaPid, authorization.TiaStartTicks,

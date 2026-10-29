@@ -21,8 +21,28 @@ Bieżące przygotowanie B-03A/E2: [pakiet E2-A](docs/B03A_E2_A_PREPARATION.md),
 [plan B1 — T05_RecipeSim_V19_Testowy](docs/E2-B1_TEST_PLAN.md),
 [plan B2 — T04_T05-000_Testowy](docs/E2-B2_TEST_PLAN.md),
 [instrukcja operatora](docs/E2_OPERATOR.md). Testy jednego projektu naraz, B1 przed B2.
-Engineering obu NOT_RUN; real evidence NOT_REGISTERED. Przygotowanie nie aktywuje
-deploymentu i nie rozstrzyga bootstrapu kwalifikacji bez decyzji użytkownika.
+[Wykonany B1, 2026-10-27](tests/engineering/E2_B1_2026-10-27_06cbfec6.md):
+20/20 odczytów funkcjonalnych PASS, qualification BLOCKED przez niewyjaśniony
+wzrost handles Workera. E2-G READY i jawny B0 poprzedziły test; grant FINISHED,
+20 cykli zużytych, release potwierdzony. B2 i real E1 enrollment NOT_RUN;
+przygotowanie dokumentacji samo nie aktywuje deploymentu ani praw Engineering.
+
+[Dochodzenie E2-B1-R](docs/B03A_E2_B1_RESOURCE_INVESTIGATION.md) potwierdza przyrosty
+także podczas Attach, lecz pozostawia ROOT_CAUSE_UNEXPLAINED. Dostarcza domyślnie
+wyłączoną instrumentację faz Windows/CLR, regresje bez Siemens i propozycję osobno
+autoryzowanej diagnostyki. Historyczny B1 BLOCKED i Worker Handle Risk UNKNOWN
+pozostają bez zmian; w B1-R nie wykonano nowych Attach ani grantu.
+
+[E2-B1-D](docs/B03A_E2_B1_D_HANDLE_DIAGNOSTICS.md) rozdziela osobny profil
+HANDLE_DIAGNOSTICS/3 od B1/20. Wykonanie 2026-10-28: 1/3, kontroler STOP przez
+format ProjectKey (naprawiony offline), grant odwołany i cleanup potwierdzony.
+Cold Attach +37, Dispose −10, idle +28; ROOT_CAUSE_UNEXPLAINED. Diagnostyka
+nie przyznaje kwalifikacji B1; historyczny BLOCKED i Worker risk UNKNOWN zachowane.
+
+[E2-B1-I](docs/B03A_E2_B1_IPC_HANDLE_INVESTIGATION.md) izoluje infrastrukturę offline:
+wzrost odtworzono bez Siemens w senderze net48, a osobny GC zwolnił uchwyty
+zakończonych wątków i Eventów. Przyczyna PROBABLE, bez poprawki produkcyjnej;
+historyczny B1 pozostaje BLOCKED, Worker risk UNKNOWN. Nowe Engineering NOT_RUN.
 
 | Dokument | Zawartość |
 |---|---|
@@ -57,6 +77,18 @@ Repozytorium kodu jest odrębne od trwałej bazy operacji, sekretów i spool wyk
 
 Kontrola dokumentacji: `py -3 scripts/audit_quality.py`. Wymaga Python 3.12 i `jsonschema`; nie łączy się z Siemens. [Instrukcja](scripts/README.md), [zasady agentów](AGENTS.md).
 
+### Laboratoryjne uruchamianie FORCE EXPORT / FORCE IMPORT
+
+Repozytorium zawiera konfiguracje VS Code dla istniejącego laboratoryjnego narzędzia `X:\TESTY_TIA_Bridge\bin\LabExporter.exe`. Otwórz `X:\Projects\TIA_Bridge` w VS Code, przejdź do **Run and Debug**, wybierz **TIA Bridge: FORCE EXPORT — TIA → Folder** albo **TIA Bridge: FORCE IMPORT — Folder → TIA** i naciśnij **F5**. Polecenia uruchamiają się w widocznym terminalu VS Code; ewentualne okno Siemens Openness zatwierdź ręcznie.
+
+Ścieżki laboratorium są jawnie ustawione w `.vscode\launch.json`: projekt `X:\TESTY_TIA_Bridge\T05_RecipeSim_V19_Testowy` oraz katalog `X:\TESTY_TIA_Bridge\Scripts` jako cel eksportu i źródło importu. Zmień odpowiednie argumenty `--project`, `--output` lub `--input`, aby użyć innych lokalizacji. Eksport zastępuje zawartość katalogu docelowego; import aktualizuje moduły przy zgodnym zestawie nazw i ich nie usuwa. Te konfiguracje nie wykonują Download ani operacji Runtime.
+
+[LAB-03I](docs/LAB_03I_GLOBAL_DEFINITION_NAMING.md) wprowadza zarezerwowany plik `_Global_definition_area.js` oraz manifesty `lab-03i-*` w narzędziu laboratoryjnym. Eksport zawsze tworzy nową nazwę; import odrzuca starsze paczki i wskazuje ponowny FORCE EXPORT. Kod i znaczniki Siemens pozostają bajtowo zachowane. Testy offline 18/18 oraz staging/rollback 10/10 PASS; rzeczywisty eksport FAIL na kontroli natywnych plików `JSON_Test_screen`, import/readback NOT_RUN. To nie jest implementacja eksportu/importu w produkcyjnym Host/Worker.
+
+[LAB-03J](docs/LAB_03J_NATIVE_EXPORT_DIAGNOSTICS.md) dodał szczegółową diagnostykę, ścisłą kontrolę natywnej pary i zachowanie surowych danych po awarii eksportu. Regresje LAB-03I/LAB-03H pozostają PASS, nowe testy offline 15/15 PASS. Bieżące pełne eksporty 6 modułów / 22 funkcje / 47 plików przeszły; historyczna przyczyna LAB-03I nie została odtworzona ani potwierdzona jako naprawiona. Raport rozdziela aktualne wyniki od tej nierozstrzygniętej diagnozy i opisuje zabezpieczenia laboratoryjnego importu.
+
+Wznowienie LAB-03J z 2026-10-29 potwierdziło również rzeczywisty FORCE IMPORT, Save i readback wszystkich sześciu modułów: PASS po zweryfikowanym natywnym backupie i świeżym porównaniu baseline pod ExclusiveAccess. Końcowe `Scripts` opublikowano ponownie; zmieniono wyłącznie zaplanowany komentarz w laboratoryjnym `T05MoveTest.RunTest`, pozostałe 21 funkcji, 6 globalnych segmentów i 6 YAML pozostały bajtowo zgodne. Gotowość T05_PLC nadal NO ze względu na nieustaloną historyczną przyczynę; nie deklarujemy zamknięcia całej diagnozy.
+
 ## Materiały wejściowe
 
 Pierwotne opracowania [architecture](docs/architecture.md), [sync-model](docs/sync-model.md), [formats](docs/formats.md), [safety](docs/safety.md), [roadmap](docs/roadmap.md) i ADR 0001 zachowano i powiązano z aktualnymi specyfikacjami. [ADR 0002](docs/decisions/0002-async-host-and-versioned-worker.md) doprecyzowuje autonomię w zatwierdzonej sesji.
@@ -65,4 +97,4 @@ Pierwotne opracowania [architecture](docs/architecture.md), [sync-model](docs/sy
 
 Osobne [rozwiązanie Engineering](TiaBridge.Engineering.slnx) buduje worker net48/x64 z PublicAPI V19 z Program Files, bez kopiowania vendor DLL. Standardowy build/test offline nie wymaga Siemens. [Jawny harness live](tests/engineering/README.md) wykorzystuje istniejący Host, API, CLI, SQLite, scheduler i IPC 1.1; dopuszcza wyłącznie exact binding i `project.inspect`, bounded inventory oraz Detach. Pozostałe operacje TIA pozostają UNSUPPORTED. Nie ma eksportera, importu, Save, Compile, Download lub Runtime. PASS tego eksperymentu nie oznacza kwalifikacji produkcyjnej ani całego B-03A.
 
-Końcowy X-01: oba projekty przeszły Attach/read/Dispose; Engineering 93/93 PASS w historycznym zakresie. D-11 LIMITED GATE ma PASS. Aktualna pełna kwalifikacja offline NTFS ma FAIL (NF-08: 1,0288% > 1,0%); historyczny exFAT FAIL pozostaje, NF-11 jest NOT_RUN, a ryzyko wzrostu handles Workera UNKNOWN. B-03A ma implementację offline; nowe Engineering Discovery nie było uruchomione i wymaga osobnej zgody oraz świeżego potwierdzenia bindingów. Nie jest to pełna kwalifikacja ani gotowość produkcyjna.
+Końcowy X-01: oba projekty przeszły Attach/read/Dispose; Engineering 93/93 PASS w historycznym zakresie. D-11 LIMITED GATE ma PASS. Historyczna pełna kwalifikacja offline NTFS STRICT ma FAIL (NF-08: 1,0288% > 1,0%); historyczny exFAT FAIL pozostaje. Późniejszy SHARED_WORKSTATION ma ograniczoną D-11 PASS i pełną kwalifikację BLOCKED przez NF-11 NOT_RUN. Nowy [Engineering Discovery B1](tests/engineering/E2_B1_2026-10-27_06cbfec6.md) wykonał 20 odczytów, lecz qualification pozostaje BLOCKED przez zasoby; Worker Handle Risk UNKNOWN. Nie jest to pełna kwalifikacja ani gotowość produkcyjna.

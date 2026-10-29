@@ -1,5 +1,254 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-29 — LAB-03J: diagnostyka natywnego eksportu i test importu
+
+Laboratoryjny eksporter zapisuje osobne raporty stanu przed/po wywołaniu API, zwróconych plików, rzeczywistego drzewa, oczekiwanej pary, konkretnej odmowy i kodów błędów. Nie loguje treści JS/YAML. Pusty katalog jest warunkiem przed wywołaniem; po nim wymagane są dokładna para i zgodność ścieżek API/dysku, bez dodatkowych plików, podkatalogów, duplikatów lub reparse points. Awaria natywnego eksportu zachowuje surowe dane. Nazwa `_Global_definition_area.js`, marker Siemens, manifesty LAB-03I, splitter i publisher LAB-03H bez zmian. Uzupełniono laboratoryjny import o baseline hashes, świeży odczyt pod ExclusiveAccess, natywny backup z weryfikacją AP19 i odczytem/hashami zawartości, recheck frozen input oraz intent. Nie wdrażano produkcyjnego adaptera ani sagi Host.
+
+[Raport LAB-03J](docs/LAB_03J_NATIVE_EXPORT_DIAGNOSTICS.md): 15/15 nowych testów, 18/18 LAB-03I i 10/10 LAB-03H PASS na finalnym buildzie. Pełny rzeczywisty eksport, kontrolowany Import/Save i readback PASS dla 6 modułów / 22 funkcji; końcowe `Scripts` mają 47 plików i są zgodne z readbackiem. Zmieniono tylko odwracalny komentarz w laboratoryjnym `T05MoveTest.RunTest`; 21 innych funkcji, 6 globalnych obszarów i 6 YAML bez zmian bajtowych. Projekt zapisany i czysty w readbacku. T05_PLC bez zmian; Compile, download, Runtime i PLC write NOT_RUN. Bez commita/push.
+
+Historyczny błąd `NATIVE_FILE_COUNT_OR_LAYOUT_INVALID:JSON_Test_screen` nie został odtworzony. Brak dawnych surowych danych i połączony warunek błędu uniemożliwiają potwierdzenie konkretnej historycznej przyczyny; nie przedstawiamy wzmocnienia walidatora jako jej udowodnionej naprawy. Gotowość T05_PLC NO, wymaganie diagnozy pozostaje otwarte. Zachowano FAIL autoryzacji i pierwszej próby backupu: API Archive używa literalnej nazwy, dlatego poprawiono jawne `.zap19`; przed tym błędem nie było Import/Save. Wznowienie nastąpiło po potwierdzeniu końca poprzedniego eksportera z `import_started=false`.
+
+Ocena instrukcji sekcja po sekcji: AGENTS — zakres/stan, hierarchia, niezmienniki, autoryzacja/testy, dyscyplina, Git, dane/kontrakty; Instrukcja_ChatGPT — 1 cel, 2 odpowiedzialność, 3 źródła, 4 architektura, 5 zadania, 6 wyniki, 7 bezpieczeństwo/recovery, 8 decyzje/spójność, 9 GitHub/dokumentacja, 10 styl. Oba dokumenty pozostawiono bez zmian: ograniczony grant użytkownika obejmował laboratoryjny import i Save, a dodane zabezpieczenia realizują istniejące wymagania backupu, świeżych preconditions i readbacku. Autoryzację Siemens/UAC wykonywał operator, bez zmiany zabezpieczeń przez agenta. ADR 0001–0003, specyfikacje 03–08/12, Core/HTTP/IPC i bramki kwalifikacyjne bez zmian; laboratoryjny sukces nie nadaje capability, SYNCED ani kwalifikacji produkcyjnej. Zaktualizowano właściwe instrukcje narzędzia, testy i raporty; kontrola jakości dokumentacji, linków i diffu po zmianach.
+
+## 2026-10-28 — LAB-03I: lokalna nazwa definicji globalnych Unified
+
+W laboratoryjnym `X:\TESTY_TIA_Bridge` wdrożono `_Global_definition_area.js`, manifesty LAB-03I i ścisłe odrzucenie starego formatu/obu nazw. Zmieniono splitter, walidator/publisher paczki i assembler FORCE IMPORT; stary helper rekonstrukcji używa teraz tego samego assemblera. Oryginalne bajty JS, markery Siemens, nazwy funkcji, katalogi modułów i układ `.native` pozostają zachowane. Mechanizm publikacji LAB-03H, operacje Siemens oraz konfiguracje VS Code bez zmian. Źródła i poprzedni EXE zachowano poza Git; nie modyfikowano `C:\RMA\t05_plc` i nie wykonano commit/push.
+
+[Raport i lokalny kontrakt LAB-03I](docs/LAB_03I_GLOBAL_DEFINITION_NAMING.md): finalny build PASS; offline 18/18 i istniejąca regresja staging/rollback 10/10 PASS. Live FORCE EXPORT FAIL po czterech modułach na istniejącej kontroli `NATIVE_FILE_COUNT_OR_LAYOUT_INVALID:JSON_Test_screen`, przed splitterem/publikacją; Attach potwierdzony po ręcznej autoryzacji. Live Import/Save/readback NOT_RUN, bez zastępowania bieżącej obserwacji historycznym eksportem. Brak deklaracji gotowości T05_PLC lub produkcyjnej kwalifikacji.
+
+Ocena sekcja po sekcji: AGENTS — zakres i stan, hierarchia, niezmienniki, autoryzacja/testy, dyscyplina, Git, dane/kontrakty; Instrukcja_ChatGPT — 1 cel, 2 role, 3 źródła, 4 architektura, 5 zadanie, 6 kontrola, 7 recovery, 8 decyzje, 9 Git, 10 styl. Obie instrukcje pozostawiono bez zmian: lokalna konwencja laboratoryjna nie zmienia ich zasad. Jawny zakres zadania uprawniał do testów laboratoryjnych i Computer Use; monit uprawnień zatwierdził operator. ADR 0001–0003, specyfikacje 03–08/12, kontrakty Core/HTTP/IPC i bramki kwalifikacji pozostają bez zmian: LAB-03I nie wdraża produkcyjnego adaptera lub nowej sagi. Docelowy przykład `GlobalDefinitions.js` w dokumencie 04 pozostaje przykładem odrębnego produkcyjnego modelu workspace; nowy format laboratoryjny opisuje wskazany raport. Zaktualizowano właściwą instrukcję laboratorium oraz README/testy/raport repo; kontrola jakości dokumentacji i diffu wykonana po zmianach.
+
+## 2026-10-28 — LAB-03E: VS Code launch dla eksportera laboratoryjnego
+
+Dodano `.vscode/launch.json` z konfiguracjami **TIA Bridge: FORCE EXPORT — TIA → Folder** i **TIA Bridge: FORCE IMPORT — Folder → TIA**. Obie uruchamiają istniejący `X:\TESTY_TIA_Bridge\bin\LabExporter.exe` przez typ `node-terminal`, z argumentami LAB-03C/03D, widocznym terminalem i katalogiem roboczym laboratorium. Nie uruchamiano rzeczywistego eksportu ani importu; F5 pozostaje NOT_RUN, aby test konfiguracji nie zmieniał danych laboratorium/TIA. Zaktualizowano README o wybór konfiguracji, F5 i edycję ścieżek.
+
+`.vscode/` jest ignorowane przez `.gitignore`; sam `launch.json` dodano jawnie do indeksu Git (`git add -f`). Kontrola: składnia JSON, dwie nazwy i typy konfiguracji, ścieżka programu, operacje i argumenty projektu/katalogów oraz istnienie celów PASS. `py -3 scripts/audit_quality.py` i `git diff --check` wykonano po zmianach.
+
+Ocena wpływu: zmiana dotyczy wyłącznie lokalnego launchera laboratoryjnego i instrukcji README. Nie zmienia workflow CODEX, architektury, synchronizacji, autoryzacji ani bezpieczeństwa PLC/HMI; `AGENTS.md`, `Instrukcja_ChatGPT.md`, ADR, specyfikacje i kontrakty pozostają bez zmian.
+
+## 2026-10-28 — B-03A/E2-B1-I: izolacja IPC, heartbeat i finalizacji net48
+
+Baza 2c5b142 na sprawdzonej gałęzi diagnostycznej, clean; origin/main=16916d4,
+bez merge/rebase/cherry-pick. Nowy testowy InfrastructureProbe net48/x64 kompiluje
+dokładny Program Workera ze stubem granicy vendor, bez Siemens assembly reference.
+Nie zmienia produkcyjnego Main, heartbeat, IPC, schedulera, grantów lub limitów.
+Normalny Host/Fake jest osobnym punktem porównania. Runner Python/std library
+utrwala source/build hashes i wszystkie próbki poza Git.
+
+Seria b076e39c: A baseline, B trace on/off, C normalny Host/Fake, D heartbeat on/off,
+E sampler/audit; 30 s initial-idle, 20 slotów activity, 120 s post-idle, osobne procesy.
+Δ względem initial: A −3, B +13/+23, C −1, D +17/+2, E −8/−8. Kontrole e9131998
+oddzieliły timer/poll/send: post-idle −8/−13/+22. Osobny syntetyczny GC-worker
+373→338, Gen2 0→2, PSS 5 zakończonych Thread i 20 Event mniej; 30 s później 348.
+Kontrola e6f04a9e z inline pipe flush nadal +7, więc nie wprowadzono jej do produkcji.
+[Raport](docs/B03A_E2_B1_IPC_HANDLE_INVESTIGATION.md) rozdziela fakty, PROBABLE
+odroczonego cleanup net48 oraz brak dowodu stosów/pełnej przyczyny historycznego B1.
+
+Windows PSS tylko self, metadata bez object names/memory/thread context/drivera.
+Klasyfikacja PARTIAL; remote próba na własnym Fake w pierwszym smoke zakończyła
+kontroler 0xC0000005. Zachowano błąd, zweryfikowano i zakończono osierocony własny
+Fake-only Host; dziecko zwolniło się po utracie pipe. Bez dotknięcia TIA, eskalacji
+lub retry remote PSS. Kolejny smoke 8/8 po odmowie remote. Naprawiono nowe helpery:
+health URL, read-only SQLite Pooling=false/exclusive open oraz adnotację liczby
+slotów flush-control (spec/receipt zawsze 1). Pierwsze błędy zachowane, bez wyboru
+korzystnych próbek lub zmiany progów. Produkcyjny kod bez zmian.
+
+Ocena instrukcji sekcja po sekcji: AGENTS zakres/hierarchia/niezmienniki/autoryzacja/
+testy/dyscyplina/Git/dane oraz Instrukcja 1–10 cel/role/źródła/architektura/zadania/
+kontrola/recovery/decyzje/Git/styl. Oba dokumenty pozostawiono bez zmian: nowy
+testowy harness realizuje ich istniejące zasady offline i nie nadaje uprawnień.
+ADR 0001–0003, specyfikacje 03–08/14/16/18–21 i publiczne Core/HTTP/IPC/E1/B0
+bez zmian semantyki; nie dodano drugiego schedulera lub adaptera. Aktualizacje
+README/testów/raportu są opisem diagnostyki. B1/R/D i oryginalne dowody zachowane;
+ponownie zweryfikowano 1069 B1 i 243 B1-D pliki. Brak nowego live, E1 enrollment,
+B2 i NF-11. Build Release obu rozwiązań PASS, 0 warnings/errors; Core 564/564,
+końcowy Host 409/409, Python 71/71. Format verify obu rozwiązań, audit_quality
+i git diff --check PASS. Pierwsza pełna
+regresja: Core 564/564, Host 408/409; zachowano timeout wejścia syntetycznego
+ownera (5 s). Test ma teraz dedykowany LongRunning owner, asynchroniczny sygnał
+i await cleanup w finally; bez zmiany budżetu lub produkcji. Targeted 23/23,
+ponowna pełna regresja Host ma oddzielny run ddd7c2f0, bez nowego D-11/NF-11.
+Pełnego runnera nie uruchamiano: bezpośrednie pełne Core/Host/Python obejmują
+wymagane regresje IPC/resilience/E1/B0 dla tego zakresu zmian testowych.
+
+## 2026-10-28 — B-03A/E2-B1-D: profil diagnostyczny i bezpieczny STOP po 1 cyklu
+
+Baza 28eb6ea na fix/e2-b1-worker-resource-investigation, clean; po fetch main=16916d4,
+raport B1=30011c9, bez merge/rebase/cherry-pick. Jawne zlecenie użytkownika dopuszcza
+nowy, osobny eksperyment HANDLE_DIAGNOSTICS do 3 sekwencyjnych odczytów na B1.
+Stary grant pozostaje zakończony. Historyczne plany, dowody i B1 BLOCKED zachowane.
+
+Minimalne rozszerzenie lokalnego B0: document 1.1/purpose HANDLE_DIAGNOSTICS,
+plan E2-B1-D/max3; stary 1.0/E2-B1/max20 bez zmiany zakresu. Budżet bierze się
+z niezmiennego, weryfikowanego dokumentu w transakcji istniejącego ledgeru v4;
+bez nowej migracji, resetu lub retry. Rezerwacja, completion i resolution używają
+tego samego ograniczenia. Diagnostic capture wymaga faz, daje co najwyżej
+DIAGNOSTIC_COMPLETE po release; review jako B1 PASS jest zabroniony.
+
+Instrumentacja dodaje devices.enter i Operation ID ostatniego ukończonego cyklu
+w idle; nie dodaje getterów Siemens/forced GC. E2-G-D zachowuje safety/D-11/KPI
+SHARED_WORKSTATION, sprawdza nowe suite i dossier 1.1. HTTP/IPC/Core/E1/registry
+bez rozszerzeń; nadal jeden scheduler/Worker/owner. Klasyfikacja typów wymaga
+bezpiecznej dostępności; brak narzędzia jest NOT_AVAILABLE bez obejść.
+
+Ocena obu instrukcji sekcja po sekcji: AGENTS zakres/hierarchia/niezmienniki/
+autoryzacja/testy/dyscyplina/Git/dane oraz Instrukcja 1–10 cel/role/źródła/
+architektura/zadania/kontrola/recovery/decyzje/Git/styl. Dodano wyłącznie jawny
+wyjątek E2-B1-D w autoryzacji/recovery, pozostałe sekcje bez zmian. ADR 0001–0003,
+specyfikacje 03–08/16/18, publiczne kontrakty i kryteria B1 pozostają bez zmian:
+brak drugiego schedulera, mutacji, nowego canonical modelu, E1 fallbacku lub
+produkcji. Specyfikacje 19/21, osobny plan, README i testy rozwijają autoryzowany
+lokalny profil.
+
+[Raport wykonania](docs/B03A_E2_B1_D_HANDLE_DIAGNOSTICS.md): run 09c962a0,
+nowy grant 4ad6efe6, aktualna D-11 051565cc/E2-G-D READY, exact build/binding.
+1/3 rzeczywistych cykli zakończony CONFIRMED, false/false i Dispose.Returned.
+Kontroler błędnie porównał Discovery ProjectKey.Value z tekstem raw DTO; STOP
+zachowany, niezależny review artefaktów/binding/release, revoke i kontrolowany
+Host exit=0/Worker ended. Nie było retry ani cykli 2–3. Naprawiono porównanie
+w pomocniczym Python i dodano syntetyczną regresję; bez ponownego grantu/live.
+Po poprawce fingerprint źródeł zmieniony, następne wejście wymaga nowej D-11.
+
+126 fazowych próbek: cold Attach 418→455, inventory 455→455, Dispose 456→446,
+idle ostatnie 474 po 191,761 s. Typy handles NOT_AVAILABLE, warm NOT_RUN,
+ROOT_CAUSE_UNEXPLAINED. Framework kontrola samego trace bez Siemens nie odtworzyła
+wzrostu; nie dowodzi to naprawy. Plan następnej kontroli offline i osobnego live
+w raporcie. Bez zmian historycznych dowodów B1, progów lub wyniku BLOCKED.
+Oryginalne 1069 plików/manifest zweryfikowane ponownie. Prywatny pakiet poza Git.
+
+Pełny canonical runner przed live: Release 0 warnings/errors, Core 564/564,
+Host 399/399, Python 70/70, resilience/E1/B0/Framework PASS; D-11 limited PASS,
+pełna kwalifikacja BLOCKED (NF-11/full NF-08 NOT_RUN). Po fix kontrolera Python
+71/71; format obu rozwiązań, audit i diff check PASS. NF-11 nie uruchamiano.
+
+## 2026-10-27 — B-03A/E2-B1-R: analiza uchwytów i instrumentacja offline
+
+Baza `30011c9774cda09c3d8d2ffbb3ae1be7e0506678` na gałęzi raportu B1;
+po fetch `origin/main=16916d4`. Czyste worktree, osobna gałąź diagnostyczna bez
+merge/rebase/cherry-pick. Ponownie zweryfikowano 1069 oryginalnych plików B1,
+manifest/bytes/SHA/count PASS, bez modyfikacji dowodów lub odczytu starej SQLite.
+Nowy lokalny run analizy `a0509f55e2c94f94a5bbfcd8613024ec` przechowuje wyniki.
+
+[Raport dochodzenia](docs/B03A_E2_B1_RESOURCE_INVESTIGATION.md) zawiera wszystkie
+20 delt, cold/warm, pamięć, idle, korelację UTC z audit i wykres. 15/20 okien Attach
+ma dodatnie delty rzeczywistych próbek, przed traversal; w Dispose brak próbek,
+inventory nie rozdziela GetService i klasyfikacji. Nie interpolowano braków.
+Zweryfikowano SHA obu historycznych qualification.json X-01 (STA 462→702,
+MTA 456→602); inne buildy/profile nie są ilościową próbą kontrolną.
+Wynik ROOT_CAUSE_UNEXPLAINED, nie potwierdzono naprawy. Historyczny raport B1
+i jego BLOCKED pozostają niezmienione.
+
+Metadane API odczytano PEReader bez ładowania Siemens. TiaPortalProcess.Dispose
+zamyka Portal, więc nie jest poprawką cleanup. Nie znaleziono podstaw do traktowania
+Device/DeviceItem/SoftwareContainer jako RCW lub stosowania ReleaseComObject.
+Własne using/finally, event callback, procesy/tokeny, enumeratory, mutex, audit,
+IPC i bounded replay dictionaries przejrzano; nie przypisano im potwierdzonej winy.
+
+Dodano WorkerResourceTrace: domyślnie off, lokalny jawny switch startowy,
+create-new we własnym NTFS ArtifactRoot, limit 4096 / 1 MiB, Operation ID/epoch,
+handles/PB/WS/threads/managed bytes/GC0–2 i fazy istniejącego odczytu.
+Bez nowych getterów, forced GC, DTO lub grantu; koszt diagnostyki jawny,
+błąd trace nie omija finally Dispose. Bootstrap-report nie dołącza go automatycznie;
+plan wymaga osobnego seal. Produkcyjny owner zachowuje CheckProcess; wewnętrzny
+seam pozwala kompilować tę samą metodę z syntetycznymi typami API w testach.
+Nowe testy obejmują wyjątki/dispose/enumeratory/dirty/null, timeout bez abort,
+20 odczytów/weak references, log/limits/Operation ID i net48 IPC 20 cykli.
+Kontrolowany GC występuje tylko w teście syntetycznej retencji.
+
+**Ocena instrukcji sekcja po sekcji:** AGENTS: zakres/stan, hierarchia, niezmienniki,
+autoryzacja/testy, dyscyplina zmian, Git, dane nieufne; Instrukcja_ChatGPT: cel,
+odpowiedzialność, źródła, architektura, zadania, kontrola wyników, bezpieczeństwo,
+decyzje, GitHub i styl. Obie bez zmian: nie poszerzono prawa Engineering, nie
+zmieniono kryteriów PASS/STOP, modelu async/owner/timeout lub synchronizacji.
+ADR 0001–0003 i kontrakty API/IPC/Core/E1/B0 bez zmian. Specyfikacje 03–08/16/19/21
+sprawdzono; aktualizacja dotyczy raportu, README Workera/testów i indeksu README.
+Oryginalne plany B1/E2-A pozostają byte-identical. Nowy krótszy plan live nie jest
+automatycznie dopuszczony przez B0: raport jawnie opisuje sztywny plan/budżet 20
+i wymagane osobne rozstrzygnięcie proceduralnego 3/20 lub trwałego limitu 3.
+
+Nowe Siemens Attach/Discovery, grant, B2, E1 enrollment, Runtime i NF-11 NOT_RUN.
+Worker Handle Risk UNKNOWN. Nowy build nie może używać historycznej kwalifikacji
+jako dowodu aktualnego. Pełny runner SHARED_WORKSTATION uruchomiono ze względu na
+zmiany Worker/net48/procesowych regresji; zapisano oddzielne wyniki wszystkich
+prób, bez dobierania PASS z podzbiorów i bez wymazywania prób nieudanych.
+
+Pierwszy run `415d726f40294e7eb8391fb3dccc1c76` zachowano jako FAIL:
+wszystkie kroki i 941/941 .NET + 67/67 Python PASS, ale nowy plik próbnika
+trafił do zamkniętego zbioru root scenariuszy i reporter odmówił agregacji.
+Potwierdzony błąd integracji dowodu naprawiono przenosząc pomocnicze obserwacje
+do resource-diagnostics/framework-ipc.json, nadal pod rekurencyjnym manifestem.
+Nie zmieniono reportera, zbioru wymaganych scenariuszy ani progów; wykonano nowe
+pełne przebiegi dla zmienionych źródeł, bez przepisywania pierwszego wyniku.
+
+Celowane 15/15 PASS po poprawce. Run `11e41648380f4b3bbbe8c51448b19e06`
+pozostał BLOCKED przed testami: chwilowy brak C: w Get-Volume. Trzy niezależne
+odczyty systemowe ponownie potwierdziły lokalne NTFS C:/X:, bez zmian konfiguracji.
+Nowy run `4c2126f5b218444ea4323c653e2a1d11` używa niezmienionego preflightu.
+Zakończył się FAIL: Core 564/564, Host 376/377, Python 67/67, performance PASS.
+Jeden test API odebrał reset TCP przy równoczesnym uploadzie oversize body
+i wczesnej odmowie Content-Length. Nie uznano resetu za PASS. Test deklarowanej
+długości stosuje teraz Expect: 100-continue; chunked nadal wysyła body. Oba nadal
+wymagają 413/LIMIT_EXCEEDED i zero operacji. Host/limity/kontrakt bez zmian,
+bez retry lub akceptowania wyjątku transportu. Celowane ApiSecurityTests 15/15 PASS;
+pełna regresja dla zmienionych źródeł otrzymała nowy run, stare wyniki są zachowane.
+
+Końcowy `93610f4b329a48878e636641d6957708`: OFFLINE/test execution/performance
+PASS; Core 564/564, Host 377/377, Python 67/67, bez skip. Resilience 52/52,
+B0 49/49, Local Trusted + dispatch 47/47, Core evidence 18/18,
+V19Offline 47/47 i WorkerResource 13/13. Build Release 0 warnings/errors,
+format obu solution, dokumentacja i diff PASS; self-test net48 x64 bez Siemens.
+Verifier odtworzył manifest 78 plików, pełne TRX, fingerprint i hashe buildów.
+Idle 305,930 s / CPU 0,953164% PASS; pełny NF-08 NOT_RUN, pełny NF-11 NOT_RUN
+i qualification_status BLOCKED. Nie nadano nowej autoryzacji. Dodatkowy PE odczyt
+HW.Software/PLC/Unified nie wykazał IDisposable/Import; cztery vendor DLL są
+byte-identical z B1. ROOT_CAUSE_UNEXPLAINED i Worker Handle Risk UNKNOWN.
+
+## 2026-10-27 — B-03A/E2-B1: 20 odczytów, kwalifikacja BLOCKED
+
+Baza `16916d4f392b639a7936494a1c85f899fa4f3e0a`, po fetch HEAD=origin/main,
+worktree czyste. Osobne jawne zlecenie użytkownika objęło autonomiczne read-only B1,
+nowy lokalny deployment/ACL, B0, monitoring i Computer Use A. Nie rozszerzono zakresu
+o drugi projekt, mutacje Siemens lub E1 enrollment.
+
+[Raport B1](tests/engineering/E2_B1_2026-10-27_06cbfec6.md) rozdziela funkcjonalne
+20/20 PASS od qualification BLOCKED / RESOURCE_REVIEW_REQUIRED. Run
+`06cbfec6107d4627b015a0c5e5f433bd`: Windows/UI/NTFS/build binding, dossier,
+E2-G READY na ponownie zweryfikowanej D-11 `bdca23b132664a2b84bf2d225d0e707d`,
+bootstrap-inspect i jawne authorize poprzedziły Attach. 20 sekwencyjnych cykli STA
+na jednym Workerze, bez retry/restart; wszystkie IsModified false/false,
+graf i coverage zgodne, wszystkie Dispose.Returned. Host i Worker zakończone
+kontrolowanie, TIA nadal żywa. Grant FINISHED/BUDGET_COMPLETED, used 20, released true.
+
+Worker handles after cold 456 → warm 20 620; slope warm +9,589474/cykl,
+mediany okien 489,5/557/616. Idle 30,032 s nie potwierdził powrotu do wczesnego
+poziomu warm. Przyczyna nierozstrzygnięta; brak automatycznego PASS, nowego progu
+lub tezy o potwierdzonym leak. Bootstrap review jawnie odmówione
+(plan_checks_passed=false, GROWING). 112 metadanych plików i hash AP19 bez zmian;
+brak deklaracji pełnego porównania zawartości pozostałych plików/pamięci TIA.
+684 rekordy samplera i wszystkie outliery zachowane. Pakiet 1069 plików,
+manifest `a16d14f9e88deefd60b434e7e74e9a99ff3b8c566530135bcc8b955c844a0200`,
+niezależny PowerShell Get-FileHash/bytes/count PASS. Prywatne surowe dowody, bindingi,
+projekty, oryginalna SQLite, konfiguracja i lokalne skrypty pozostają poza Git.
+
+**Ocena spójności sekcja po sekcji:** AGENTS: zakres/stan (historyczna data pozostaje),
+hierarchia, niezmienniki, autoryzacja/testy, dyscyplina zmian, Git i dane nieufne;
+Instrukcja_ChatGPT: cel, odpowiedzialność, źródła, architektura, zadania, kontrola,
+bezpieczeństwo/recovery, decyzje, GitHub i styl. Obie instrukcje bez zmian:
+wykonano już zdefiniowany, osobno autoryzowany eksperyment; nie zmieniono zasad,
+kryteriów lub praw i nie stwierdzono konfliktu normatywnego.
+ADR 0001–0003, specyfikacje 03–07/17–20 i kontrakty API/IPC/Core/E1/B0 bez zmian:
+brak nowego adaptera, gettera, security workflow, SYNCED lub kwalifikowanej capability.
+Dokładne bajty zatwierdzonego planu B1 i E2-A zachowano. README, bieżące odniesienia
+08/21 i nowy raport aktualizują wyłącznie stan wykonania; historyczne dowody X-01,
+STRICT FAIL, NF-03 exFAT FAIL i wcześniejsze E2 przygotowanie pozostają zachowane.
+
+Engineering B2, real E1 enrollment, Runtime, NF-11 i produkcja NOT_RUN;
+pełna kwalifikacja offline BLOCKED przez NF-11, Worker Handle Risk UNKNOWN.
+Zmieniono wyłącznie dokumentację wynikową; build Host/Worker i źródła kodu bez zmian.
+Walidacja dokumentacji PASS: audit_quality.py sprawdził 66 Markdown i 604 lokalne
+odnośniki, errors=[]; git diff --check PASS. Nie uruchamiano kolejnej serii Siemens
+ani testów tworzących nowy binding. Zewnętrznych 28 linków nie sprawdzano live.
+
 ## 2026-10-27 — B-03A/E2-G: SHARED_WORKSTATION i bramka E2-B1
 
 Baza: `3e0785556902c0ef10d6983f17ea0743997e8e6c`, HEAD=origin/main po fetch,

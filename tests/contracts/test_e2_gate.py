@@ -35,6 +35,20 @@ def policy():
     return q, dict(test_execution_status="PASS")
 
 
+class DiagnosticDossierTests(unittest.TestCase):
+    def test_diagnostic_scope_is_explicit_and_never_weakens_legacy_B1(self):
+        d = dossier(); d.update(schema_version="1.1", scope=copy.deepcopy(gate.DIAGNOSTIC_SCOPE),
+                                phase_telemetry_ready=True, handle_type_analysis="NOT_AVAILABLE")
+        builds = dict(host="a"*64, worker="b"*64)
+        self.assertEqual([], gate.assess_dossier(d, builds, "c"*64, "HANDLE_DIAGNOSTICS"))
+        self.assertTrue(gate.assess_dossier(d, builds, "c"*64))
+        for key, bad in [("maximum_cycles",20),("purpose","QUALIFICATION"),("automatic_retry",True),("plan_id","E2-B1")]:
+            changed = copy.deepcopy(d); changed["scope"][key] = bad
+            self.assertTrue(gate.assess_dossier(changed, builds, "c"*64, "HANDLE_DIAGNOSTICS"))
+        d["phase_telemetry_ready"] = False
+        self.assertTrue(gate.assess_dossier(d, builds, "c"*64, "HANDLE_DIAGNOSTICS"))
+
+
 def sealed_fixture(root):
     """Entirely synthetic run, including TRX, samples, process records and inert build bytes."""
     def fixture_module(name):

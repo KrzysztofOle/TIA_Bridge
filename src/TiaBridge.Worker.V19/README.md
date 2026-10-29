@@ -29,6 +29,26 @@ src/TiaBridge.Worker.V19/bin/Release/net48/TiaBridge.Worker.V19.exe --enumerate
 
 Self-test nie ładuje Siemens. Loader-check ładuje tylko zatwierdzoną bibliotekę i zwraca identity/location/SHA. Enumerate używa publicznego TiaPortal.GetProcesses, bez Attach i bez zapisu projektu. Nie wybieraj odbiorcy według samego PID lub tytułu okna.
 
+## Opcjonalna telemetria zasobów E2-B1-R
+
+[Analiza historycznego przyrostu i plan diagnostyki](../../docs/B03A_E2_B1_RESOURCE_INVESTIGATION.md)
+pozostawiają ROOT_CAUSE_UNEXPLAINED i historyczne B1 BLOCKED. Nowa instrumentacja
+nie jest naprawą potwierdzonej przyczyny ani grantem do ponowienia testu.
+Lokalny switch startowy `TIA_BRIDGE_V19_RESOURCE_TRACE=1` włącza po peer/Ready
+create-new `v19-resources-<worker-epoch>.jsonl` pod zatwierdzonym ArtifactRoot.
+Domyślnie brak pliku i pomiarów. Zły niepusty switch odmawia startu.
+
+Pomiary Windows/CLR przed/po fazach obejmują handles, PB, WS, threads, managed bytes,
+naturalne GC0/1/2, Operation ID, PID/start/epoch, UTC i zegar monotoniczny.
+Nie wywołują dodatkowych getterów Siemens, nie wymuszają GC i nie blokują callbacku
+Disposed. Log nie zawiera nazw projektu/urządzeń. Maksimum 4096 rekordów / 1 MiB,
+bez overwrite/rotacji; failure lub limit wymaga STOP i zachowania częściowego logu.
+Koszt snapshot/JSON/flush pozostaje w pomiarach; dodatkowy sampler i hash pliku
+w końcowym pakiecie są obowiązkowe. Bootstrap-report nie dołącza tego logu sam.
+Zmiana buildu wymaga nowej oceny D-11/bindingu i osobnej decyzji live; stary grant
+FINISHED nie jest odnawiany przez switch. Bieżące zadanie nie uruchamia Workera
+z Siemens, Attach, nowego grantu ani enrollment.
+
 ## Odczyt, ownership i zwalnianie
 
 Jedyny dedykowany wątek STA/MTA posiada wszystkie proxy Siemens. IPC i heartbeat co 2 s działają oddzielnie. Mutex bieżącej sesji/SID dodatkowo serializuje wywołania V19 między własnymi procesami; porzucony mutex daje odmowę, nie zgodę na retry. Dokładne PID/start/executable/SID i publiczny ProjectPath sprawdzane są przed Attach, ponownie po Attach i po Dispose. Nie otwiera się projektu, nie tworzy nowej instancji TIA i nie adoptuje innego PID po błędzie.

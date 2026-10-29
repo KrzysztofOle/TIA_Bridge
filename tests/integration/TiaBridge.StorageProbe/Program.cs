@@ -3,9 +3,14 @@ using TiaBridge.Core.Transport.V1;
 using TiaBridge.Host.Operations;
 using TiaBridge.Host.Storage;
 
-// Test-only process. It never starts a server or dispatches to a worker.
+// Test-only process. Explicit synthetic lanes may start their own Host/Fake or offline probe; never Siemens.
 if (args.Length != 4) return 2;
 string root = args[0], repository = args[1], mode = args[2], checkpoint = args[3];
+if (mode == "handle-investigation")
+{
+    if (!OperatingSystem.IsWindows()) return 2;
+    return await InfrastructureInvestigation.Run(root, repository, checkpoint);
+}
 if (mode == "http-resilience") { try { await HttpResilienceProbe.Run(root, checkpoint); return 0; } catch (IOException) { return 87; } }
 if (mode == "ipc-adversary") return await IpcAdversary.Run(checkpoint);
 if (mode == "lock-child") return await HttpResilienceProbe.HoldLock(root, repository);

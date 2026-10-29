@@ -2,6 +2,14 @@
 
 Place repository maintenance and development scripts here. Scripts must not connect to or modify a TIA Portal project unless the command and its safeguards are explicit, documented, and separately reviewed.
 
+## LAB-03I — nazwa pliku definicji globalnych
+
+[test_lab03i.ps1](test_lab03i.ps1) uruchamia wyłącznie offline istniejący laboratoryjny splitter, walidator, assembler i publisher. Wymaga Windows PowerShell 5.1 x64, `pwsh.exe` (PowerShell 7), zbudowanego `X:\TESTY_TIA_Bridge\bin\LabExporter.exe` oraz sąsiedniego `Esprima.dll`; bez nowych pakietów. Polecenie: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/test_lab03i.ps1`. Nie wywołuje Attach ani API Siemens. Syntetyczne wejścia i wyniki pozostają w nowych katalogach UUID pod laboratoryjnymi `exports` i `evidence`, a kopia między woluminami w `%TEMP%\LAB-03I-stage-<UUID>`. Exit 0 oznacza PASS wszystkich przypadków; exit 1 oznacza FAIL. Raport i granice: [LAB-03I](../docs/LAB_03I_GLOBAL_DEFINITION_NAMING.md).
+
+## LAB-03J — diagnostyka natywnego eksportu
+
+[test_lab03j.ps1](test_lab03j.ps1) wymaga Windows PowerShell 5.1 x64, aktualnego laboratoryjnego EXE oraz systemowych bibliotek .NET Framework `System.IO.Compression` / `System.IO.Compression.FileSystem`; bez nowych pakietów. Polecenie: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/test_lab03j.ps1`. Wykonuje 15 syntetycznych przypadków walidacji/diagnostyki natywnej pary i weryfikacji backupu. Nie wykonuje Attach ani żadnego wywołania Siemens; używa istniejącego wzorca refleksji i raportu. Wyniki pozostają w nowych `X:\TESTY_TIA_Bridge\evidence\LAB-03J-offline-<UUID>`, diagnostyka w osobnych `LAB-03J-native-<UUID>.json`. Exit 0 = wszystkie PASS, exit 1 = FAIL. [Raport LAB-03J](../docs/LAB_03J_NATIVE_EXPORT_DIAGNOSTICS.md) rozdziela testy od nieodtworzonej historycznej przyczyny.
+
 ## D-11 preparation — próbki i read-only preflight
 
 [performance_evidence.py](performance_evidence.py) wymaga wyłącznie Python 3.12/std library. Waliduje pełne próbki 1.1, niezmienne manifesty i SHA oraz odtwarzalność percentyli, bez uruchamiania RT/NF. Używają go reporter i runner; `allow_legacy=True` służy tylko jawnemu odczytowi archiwalnych agregatów z INSUFFICIENT, bez nowej kwalifikacji PASS. Nowe raporty runnera są w `.tia-bridge/resilience/<run-id>/validation/`, TRX w `test-results/`, próbki w `performance/`; na końcu powstaje `evidence-manifest.json`. Stare wspólne ścieżki opisane w historii B-01/B-02 poniżej pozostają archiwalne i nie są nadpisywane.

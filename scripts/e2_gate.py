@@ -24,6 +24,8 @@ SCOPE = dict(project_name="T05_RecipeSim_V19_Testowy", plan_id="E2-B1",
              inventory_scope="all_supported", fresh=True, maximum_cycles=20, maximum_devices=64,
              maximum_nodes=256, maximum_depth=8, timeout_seconds=120, queue_timeout_seconds=300,
              apartment="STA", max_in_flight=1, target_count=1)
+DIAGNOSTIC_SCOPE = dict(SCOPE, plan_id="E2-B1-D", maximum_cycles=3,
+                        purpose="HANDLE_DIAGNOSTICS", automatic_retry=False)
 BINDING = {"project_key", "project_path", "tia_pid", "tia_start_ticks", "executable_path",
            "session_sid", "tia_build", "worker_build", "host_build"}
 STEPS = ["01-restore", "01b-worker-restore", "02-build", "02b-worker-build", "03-dotnet",
@@ -145,7 +147,7 @@ def verify_qualification(root, run_id):
     return q, run, metadata, e.digest(folder / "evidence-manifest.json"), len(manifest["files"])
 
 
-def assess_dossier(d, builds, plan_hash):
+def assess_dossier(d, builds, plan_hash, experiment="B1"):
     """Review inputs only, not live binding proof or bootstrap activation."""
     issues = []
     def issue(code, message, review=False):
@@ -156,9 +158,13 @@ def assess_dossier(d, builds, plan_hash):
     allowed = {"schema_version", "scope", "read_scope", "plan_sha256", "expected_binding", "observed_binding",
                "clean_test_copy_confirmed", "ui_clean_confirmed", "no_colliding_siemens_operations",
                "monitoring_ready", "safe_stop_ready", "bootstrap_state", "is_modified_before_start"}
-    if set(d) != allowed or d.get("schema_version") != "1.0":
+    diagnostic = experiment == "HANDLE_DIAGNOSTICS"
+    expected_scope = DIAGNOSTIC_SCOPE if diagnostic else SCOPE
+    if diagnostic:
+        allowed |= {"phase_telemetry_ready", "handle_type_analysis"}
+    if experiment not in {"B1", "HANDLE_DIAGNOSTICS"} or set(d) != allowed or d.get("schema_version") != ("1.1" if diagnostic else "1.0"):
         issue("DOSSIER_SCHEMA", "Missing or unknown dossier fields/version.")
-    if d.get("scope") != SCOPE or any(type(d.get("scope", {}).get(k)) is not type(v) for k, v in SCOPE.items()):
+    if d.get("scope") != expected_scope or any(type(d.get("scope", {}).get(k)) is not type(v) for k, v in expected_scope.items()):
         issue("B1_SCOPE_MISMATCH", "Only the exact B1 operation, single target and bounded profile are allowed; B2 is excluded.")
     reads = d.get("read_scope")
     if not isinstance(reads, list) or len(reads) != 13 or any(not isinstance(v, str) for v in reads) or set(reads) != set(READ_SCOPE):
@@ -202,17 +208,28 @@ def assess_dossier(d, builds, plan_hash):
         issue("BOOTSTRAP_STATE_REVIEW", "This assessment prepares an inactive B0 draft; active/unknown grant requires review.", review=True)
     if d.get("is_modified_before_start") is not False and d.get("is_modified_before_start") != "PENDING_AUTHORIZED_READ":
         issue("DIRTY_OR_UNKNOWN_PROJECT", "IsModified must be false in an authorized read; no read may be performed to obtain READY.", review=True)
+    if diagnostic and (d.get("phase_telemetry_ready") is not True or d.get("handle_type_analysis") not in {"AVAILABLE", "NOT_AVAILABLE"}):
+        issue("DIAGNOSTIC_MONITORING_REQUIRED", "Phase trace must be ready; handle type availability must be explicitly recorded.")
     return issues
 
 
-def evaluate(root, run_id, dossier=None):
+def evaluate(root, run_id, dossier=None, experiment="B1"):
     result = dict(schema_version="1.0", task="E2-G", run_id=run_id, status="BLOCKED", reasons=[],
                   safety_gate="BLOCKED", performance_gate="BLOCKED", evidence_validation="BLOCKED",
                   bootstrap_readiness="BLOCKED", limited_d11="BLOCKED", operator_authorization="NOT_GRANTED",
                   bootstrap_activation=False, siemens_attach_permitted=False, engineering="NOT_RUN",
                   full_offline_qualification="BLOCKED", production_qualification="NOT_RUN", nf11="NOT_RUN")
     try:
+        if experiment not in {"B1", "HANDLE_DIAGNOSTICS"}:
+            raise ValueError("Unsupported local experiment.")
         q, run, metadata, manifest_hash, count = verify_qualification(root, run_id)
+        if experiment == "HANDLE_DIAGNOSTICS":
+            ns = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
+            names = [n.attrib["testName"] for p in (root / ".tia-bridge/resilience" / run_id / "test-results").glob("*.trx")
+                     for n in ET.parse(p).getroot().findall(".//t:UnitTestResult", ns)]
+            if any(not any("." + suite + "." in name for name in names) for suite in ("BootstrapDiagnosticTests", "WorkerResourceTests")):
+                raise ValueError("Diagnostic budget/phase safety suites missing.")
+            result.update(task="E2-G-D", purpose=experiment, maximum_cycles=3, b1_qualification="NOT_RUN")
         result.update(evidence_validation="PASS", manifest_sha256=manifest_hash, artifact_count=count,
                       git_sha=metadata["git_sha"], profile_version="1.0.0", qualification_profile="SHARED_WORKSTATION",
                       profile_definition_sha256=metadata["profile_definition_sha256"], nf08=q["nf"]["NF-08"], nf11=q["nf"]["NF-11"]["status"])
@@ -221,7 +238,8 @@ def evaluate(root, run_id, dossier=None):
         result["safety_gate"] = "FAIL" if any(f["code"].startswith("SAFETY_") for f in failures) else "PASS"
         result["performance_gate"] = "FAIL" if any(f["code"].startswith(("D11_NF-", "PERFORMANCE_", "RESOURCE_")) for f in failures) else "PASS"
         result["limited_d11"] = "BLOCKED" if failures else "PASS"
-        issues = assess_dossier(dossier, metadata["builds_sha256"], reporter().performance_evidence.digest(root / "docs/E2-B1_TEST_PLAN.md"))
+        plan = "E2-B1-D_TEST_PLAN.md" if experiment == "HANDLE_DIAGNOSTICS" else "E2-B1_TEST_PLAN.md"
+        issues = assess_dossier(dossier, metadata["builds_sha256"], reporter().performance_evidence.digest(root / "docs" / plan), experiment)
         result["reasons"].extend(issues)
         result["bootstrap_readiness"] = "BLOCKED" if issues else "PASS"
         result["status"] = "BLOCKED" if failures or any(not i.get("review_required") for i in issues) else "REVIEW_REQUIRED" if issues else "READY_FOR_OPERATOR_AUTHORIZATION"
@@ -237,10 +255,11 @@ def main(argv=None):
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--dossier", type=Path)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--experiment", choices=["B1", "HANDLE_DIAGNOSTICS"], default="B1")
     args = parser.parse_args(argv)
     try:
         d = reporter().performance_evidence.read_json(args.dossier) if args.dossier else None
-        result = evaluate(ROOT, args.run_id, d)
+        result = evaluate(ROOT, args.run_id, d, args.experiment)
     except (OSError, ValueError) as error:
         result = dict(status="BLOCKED", reasons=[dict(code="DOSSIER_INVALID", description=str(error))],
                       operator_authorization="NOT_GRANTED", siemens_attach_permitted=False, bootstrap_activation=False)
