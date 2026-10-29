@@ -83,6 +83,12 @@ Repozytorium zawiera konfiguracje VS Code dla istniejącego laboratoryjnego narz
 
 Ścieżki laboratorium są jawnie ustawione w `.vscode\launch.json`: projekt `X:\TESTY_TIA_Bridge\T05_RecipeSim_V19_Testowy` oraz katalog `X:\TESTY_TIA_Bridge\Scripts` jako cel eksportu i źródło importu. Zmień odpowiednie argumenty `--project`, `--output` lub `--input`, aby użyć innych lokalizacji. Eksport zastępuje zawartość katalogu docelowego; import aktualizuje moduły przy zgodnym zestawie nazw i ich nie usuwa. Te konfiguracje nie wykonują Download ani operacji Runtime.
 
+[LAB-03I](docs/LAB_03I_GLOBAL_DEFINITION_NAMING.md) wprowadza zarezerwowany plik `_Global_definition_area.js` oraz manifesty `lab-03i-*` w narzędziu laboratoryjnym. Eksport zawsze tworzy nową nazwę; import odrzuca starsze paczki i wskazuje ponowny FORCE EXPORT. Kod i znaczniki Siemens pozostają bajtowo zachowane. Testy offline 18/18 oraz staging/rollback 10/10 PASS; rzeczywisty eksport FAIL na kontroli natywnych plików `JSON_Test_screen`, import/readback NOT_RUN. To nie jest implementacja eksportu/importu w produkcyjnym Host/Worker.
+
+[LAB-03J](docs/LAB_03J_NATIVE_EXPORT_DIAGNOSTICS.md) dodał szczegółową diagnostykę, ścisłą kontrolę natywnej pary i zachowanie surowych danych po awarii eksportu. Regresje LAB-03I/LAB-03H pozostają PASS, nowe testy offline 15/15 PASS. Bieżące pełne eksporty 6 modułów / 22 funkcje / 47 plików przeszły; historyczna przyczyna LAB-03I nie została odtworzona ani potwierdzona jako naprawiona. Raport rozdziela aktualne wyniki od tej nierozstrzygniętej diagnozy i opisuje zabezpieczenia laboratoryjnego importu.
+
+Wznowienie LAB-03J z 2026-10-29 potwierdziło również rzeczywisty FORCE IMPORT, Save i readback wszystkich sześciu modułów: PASS po zweryfikowanym natywnym backupie i świeżym porównaniu baseline pod ExclusiveAccess. Końcowe `Scripts` opublikowano ponownie; zmieniono wyłącznie zaplanowany komentarz w laboratoryjnym `T05MoveTest.RunTest`, pozostałe 21 funkcji, 6 globalnych segmentów i 6 YAML pozostały bajtowo zgodne. Gotowość T05_PLC nadal NO ze względu na nieustaloną historyczną przyczynę; nie deklarujemy zamknięcia całej diagnozy.
+
 ## Materiały wejściowe
 
 Pierwotne opracowania [architecture](docs/architecture.md), [sync-model](docs/sync-model.md), [formats](docs/formats.md), [safety](docs/safety.md), [roadmap](docs/roadmap.md) i ADR 0001 zachowano i powiązano z aktualnymi specyfikacjami. [ADR 0002](docs/decisions/0002-async-host-and-versioned-worker.md) doprecyzowuje autonomię w zatwierdzonej sesji.
