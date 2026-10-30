@@ -1,5 +1,9 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-10-30 — LAB-03O: nadpisywanie zmienionych artefaktów
+
+Domyślny overwrite zastępuje wcześniej zarejestrowane pliki eksportu aktualnym odczytem także po ręcznej edycji lub usunięciu pliku. Bieżące bajty są przechwytywane do baseline dziennika recovery, więc przerwanie nadal pozwala przywrócić dokładny poprzedni stan. Niezarządzane pliki kolidujące z celem, obce pliki, reparse points i niepewne recovery nadal blokują publikację. PARTIAL/UNKNOWN zachowuje zarządzane pliki nieobecne w niepełnym odczycie. Zmieniono źródło laboratoryjne, testy i kontrakt LAB-03O; brak zmiany Siemens lifecycle, mutacji PLC/HMI, autoryzacji, produkcyjnego kontraktu synchronizacji lub READ scope. Ocena AGENTS.md i Instrukcja_ChatGPT.md: bez zmian; ta korekta dotyczy wyłącznie publikacji lokalnych plików eksportu i nie nadaje nowych uprawnień TIA. LAB-03O: 40/40 offline PASS; build net48/x64 PASS. Kontrola jakości dokumentacji PASS.
+
 ## 2026-10-29 — LAB-03O: domyślny overwrite eksportowanych zdarzeń
 
 Laboratoryjne export-events domyślnie synchronizuje artefakty bezpośrednio do --output; opcjonalne --mode overwrite jest równoważne, a jawne --mode snapshot zachowuje niepowtarzalne run-id i format LAB-03N. Dodano rejestr własności .event-sync z bindingiem projekt/HMI, hashami, stanem publikacji, lockiem, stagingiem, backupami i dziennikiem odzyskiwania poprzednich plików. Nowe/zmienione/usunięte pliki są publikowane wyłącznie w zarządzanym zestawie; pliki nieznane, ręczne edycje, brak pliku lub drift blokują. PARTIAL/UNKNOWN/read failure/pominięcia artefaktów zachowują cały niepotwierdzony stary zestaw w rejestrze retained. Nazwy scripts/ i sufiksy kolizji screens/ w overwrite bazują na hierarchii nazw i zdarzeniu, bez indeksów; snapshot zachowuje dotychczasowe nazwy i bajty. Bez usuwania output root, katalogów ekranów lub danych użytkownika. [Kontrakt, pliki, ograniczenia i dowody](docs/LAB_03O_EVENT_OVERWRITE.md).
