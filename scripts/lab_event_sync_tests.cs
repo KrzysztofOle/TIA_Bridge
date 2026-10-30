@@ -44,6 +44,106 @@ internal static class LabEventSyncTests
         .ToDictionary(x => x.Substring(d.Length), x => LabEventArtifacts.Digest(File.ReadAllBytes(x))); }
     private static void Equal(Dictionary<string, string> before, string d)
     { var after = Hashes(d); Check(before.Count == after.Count && before.All(x => after[x.Key] == x.Value)); }
+    private static LabEventResult Buttons(string name = "Tapped", bool present = true)
+    {
+        var software = new EventFake("SOFTWARE") { Name = "HMI", Edges = new[] { "Screens" } };
+        var screen = new EventFake("SCREEN") { Name = "JSON_Test", Supported = true, Edges = new[] { "ScreenItems" } };
+        screen.Values["EventHandlers"] = new EventFake[0];
+        var button = new EventFake("ITEM") { Name = "Button_3", Supported = true };
+        var other = new EventFake("ITEM") { Name = "Other", Supported = true };
+        Func<string, EventFake> handler = ev => {
+            var script = new EventFake("SCRIPT"); script.Values["ScriptCode"] = "// TEST LOGGER " + ev;
+            script.Values["GlobalDefinitionAreaScriptCode"] = "// declarations"; script.Values["Async"] = false;
+            var h = new EventFake("HANDLER"); h.Values["EventType"] = ev; h.Values["Script"] = script; return h;
+        };
+        button.Values["EventHandlers"] = present ? new[] { handler(name) } : new EventFake[0];
+        other.Values["EventHandlers"] = new[] { handler("Tapped") };
+        screen.Values["ScreenItems"] = new[] { button, other }; software.Values["Screens"] = new[] { screen };
+        var r = new LabEventReader(new EventFakeAccess(), new LabEventLimits()).Read(software, "/HMI/Synthetic/HMI");
+        r.identity["project_path"] = "X:/Synthetic.ap19"; r.identity["device_path"] = new[] { "Synthetic", "HMI" }; return r;
+    }
+    private static string ButtonLocator(LabEventResult r)
+    { return (string)r.objects.Single(x => (string)x["name"] == "Button_3")["locator"]; }
+    private static LabEventSync.State State(string d)
+    { return json.Deserialize<LabEventSync.State>(File.ReadAllText(Path.Combine(d,".event-sync","state.json"))); }
+    private static void PutState(string d, LabEventSync.State s)
+    { File.WriteAllText(Path.Combine(d,".event-sync","state.json"),json.Serialize(s)); }
+    private static LabEventSync.Entry[] ButtonFiles(string d)
+    { return State(d).files.Where(x => x.origin != null && x.origin.owner.Last().name == "Button_3" && x.origin.event_name == "Tapped").ToArray(); }
+    private static void Removed(string d, LabEventSync.Entry[] files)
+    { Check(files.Length == 4 && files.All(x => !File.Exists(Path.Combine(d,x.path)))); }
+    private static void Retained(string d, LabEventSync.Entry[] files, string reason = null)
+    {
+        var s = State(d); Check(files.Length == 4 && files.All(x => File.Exists(Path.Combine(d,x.path)) && s.retained.Contains(x.path)
+            && s.decisions.Any(v => v.path == x.path && v.action == "RETAIN_UNVERIFIED" && (reason == null || v.reason == reason))));
+    }
+    private static void OtherPartial(LabEventResult r)
+    { r.Issue((string)r.objects.Single(x => (string)x["name"] == "Other")["locator"], "children", "ENCAPSULATED_CHILDREN_NOT_PUBLIC", null); }
+    private static void Legacy(string d)
+    {
+        var s = State(d); s.schema="lab-03o-owner/1"; foreach(var e in s.files) e.origin=null; s.decisions.Clear(); PutState(d,s);
+    }
+    private static void Snapshot(string d, string target)
+    {
+        Directory.CreateDirectory(target);
+        foreach (var e in State(d).files) {
+            string dest=Path.Combine(target,e.path); Directory.CreateDirectory(Path.GetDirectoryName(dest)); File.Copy(Path.Combine(d,e.path),dest);
+        }
+    }
+    private static void Integrity(string d)
+    {
+        var s=State(d); foreach(var e in s.files) { byte[] b=File.ReadAllBytes(Path.Combine(d,e.path)); Check(b.LongLength==e.length && LabEventArtifacts.Digest(b)==e.hash); }
+        var manifest=(Dictionary<string,object>)json.DeserializeObject(File.ReadAllText(Path.Combine(d,"manifest.json")));
+        var fresh=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach(var value in (object[])manifest["files"]) {
+            var e=(Dictionary<string,object>)value;string p=(string)e["path"];byte[] b=File.ReadAllBytes(Path.Combine(d,p));
+            Check(b.LongLength==Convert.ToInt64(e["length"])&&LabEventArtifacts.Digest(b)==(string)e["sha256"]);fresh.Add(p);
+        }
+        fresh.Add("manifest.json"); Check(s.files.All(x=>fresh.Contains(x.path)||s.retained.Contains(x.path)));
+        var report=(Dictionary<string,object>)json.DeserializeObject(File.ReadAllText(Path.Combine(d,"sync-report.json")));
+        Check(json.Serialize(report["decisions"])==json.Serialize(s.decisions));
+        Check(File.ReadAllText(Path.Combine(d,"events-report.md")).Contains("sync-report.md"));
+        var index=(Dictionary<string,object>)json.DeserializeObject(File.ReadAllText(Path.Combine(d,"events-index.json")));
+        var source=(Dictionary<string,object>)index["source"];
+        Check((string)source["sha256"]==LabEventArtifacts.Digest(File.ReadAllBytes(Path.Combine(d,"events.json"))));
+    }
+    private static void ObjectTests()
+    {
+        Test("local_complete_removes_four_absent_artifacts",()=>{string d=Dir("local");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);LabEventSync.Write(d,Buttons(present:false));Removed(d,old);Integrity(d);});
+        Test("local_partial_retains_with_reason",()=>{string d=Dir("local-partial");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);var r=Buttons(present:false);r.objects.Single(x=>(string)x["name"]=="Button_3")["handlers_status"]="PARTIAL";r.status="PARTIAL";LabEventSync.Write(d,r);Retained(d,old,"LOCAL_ENUMERATION_INCOMPLETE");Integrity(d);});
+        Test("global_partial_local_complete_removes_only_target",()=>{string d=Dir("global-partial");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);var other=State(d).files.Where(x=>x.origin!=null&&x.origin.owner.Last().name=="Other").ToArray();var r=Buttons(present:false);OtherPartial(r);Check(LabEventSync.Write(d,r)=="PARTIAL");Removed(d,old);Check(other.All(x=>LabEventArtifacts.Digest(File.ReadAllBytes(Path.Combine(d,x.path)))==x.hash));Integrity(d);});
+        Test("button_3_tapped_to_up_global_partial",()=>{string d=Dir("tapped-up");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);var r=Buttons("Up");OtherPartial(r);LabEventSync.Write(d,r);Removed(d,old);var s=State(d);Check(s.files.Count(x=>x.origin!=null&&x.origin.owner.Last().name=="Button_3"&&x.origin.event_name=="Up")==4);Check(File.ReadAllText(Path.Combine(d,"screens/JSON_Test/Button_3.Up.js")).Contains("TEST LOGGER"));Integrity(d);});
+        Test("unknown_event_name_retains_old_handler",()=>{string d=Dir("unknown-name");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);var r=Buttons("UNKNOWN");r.status="PARTIAL";LabEventSync.Write(d,r);Retained(d,old,"EVENT_NAME_UNKNOWN");});
+        Test("null_event_name_retains_and_publishes_partial",()=>{string d=Dir("null-name");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);var r=Buttons("Up");r.handlers[0]["event_name"]=null;r.handlers[0]["status"]="PARTIAL";r.status="PARTIAL";LabEventSync.Write(d,r);Retained(d,old,"EVENT_NAME_UNKNOWN");Integrity(d);});
+        Test("unknown_enum_observation_retains_old_handler",()=>{string d=Dir("enum");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);var r=Buttons("999");r.Issue(ButtonLocator(r)+"/EventHandlers[0]","EventType","UNKNOWN_EVENT_VALUE",null);LabEventSync.Write(d,r);Retained(d,old,"LOCAL_READ_UNCERTAIN");});
+        Test("wrong_historical_mapping_retained",()=>{string d=Dir("wrong-origin");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);var s=State(d);foreach(var e in s.files.Where(x=>old.Any(o=>o.path==x.path)))e.origin.handler_key=new string('0',64);PutState(d,s);LabEventSync.Write(d,Buttons("Up"));Retained(d,old,"HISTORICAL_MAPPING_INVALID");});
+        Test("stale_sha_mismatch_preserves_edited_bytes",()=>{string d=Dir("sha");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);foreach(var e in old)File.AppendAllText(Path.Combine(d,e.path)," user edit");LabEventSync.Write(d,Buttons("Up"));Retained(d,old,"SHA256_MISMATCH");Check(old.All(x=>File.ReadAllText(Path.Combine(d,x.path)).EndsWith(" user edit")));Integrity(d);});
+        Test("local_error_does_not_allow_deletion",()=>{string d=Dir("local-error");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);var r=Buttons("Up");r.Issue(ButtonLocator(r),"EventHandlers","ENUMERATION_FAILED",null);LabEventSync.Write(d,r);Retained(d,old,"LOCAL_READ_UNCERTAIN");});
+        Test("engineering_identity_postcheck_failure_retains",()=>{string d=Dir("identity");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);var r=Buttons("Up");r.execution_evidence="ENGINEERING_OBSERVATION_ONLY";r.identity["identity_before"]="VERIFIED";r.identity["identity_after"]="UNKNOWN";LabEventSync.Write(d,r);Retained(d,old,"IDENTITY_OR_SESSION_UNVERIFIED");});
+        Test("hmi_binding_mismatch_rejects_without_deletion",()=>{string d=Dir("hmi");LabEventSync.Write(d,Buttons());var before=Hashes(d);var r=Buttons("Up");r.identity["device_path"]=new[]{"Other","HMI"};Reject(()=>LabEventSync.Write(d,r));Equal(before,d);});
+        Test("legacy_registry_maps_verified_current_metadata",()=>{string d=Dir("legacy");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);Legacy(d);var r=Buttons("Up");OtherPartial(r);LabEventSync.Write(d,r);Removed(d,old);Check(State(d).schema=="lab-03o-owner/2");Integrity(d);});
+        Test("legacy_unmapped_retained_preserved_even_complete",()=>{string d=Dir("legacy-retained");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);var r=Buttons("Up");r.objects.Single(x=>(string)x["name"]=="Button_3")["handlers_status"]="PARTIAL";r.status="PARTIAL";LabEventSync.Write(d,r);Legacy(d);LabEventSync.Write(d,Buttons("Up"));Retained(d,old,"LEGACY_ORIGIN_UNVERIFIED");});
+        Test("legacy_retained_resolved_by_explicit_verified_history",()=>{string d=Dir("history");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);string history=Dir("prior-export");Snapshot(d,history);var r=Buttons("Up");r.objects.Single(x=>(string)x["name"]=="Button_3")["handlers_status"]="PARTIAL";r.status="PARTIAL";LabEventSync.Write(d,r);Legacy(d);r=Buttons("Up");OtherPartial(r);LabEventSync.Write(d,r,history);Removed(d,old);Integrity(d);});
+        Test("history_sha_corruption_rejects_before_mutation",()=>{string d=Dir("bad-history");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);string history=Dir("bad-prior-export");Snapshot(d,history);Legacy(d);File.AppendAllText(Path.Combine(history,old[0].path),"corrupt");var before=Hashes(d);Reject(()=>LabEventSync.Write(d,Buttons("Up"),history));Equal(before,d);});
+        Test("legacy_unverified_metadata_never_proves_origin",()=>{string d=Dir("bad-meta");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);Legacy(d);File.AppendAllText(Path.Combine(d,"events-index.json")," ");LabEventSync.Write(d,Buttons("Up"));Retained(d,old,"LEGACY_ORIGIN_UNVERIFIED");});
+        Test("local_deletion_interruption_recovers_origins_and_bytes",()=>{string d=Dir("local-recovery");LabEventSync.Write(d,Buttons());var before=Hashes(d);var old=ButtonFiles(d);LabEventSync.Checkpoint=p=>{if(p=="removed:"+old[0].path)throw new IOException();};var r=Buttons("Up");OtherPartial(r);Reject(()=>LabEventSync.Write(d,r));LabEventSync.Checkpoint=null;LabEventSync.Recover(d);Equal(before,d);Check(ButtonFiles(d).Length==4);});
+        Test("legacy_migration_interruption_recovers_registry",()=>{string d=Dir("legacy-recovery");LabEventSync.Write(d,Buttons());Legacy(d);var before=Hashes(d);LabEventSync.Checkpoint=p=>{if(p=="prepared")throw new IOException();};Reject(()=>LabEventSync.Write(d,Buttons("Up")));LabEventSync.Checkpoint=null;LabEventSync.Recover(d);Equal(before,d);});
+        Test("history_snapshot_mode_refused",()=>{bool failed=false;try{LabEventSync.History("snapshot",root);}catch(ArgumentException){failed=true;}Check(failed);});
+        Test("ambiguous_owner_without_handlers_retains",()=>{string d=Dir("amb-owner");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);var r=Buttons(present:false);var owner=r.objects.Single(x=>(string)x["name"]=="Button_3");var duplicate=new Dictionary<string,object>(owner);duplicate["locator"]=ButtonLocator(r).Replace("ScreenItems[0]","ScreenItems[2]");r.objects.Add(duplicate);r.status="PARTIAL";LabEventSync.Write(d,r);Retained(d,old,"OWNER_IDENTITY_AMBIGUOUS");});
+        Test("ancestor_enumeration_error_retains",()=>{string d=Dir("ancestor");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);var r=Buttons("Up");r.Issue((string)r.objects.Single(x=>(string)x["kind"]=="SCREEN")["locator"],"ScreenItems","ENUMERATION_FAILED",null);LabEventSync.Write(d,r);Retained(d,old,"LOCAL_READ_UNCERTAIN");});
+        Test("handler_incomplete_keeps_other_historical_event",()=>{string d=Dir("incomplete-handler");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);var r=Buttons("Up");r.handlers[0]["status"]="PARTIAL";r.status="PARTIAL";LabEventSync.Write(d,r);Retained(d,old,"LOCAL_HANDLER_INCOMPLETE");});
+        Test("engineering_verified_identity_allows_local_deletion",()=>{string d=Dir("verified-identity");LabEventSync.Write(d,Buttons());var old=ButtonFiles(d);var r=Buttons("Up");OtherPartial(r);r.execution_evidence="ENGINEERING_OBSERVATION_ONLY";foreach(string k in new[]{"identity_before","identity_after","hmi_after"})r.identity[k]="VERIFIED";foreach(string k in new[]{"is_modified_before","is_modified_after"})r.identity[k]=false;r.identity["dispose"]="RETURNED";LabEventSync.Write(d,r);Removed(d,old);});
+        Test("wrong_history_identity_rejects",()=>{string d=Dir("history-id");LabEventSync.Write(d,Buttons());string history=Dir("foreign-history");var foreign=Buttons();foreign.identity["project_path"]="Other.ap19";LabEventSync.Write(history,foreign);var before=Hashes(d);Reject(()=>LabEventSync.Write(d,Buttons("Up"),history));Equal(before,d);});
+        Test("legacy_pending_journal_without_new_fields_recovers",()=>{
+            string d=Dir("v1-journal");LabEventSync.Write(d,Buttons());Legacy(d);var before=Hashes(d);
+            LabEventSync.Checkpoint=p=>{if(p=="prepared")throw new IOException();};Reject(()=>LabEventSync.Write(d,Buttons("Up")));LabEventSync.Checkpoint=null;
+            Action<Dictionary<string,object>> strip=s=>{s.Remove("decisions");foreach(var value in (object[])s["files"])((Dictionary<string,object>)value).Remove("origin");};
+            string statePath=Path.Combine(d,".event-sync/state.json"),journalPath=Path.Combine(d,".event-sync/pending.json");
+            var state=(Dictionary<string,object>)json.DeserializeObject(File.ReadAllText(statePath));strip(state);File.WriteAllText(statePath,json.Serialize(state));
+            var journal=(Dictionary<string,object>)json.DeserializeObject(File.ReadAllText(journalPath));foreach(string k in new[]{"registered","before","after"})strip((Dictionary<string,object>)journal[k]);File.WriteAllText(journalPath,json.Serialize(journal));
+            LabEventSync.Recover(d);Equal(before,d);
+        });
+    }
     internal static int Main(string[] args)
     {
         if (args.Length > 1 && args[1] == "--crash") {
@@ -132,6 +232,7 @@ internal static class LabEventSyncTests
         Test("unknown_control_directory_is_preserved",()=>{string d=Dir("unknown-control");Directory.CreateDirectory(Path.Combine(d,".event-sync"));File.WriteAllText(Path.Combine(d,".event-sync","notes.txt"),"user");Reject(()=>LabEventSync.Write(d,Fixture()));Check(File.ReadAllText(Path.Combine(d,".event-sync","notes.txt"))=="user");});
         Test("overwrite_unicode_path",()=>{string d=Dir("Za\u017c\u00f3\u0142\u0107-\u65e5\u672c");LabEventSync.Write(d,Fixture());LabEventSync.Write(d,Fixture("new"));Check(File.ReadAllText(Js(d))=="new");});
         Test("artifact_budget_partial_preserves_read_and_previous_js",()=>{string d=Dir("budget");LabEventSync.Write(d,Fixture());var r=Fixture(new string('x',100000));r.limits.ArtifactBytes=20000;string status=LabEventSync.Write(d,r);Check(status=="PARTIAL"&&r.status=="COMPLETE_FOR_PUBLIC_SCOPE"&&File.ReadAllText(Js(d))=="old");});
+        ObjectTests();
         File.WriteAllText(Path.Combine(root,"results.json"),json.Serialize(results),new UTF8Encoding(false));
         int failed=results.Count(x=>json.Serialize(x).Contains("\"FAIL\"")); Console.WriteLine("TOTAL "+results.Count+"; FAILED "+failed); return failed==0?0:1;
     }

@@ -61,7 +61,16 @@ $expectedVendor = $expectedVendor.Replace('output = LabEventOutput.RunDirectory(
 $expectedVendor = $expectedVendor.Replace('LabEventArtifacts.Write(output, result);', 'string readStatus = result.status;' + "`n            " + 'Console.WriteLine("READ RESULT; status=" + readStatus);' + "`n            " + 'string artifactStatus;' + "`n            " + 'if (mode == "snapshot") LabEventArtifacts.Write(output, result);' + "`n            " + 'if (mode == "snapshot") artifactStatus = result.status;' + "`n            " + 'else artifactStatus = LabEventSync.Write(output, result);' + "`n            " + 'Console.WriteLine("PUBLICATION COMPLETE; mode=" + mode + "; read_status=" + readStatus + "; artifact_status=" + artifactStatus);')
 $expectedVendor = $expectedVendor.Replace('return result.status == "COMPLETE_FOR_PUBLIC_SCOPE" ? 0 : 2;', 'return artifactStatus == "COMPLETE_FOR_PUBLIC_SCOPE" ? 0 : 2;')
 $expectedVendor = $expectedVendor.Replace('ENCODED_DEVICE_ITEM_PATH");', 'ENCODED_DEVICE_ITEM_PATH [--mode overwrite|snapshot]");')
-if ($expectedVendor -cne $actualVendor) { throw 'Vendor lifecycle changed beyond console, LAB-03N paths and LAB-03O CLI/publication dispatch' }
+# Approved object-level retention: only the optional evidence argument and publisher call.
+$expectedVendor = $expectedVendor.Replace('"--hmi", "--mode" }.Contains(args[i])', '"--hmi", "--mode", "--history" }.Contains(args[i])')
+$expectedVendor = $expectedVendor.Replace('[--mode overwrite|snapshot]");', '[--mode overwrite|snapshot] [--history VERIFIED_EVENT_EXPORT]");')
+$expectedVendor = $expectedVendor.Replace('string mode = LabEventSync.Mode(options.ContainsKey("--mode") ? options["--mode"] : null);', 'string mode = LabEventSync.Mode(options.ContainsKey("--mode") ? options["--mode"] : null);' + "`n            " + 'string history = LabEventSync.History(mode, options.ContainsKey("--history") ? options["--history"] : null);')
+$expectedVendor = $expectedVendor.Replace('LabEventSync.Write(output, result);', 'LabEventSync.Write(output, result, history);')
+if ($expectedVendor -cne $actualVendor) {
+    [IO.File]::WriteAllText((Join-Path $run 'expected-vendor.cs'), $expectedVendor)
+    [IO.File]::WriteAllText((Join-Path $run 'actual-vendor.cs'), $actualVendor)
+    throw "Vendor lifecycle changed beyond console, LAB-03N paths and LAB-03O CLI/publication dispatch; evidence: $run"
+}
 $ErrorActionPreference = 'Continue'
 $invalid = & (Join-Path $LabRoot 'bin\LabExporter.exe') export-events 2>&1
 $invalidExit = $LASTEXITCODE
