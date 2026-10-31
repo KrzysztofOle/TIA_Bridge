@@ -1,5 +1,7 @@
 # TIA_Bridge 2
 
+[LAB-03P — wymuszenie importu i force-sync](docs/LAB_03P_FORCE_SYNC.md): laboratoryjne `force-import --overwrite-tia` oraz `force-sync` (import, kompilacja HMI, Save/readback i odświeżenie folderu). Zweryfikowany backup, świeże preconditions i ochrona lokalnych edycji; Engineering/Runtime nowej ścieżki NOT_RUN.
+
 [LAB-03M — diagnostyka konsoli EXPORT EVENTS](docs/LAB_03M_EVENT_CONSOLE_DIAGNOSTICS.md): podsumowanie projektu/HMI, statusu i liczników, wszystkie obserwacje jako WARN/ERROR z czytelnymi nazwami i fallbackiem do locatorów. Ograniczenia kontenerów to WARN; PARTIAL nie zwiększa liczby błędów. Artefakty i kody wyjścia bez zmian, poza hashem nowego EXE w manifeście. Testy offline 145/145 PASS; Attach/Engineering/F5 NOT_RUN.
 
 [LAB-03L — czytelne zdarzenia HMI](docs/LAB_03L_READABLE_EVENT_EXPORT.md): export-events automatycznie dodaje screens/ z osobnymi plikami JS/GDA, README i lekki events-index.json. Źródłem pozostaje events.json LAB-03K; nowe pliki obejmuje wspólny manifest. Testy offline 131/131 PASS, dodatkowo kontrole CLI/launch i identyczność 9 oryginalnych artefaktów. Historyczne eksporty bez zmian; render-events pozostaje rekomendacją osobnego pakietu. Attach/Engineering/F5 w LAB-03L NOT_RUN.
