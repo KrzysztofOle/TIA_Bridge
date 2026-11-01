@@ -85,6 +85,46 @@ internal static class LabEventConsoleTests
             string s = Render(r); Count(s, "Errors", 9); Count(s, "Warnings", 0); Count(s, "Observations", 9);
             Check(s.Contains("ERROR T05_Recipes_Main / ACTION_0 / Event: Tapped") && !s.Contains("do not leak vendor message"), "handler mapping/exception privacy");
         });
+        Test("container_summary_counts_read_handlers_and_unique_containers", () => {
+            var r = Fixture(); string loc = (string)r.objects[3]["locator"];
+            r.Issue(loc, "children", "ENCAPSULATED_CHILDREN_NOT_PUBLIC", null);
+            r.Issue(loc, "children", "ENCAPSULATED_CHILDREN_NOT_PUBLIC", null);
+            string before = Json.Serialize(r), s = Render(r);
+            Check(s.Contains("Odczytane handlery: 1/1; kontenery z niezweryfikowanym wnętrzem: 1; obserwacje ERROR: 0; niesklasyfikowane: 0."), "summary counts or container deduplication wrong");
+            Check(s.Contains("Publiczne handlery kontenera odczytane: 1.") && s.Contains("ograniczenie oznaczane według typu kontrolki"), "coverage/handler explanation missing");
+            Check(before == Json.Serialize(r), "explanation mutated source data");
+            Count(s, "Warnings", 2); Check(r.status == "PARTIAL", "coverage status changed");
+        });
+        Test("partial_container_handler_never_claims_successful_read", () => {
+            var r = Fixture(); r.handlers[0]["status"] = "PARTIAL";
+            r.Issue((string)r.objects[3]["locator"], "children", "ENCAPSULATED_CHILDREN_NOT_PUBLIC", null);
+            r.Issue((string)r.handlers[0]["locator"], "ScriptCode", "READ_FAILED", null);
+            string s = Render(r);
+            Check(s.Contains("Odczytane handlery: 0/1") && s.Contains("obserwacje ERROR: 1"), "partial handler counted as read");
+            Check(s.Contains("Odczyt publicznych handlerów kontenera niepotwierdzony lub niepełny") && !s.Contains("Publiczne handlery kontenera odczytane:"), "false success on partial handler");
+        });
+        Test("empty_container_collection_is_explained_without_inventing_handlers", () => {
+            var r = Fixture(); r.Issue((string)r.objects[2]["locator"], "children", "ENCAPSULATED_CHILDREN_NOT_PUBLIC", null);
+            string s = Render(r);
+            Check(s.Contains("brak skonfigurowanych handlerów") && !s.Contains("Publiczne handlery kontenera odczytane:"), "empty collection explanation incorrect");
+        });
+        Test("missing_ambiguous_or_partial_container_owner_has_no_success_claim", () => {
+            for (int scenario = 0; scenario < 4; scenario++)
+            {
+                var r = Fixture(); string loc = (string)r.objects[3]["locator"];
+                if (scenario == 0) r.objects.RemoveAt(3);
+                if (scenario == 1) r.objects.Add(new Dictionary<string, object>(r.objects[3]));
+                if (scenario == 2) r.objects[3]["handlers_status"] = "PARTIAL";
+                if (scenario == 3) r.handlers.Clear();
+                r.Issue(loc, "children", "ENCAPSULATED_CHILDREN_NOT_PUBLIC", null);
+                string s = Render(r);
+                Check(s.Contains("Odczyt publicznych handlerów kontenera niepotwierdzony lub niepełny") && !s.Contains("Publiczne handlery kontenera odczytane:"), "invented completeness for scenario " + scenario);
+            }
+        });
+        Test("summary_keeps_unknown_diagnostics_visible", () => {
+            var r = Fixture(); r.Issue("/", "phase", "FUTURE_VENDOR_CODE", null);
+            Check(Render(r).Contains("obserwacje ERROR: 0; niesklasyfikowane: 1."), "unknown observations hidden by success summary");
+        });
         Test("mixed_diagnostics_preserve_order_and_every_original_code", () => {
             var r = Fixture(); var codes = new[] { "ENCAPSULATED_CHILDREN_NOT_PUBLIC", "READ_FAILED", "LIMIT_EXCEEDED", "FUTURE_VENDOR_CODE" };
             foreach (string code in codes) r.Issue((string)r.objects[2]["locator"], "phase", code, null);

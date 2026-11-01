@@ -16,7 +16,9 @@ Place repository maintenance and development scripts here. Scripts must not conn
 
 ## LAB-03M — diagnostyka konsoli, offline
 
-[test_lab_event_console.ps1](test_lab_event_console.ps1) kompiluje [lab_event_console_tests.cs](lab_event_console_tests.cs): 14 syntetycznych przypadków konsoli oraz kompatybilność artefaktów i lifecycle względem zachowanego LAB-03L. Wymaga Windows PowerShell 5.1 x64, systemowego .NET Framework csc i zbudowanego EXE, bez nowych pakietów i Siemens calls. Argument `-BaselineDirectory` wskazuje katalog zachowanych źródeł LAB-03L sprzed zmian. Testuje niepełne CLI z exit 1 przed Attach; nie podaje poprawnych argumentów live. Dane w nowym X:\TESTY_TIA_Bridge\evidence\LAB-03M-offline-UUID, exit 0 oznacza wszystkie kontrole PASS. Polecenie, klasyfikacja i ograniczenia: [LAB-03M](../docs/LAB_03M_EVENT_CONSOLE_DIAGNOSTICS.md).
+Aktualizacja 2026-11-01: 19 przypadków konsoli (historycznie 14), w tym odczytane handlery, unikalne kontenery z niezweryfikowanym wnętrzem, wyjaśnienia odczytu kontenera oraz odmowa sugerowania sukcesu dla niepełnych lub niejednoznacznych danych. Dotychczasowe polecenie, zależności i kontrola kompatybilności pozostają aktualne.
+
+[test_lab_event_console.ps1](test_lab_event_console.ps1) kompiluje [lab_event_console_tests.cs](lab_event_console_tests.cs): 19 syntetycznych przypadków konsoli oraz kompatybilność artefaktów i lifecycle względem zachowanego LAB-03L. Wymaga Windows PowerShell 5.1 x64, systemowego .NET Framework csc i zbudowanego EXE, bez nowych pakietów i Siemens calls. Argument `-BaselineDirectory` wskazuje katalog zachowanych źródeł LAB-03L sprzed zmian. Testuje niepełne CLI z exit 1 przed Attach; nie podaje poprawnych argumentów live. Dane w nowym X:\TESTY_TIA_Bridge\evidence\LAB-03M-offline-UUID, exit 0 oznacza wszystkie kontrole PASS. Polecenie, klasyfikacja i ograniczenia: [LAB-03M](../docs/LAB_03M_EVENT_CONSOLE_DIAGNOSTICS.md).
 
 ## LAB-03L — czytelny widok zdarzeń, offline
 
