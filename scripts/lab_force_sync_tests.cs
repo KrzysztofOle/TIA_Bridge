@@ -47,12 +47,17 @@ internal static class LabForceSyncTests
     { return new Dictionary<string, object> { { "baseline_js_sha256", Hash(Path.Combine(pair, "Synthetic.hmi.js")) }, { "baseline_yml_sha256", Hash(Path.Combine(pair, "Synthetic.hmi.yml")) } }; }
     private static string Prepare(string source)
     { string p = New(root); Call("PrepareForceImportInput", source, p); return p; }
-    private static string Readback(string prepared)
+    private static string Readback(string prepared, string warning = null)
     {
         string p = New(exports), native = Path.Combine(p, "Synthetic", ".native"); Directory.CreateDirectory(native); CopyPair(prepared, native);
         var files = Directory.GetFiles(native).Select(f => new { name = Path.GetFileName(f), sha256 = Hash(f), length = new FileInfo(f).Length }).ToArray();
+        object compilation = warning == null
+            ? (object)new { state = "Success", error_count = 0, warning_count = 0, messages = new object[0] }
+            : new { state = "Warning", error_count = 0, warning_count = 1, messages = new object[] {
+                new { path = (string)null, state = "Warning", description = warning },
+                new { path = (string)null, state = "Warning", description = "Compiling finished (errors: 0; warnings: 1)" } } };
         Write(Path.Combine(p, "force-import-readback.json"), json.Serialize(new { status = "PASS_EXACT_MODULE_SET_AND_READBACK", saved = true,
-            import_returned = true, is_modified_after = false, compile = new { state = "Success", error_count = 0, warning_count = 0 },
+            import_returned = true, is_modified_after = false, compile = compilation,
             modules = new[] { new { name = "Synthetic", native_files = files } } }));
         return p;
     }
@@ -88,10 +93,15 @@ internal static class LabForceSyncTests
         foreach (string state in new[] { "Success", "Information", "Warning", "Error", "UNKNOWN" })
         {
             string s = state;
-            Test("compile state policy " + state, () => { Action run = () => Call("ValidateCompileOutcome", s, 0, 0); if (s == "Success" || s == "Information") run(); else Reject(run, "HMI_COMPILE_NOT_ACCEPTED"); });
+            Test("compile state policy " + state, () => { Action run = () => Call("ValidateCompileOutcome", s, 0, 0, new string[0]); if (s == "Success" || s == "Information") run(); else Reject(run, "HMI_COMPILE_NOT_ACCEPTED"); });
         }
-        Test("compile error count blocks even Success", () => Reject(() => Call("ValidateCompileOutcome", "Success", 1, 0), "HMI_COMPILE_NOT_ACCEPTED"));
-        Test("compile warning count blocks publication", () => Reject(() => Call("ValidateCompileOutcome", "Success", 0, 1), "HMI_COMPILE_NOT_ACCEPTED"));
+        string anonymousWarning = "The user \"Anonymous\" is not supported by WinCC Unified Runtime devices and is not available in runtime.";
+        Test("known Anonymous runtime warning is accepted", () => Call("ValidateCompileOutcome", "Warning", 0, 1, new[] { anonymousWarning, "Compiling finished (errors: 0; warnings: 1)" }));
+        Test("unknown compile warning still blocks publication", () => Reject(() => Call("ValidateCompileOutcome", "Warning", 0, 1, new[] { "Different warning", "Compiling finished (errors: 0; warnings: 1)" }), "HMI_COMPILE_NOT_ACCEPTED"));
+        Test("known and unknown warnings block publication", () => Reject(() => Call("ValidateCompileOutcome", "Warning", 0, 1, new[] { anonymousWarning, "Different warning", "Compiling finished (errors: 0; warnings: 1)" }), "HMI_COMPILE_NOT_ACCEPTED"));
+        Test("compile error count blocks even Success", () => Reject(() => Call("ValidateCompileOutcome", "Success", 1, 0, new string[0]), "HMI_COMPILE_NOT_ACCEPTED"));
+        Test("known warning with compile errors still blocks", () => Reject(() => Call("ValidateCompileOutcome", "Warning", 1, 1, new[] { anonymousWarning }), "HMI_COMPILE_NOT_ACCEPTED"));
+        Test("additional warning count blocks even when known warning is present", () => Reject(() => Call("ValidateCompileOutcome", "Warning", 0, 2, new[] { anonymousWarning, "Compiling finished (errors: 0; warnings: 2)" }), "HMI_COMPILE_NOT_ACCEPTED"));
         foreach (string fault in new[] { "none", "import", "compile", "save" })
         {
             string fail = fault;
@@ -140,6 +150,17 @@ internal static class LabForceSyncTests
                 foreach (string ext in new[] { ".hmi.js", ".hmi.yml" }) Check(Hash(Path.Combine(input, "Synthetic", ".native", "Synthetic" + ext)) == Hash(Path.Combine(rebuilt, "Synthetic" + ext)));
                 Check(File.ReadAllText(part).Contains("return " + (cycle + 1)));
             }
+        });
+        Test("known Anonymous warning in verified receipt permits publication", () => {
+            string input = Clone(package), snapshot = Clone(input), anonymous = "The user \"Anonymous\" is not supported by WinCC Unified Runtime devices and is not available in runtime.";
+            string readback = Readback(Prepare(input), anonymous);
+            Check((int)Call("FinishForceSync", readback, input, snapshot, "synthetic-binding", Guid.NewGuid().ToString("N")) == 0);
+            Call("ValidatePackage", input);
+        });
+        Test("unknown warning in verified receipt prevents publication", () => {
+            string input = Clone(package), snapshot = Clone(input), readback = Readback(Prepare(input), "Different warning");
+            Check((int)Call("FinishForceSync", readback, input, snapshot, "synthetic-binding", Guid.NewGuid().ToString("N")) == 2);
+            Call("VerifyWorkspaceSnapshot", input, snapshot);
         });
         Test("readback tamper prevents publication", () => {
             string input = Clone(package), snapshot = Clone(input), readback = Readback(Prepare(input));
