@@ -94,3 +94,7 @@ py -3 scripts/generate_contracts.py --write
 B-02C: wymagane nullable ComponentHealth.age_ms zachowuje JSON null podczas typowanej serializacji. Poprawiono generator/DTO i dodano regresję, bez zmiany schematu lub semantyki 1.0. OpenAPI opisuje aktualny serwis oraz typowany status w odpowiedzi GET result/202; nie dodano endpointów/metod/grantów. Acceptance pozostaje zamkniętym dotychczasowym DTO, a X-TiaBridge-Contract-Version potwierdza wersję HTTP.
 
 [IPC 1.1 read-only](ipc/v1.1/message.schema.json) i [dziewięć przykładów](../examples/ipc/v1.1) rozszerzają wyłącznie transport workera X-01. Standardowe kontrakty API 1.0 i Fake IPC 1.0 są niezmienione; walidacja odrzuca mieszanie profili. Testy schema pozostają offline, a rzeczywiste wyniki Siemens opisuje odrębny [raport Engineering](../docs/X01_TIA_V19_QUALIFICATION.md).
+
+## Offline source-package contracts (additive)
+
+Osobny [manifest 1.0](source-package/v1/manifest.schema.json) oraz [raport 1.0](source-package/v1/report.schema.json) należą do samodzielnego walidatora plików. Nie są WorkspaceManifest, capability ani nową metodą Host/API. [Polityki, ograniczenia, przykłady i kody zakończenia](../docs/OFFLINE_SOURCE_PREFLIGHT.md). Schematy nie zawierają zewnętrznych refs; nie zmieniają kontraktów v1/v2/IPC.

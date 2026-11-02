@@ -1,5 +1,7 @@
 # 03 — Architektura komponentów i wykonania
 
+Addytywne narzędzie offline (2026-11-02): [Source Package Preflight MVP 1.0](OFFLINE_SOURCE_PREFLIGHT.md) działa w `scripts/` z osobnym kontraktem plikowym. Nie rozszerza Core WorkspaceValidation, Host/API/Worker, capabilities, synchronizacji ani integracji Siemens. PASS obejmuje wyłącznie odczytany pakiet i zadeklarowaną politykę.
+
 Status: projekt, 2026-10-24. Wybór opiera się na [audycie](01_AUDIT_OLD_BRIDGE.md), działającym lokalnym .NET Framework/Openness V19 i wymaganiach nieblokującego interfejsu. Diagramy pokazują docelowe komponenty, nie istniejące procesy TIA_Bridge 2.
 
 ## Podział procesów

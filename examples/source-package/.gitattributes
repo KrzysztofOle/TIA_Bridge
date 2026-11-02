@@ -1,0 +1,3 @@
+pass/** -text whitespace=cr-at-eol
+bad-hash/** -text whitespace=cr-at-eol
+bad-eol/** -text whitespace=cr-at-eol

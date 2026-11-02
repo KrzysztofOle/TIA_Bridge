@@ -119,3 +119,7 @@ Nie ładuje Siemens ani nie wykonuje JS. Wyniki w nowych `EventComparisons/<run-
 Exit 0 = ukończone porównanie, 2 = opublikowane PARTIAL/UNKNOWN, 1 = błąd.
 Testy: `py -3 -B scripts/test_compare_events.py` (stdlib, syntetyczne dane, bez TIA).
 Format raportu, semantyka coverage, limity i ograniczenia: [dokumentacja](../docs/LAB_EVENT_COMPARISON.md).
+
+## Offline source-package preflight
+
+[source_package_preflight.py](source_package_preflight.py) wymaga Python 3.12 i istniejącego `jsonschema` z [requirements-qa.txt](requirements-qa.txt); nie instaluje zależności. Uruchom z root repo: `py -3 -B scripts/source_package_preflight.py --manifest examples/source-package/pass/manifest.json --root examples/source-package/pass --json`. Opcjonalny `--output` wymaga nowej ścieżki poza pakietem i istniejącego rodzica. [Kontrakt, exit 0–4 i trzy demo](../docs/OFFLINE_SOURCE_PREFLIGHT.md). Bez Siemens, sieci i wykonania kodu pakietu.

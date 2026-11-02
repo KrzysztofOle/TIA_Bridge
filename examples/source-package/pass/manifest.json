@@ -1,0 +1,30 @@
+{
+  "schema_version": "tia-bridge.source-package/1.0",
+  "required_checks": [
+    "manifest.schema",
+    "manifest.files",
+    "files.sha256",
+    "files.encoding",
+    "files.eol"
+  ],
+  "files": [
+    {
+      "path": "module.js",
+      "role": "native",
+      "type": "text",
+      "sha256": "e00b3cdf9363b8ca1be7d836d5858edc2a70d3c17600dd128843a6e568959ed3",
+      "text": {
+        "encoding": "utf-8",
+        "bom": "forbidden",
+        "eol": "crlf",
+        "final_newline": "required"
+      }
+    },
+    {
+      "path": "opaque.bin",
+      "role": "auxiliary",
+      "type": "binary",
+      "sha256": "e686ce09af996cfeb2635e54ca3c2e1f889c56b12320acb60f3eeb31ecf6da1b"
+    }
+  ]
+}
