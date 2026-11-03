@@ -2,7 +2,7 @@
 
 [Offline Source Package Preflight MVP 1.0](docs/OFFLINE_SOURCE_PREFLIGHT.md): samodzielny walidator manifestu, listy plików, SHA-256 oryginalnych bajtów i deklarowanej polityki UTF-8/BOM/EOL. JSON i stabilne kody zakończenia; bez TIA i zmian źródeł. Nie kwalifikuje importu ani Runtime.
 
-[LAB-03P — wymuszenie importu i force-sync](docs/LAB_03P_FORCE_SYNC.md): laboratoryjne `force-import --overwrite-tia` oraz `force-sync` (import, kompilacja HMI, Save/readback i odświeżenie folderu). Zweryfikowany backup, świeże preconditions i ochrona lokalnych edycji; Engineering/Runtime nowej ścieżki NOT_RUN.
+[LAB-03P — wymuszenie importu i force-sync](docs/LAB_03P_FORCE_SYNC.md): laboratoryjne `force-import --overwrite-tia` oraz `force-sync` z pełnym NO_OP, kontrolą readbacku i różnicową publikacją. Zmiany TIA nadal wymagają zweryfikowanego backupu, świeżych preconditions, Compile/Save/readback; live idempotencja NOT_RUN.
 
 [LAB-03Q — nowe moduły Unified](docs/LAB_03Q_CREATE_MODULES.md): jawne `force-sync --create-modules`, plan CREATE/UPDATE i lokalne `--validate-only`. Generowane wejście nowych modułów bez ręcznych zmian `.native`/manifestów; build i testy offline, tworzenie w Siemens Engineering/Runtime NOT_RUN.
 
