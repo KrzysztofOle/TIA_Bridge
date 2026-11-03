@@ -1,5 +1,11 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-11-03 — LabExporter UDT: bramka adnotacji, offline
+
+W zewnętrznym `X:\TESTY_TIA_Bridge` dodano walidację czterech jawnych adnotacji względem świeżego XML przed Archive i pierwszą mutacją. WithDefaults nie dowodzi jawnego ustawienia wartości. Niezakwalifikowany generator V19 oznacza BLOCKED również dla kompletnego źródła i zatwierdzonego planu; NO_OP nie regeneruje. Zaktualizowano [workflow](docs/LAB_UDT_SYNC.md); szczegółowy kontrakt i dowody pozostają przy LabExporter w PLC_DATA_TYPES.md / UDT_METADATA_REPORT.md. Nie zmieniono Host/Worker ani zastanej zmiany docs/04_SYNCHRONIZATION.md. Bez operacji TIA, commit/push.
+
+Ocena sekcja po sekcji: AGENTS — zakres/stany, hierarchia, niezmienniki, autoryzacja/testy, dyscyplina, Git, dane/kontrakty; Instrukcja_ChatGPT — 1 cel, 2 odpowiedzialność, 3 źródła, 4 architektura, 5 zadania, 6 wyniki, 7 bezpieczeństwo/recovery, 8 decyzje/spójność, 9 GitHub/dokumentacja, 10 styl. Obie instrukcje bez zmian: poprawka egzekwuje istniejące zasady fail-closed, bez nowych grantów. ADR 0001–0003, specyfikacje 03–08 i kontrakty produkcyjne bez zmian: brak zmiany DTO, Apply/SYNCED lub capability Host/Worker. Zmieniono opis laboratoryjnego workflow; CLI i format raportu 1.0 pozostają zgodne (addytywne metadata_preservation). Brak konfliktu wymagającego decyzji. Kontrola jakości/odnośników i zakresu zmian po aktualizacji.
+
 ## 2026-11-03 — LAB-03P: dokumentacja potwierdzonego Engineering NO_OP
 
 Na podstawie testu wykonanego przez użytkownika uzupełniono [LAB-03P](docs/LAB_03P_FORCE_SYNC.md#test-laboratoryjny-2026-11-03--engineering-verified) o przebieg `75f9e1dc47854cd29c6c6f65452f0abc`: pełny TIA/repo NO_OP, zgodny readback, 8 modułów, 32 funkcje, 65 plików, bez Import/Save i z Compile NOT_RUN. Raporty oraz zachowane artefakty sprawdzono offline: zgodność receipt, długości/SHA-256 par native oraz identyczność pakietu i snapshotu. Szczegóły dowodu pozostają w LAB-03P; README repo, README laboratorium i dokumentacja runnera odsyłają do tego opisu. Rozdzielono OFFLINE TESTED, ENGINEERING VERIFIED tylko dla pełnego NO_OP i RUNTIME NOT_RUN. Doprecyzowano plan UPDATE, walidację manifestów, publikację przez staging, osobne statusy i rodzaje backupów oraz brak selektywnego importu. Historyczna notatka implementacyjna poniżej zachowuje status dowodów z chwili implementacji.
