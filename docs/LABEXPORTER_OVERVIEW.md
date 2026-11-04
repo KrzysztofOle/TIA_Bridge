@@ -19,7 +19,7 @@ W samym laboratorium aktualnym pełnym builderem jest `X:\TESTY_TIA_Bridge\scrip
 | `force-sync` | Porównanie paczki z HMI; NO_OP albo synchronizacja | Przy różnicach wykonuje pełną ścieżkę importu, kompilacji, Save i readbacku. Zgodny stan może zakończyć się NO_OP. |
 | `export-events` | Odczyt publicznych handlerów zdarzeń ekranów Unified | Eksport read-only danych i raportów; wynik może być `PARTIAL`, gdy API nie udostępnia całego wnętrza obiektów. |
 | `udt-sync` | Eksport, porównanie lub kontrolowany workflow PLC UDT | Kierunek wybiera `--direction`; zapis repozytorium albo próba repo→TIA zależy od kierunku i bramek. Aktualny import repo→TIA ze zmianami jest blokowany przez niezakwalifikowaną ochronę metadanych V19. |
-| `plc-blocks-sync` | Natywny eksport i porównanie bloków PLC OB/FC/FB/GlobalDB/InstanceDB | Eksport TIA→repo i compare mają readback Engineering; `repo-to-tia` kończy się `NO_OP` przy zgodności, a ogólny import pozostaje zablokowany. Osobny tryb kwalifikacji jednego FC SCL opisuje [kontrakt PLC](LAB_PLC_BLOCKS_SYNC.md); CREATE/UPDATE/restore wymagają osobnych dowodów i zgód na plan. Brak adaptera Download/Runtime. |
+| `plc-blocks-sync` | Natywny eksport i porównanie bloków PLC OB/FC/FB/GlobalDB/InstanceDB | Eksport TIA→repo i compare mają readback Engineering; `repo-to-tia` kończy się `NO_OP` przy zgodności, a ogólny import pozostaje zablokowany. Nowy offline-tested tryb kwalifikacji jawnej grupy FC SCL opisuje [kontrakt PLC](LAB_PLC_BLOCKS_SYNC.md); CREATE/UPDATE/restore wymagają osobnych dowodów i zgód na plan. Brak adaptera Download/Runtime. |
 
 Szczegółowe kontrakty: [LAB-03K eksport zdarzeń](LAB_03K_HMI_EVENT_EXPORT.md), [LAB-03P force-sync](LAB_03P_FORCE_SYNC.md), [LAB-03Q tworzenie modułów](LAB_03Q_CREATE_MODULES.md), [workflow UDT](LAB_UDT_SYNC.md) oraz dokumentacja laboratoryjna `PLC_DATA_TYPES.md` w `X:\TESTY_TIA_Bridge`.
 
@@ -78,13 +78,13 @@ W aktualnym stanie repo→TIA ze zmianami jest blokowane przed mutacją przez `U
 | `--blocks NAME[,NAME]\|*` | Tak | Jawna lista nazw bloków lub `*` dla wszystkich; nazwa tożsamości obejmuje rodzaj w dokładnym PLC. |
 | `--dry-run` | Nie | Tworzy plan i dowody bez publikowania plików ani mutacji TIA. |
 | `--approve-plan SHA256` | Przy imporcie | Hash bindingu konkretnego planu; drift blokuje. Nie rozszerza zakresu kwalifikacji. |
-| `--qualification-only` | Przy imporcie FC | Jawny eksperyment pojedynczego FC_LabExporter_SyncProbe w dokładnym projekcie testowym. |
+| `--qualification-only` | Przy imporcie FC | Jawny eksperyment grupy 1–64 root FC SCL w dokładnym projekcie testowym; osobny plan i backup, bez capability produkcyjnej. |
 | `--prepare-backup` | Nie | Tylko repo-to-tia z dry-run; przygotowuje backup zmienionego planu na X: przed zgodą. |
 | `--backup-receipt PATH` | Przy imporcie FC | Zweryfikowany receipt backupu związany z tym planem/procesem; przed importem także świeży backup. |
 
 `compare` i dry-run pozostawiają XML źródłowe bez zmian; zapisują raporty i plan w nowym katalogu evidence laboratorium. `tia-to-repo` wykonuje ponowny eksport/readback, po czym publikuje wyłącznie zarządzane artefakty objęte wyborem, z ochroną lokalnych zmian. Oczekuj statusu Engineering `PASS_READ_ONLY_CAPTURE` dla odczytu zakończonego z niezależnym readbackiem; statusy `NOT_RUN`, `BLOCKED` i `REVIEW_REQUIRED` nie są PASS. Kod wyjścia 0 obejmuje ukończone odczyty również przy statusie `DIFFERENCES`; kod 2 oznacza blokadę/przegląd. Sprawdzaj `report.json` i nie wnioskuj o pełnej kwalifikacji rodzajów nieobecnych w testowanym projekcie.
 
-`NO_OP` oznacza zgodność po niezależnym odczycie; zgodny repo-to-tia nie wywołuje Archive/Import/Compile/Save. Ogólny import FC oraz OB/FB/DB pozostają zablokowane. Odrębny natywny adapter przyjmuje wyłącznie pojedynczy FC SCL probe w dokładnym projekcie testowym, z manifestem wejścia, zgodnym planem i backupem. Zmiana interfejsu/metadanych lub nieznane zależności blokują operację. CREATE, UPDATE i restore po ręcznym usunięciu uzyskały osobne Engineering PASS; końcowe compare/NO_OP PASS. Przy niepewności pozostaje trwała kwarantanna, bez retry/rollbacku. Aktualny [kontrakt PLC](LAB_PLC_BLOCKS_SYNC.md) i raport przy laboratorium zawierają dokładne granice oraz dowody. Download i Runtime nie są wykonywane.
+`NO_OP` oznacza zgodność po niezależnym odczycie, bez Archive/Import/Compile/Save. Eksperymentalny profil `v19-fc-scalar-static-calls/2` przyjmuje jawną grupę root FC SCL o skalarnych interfejsach i statycznych, domkniętych zależnościach FC, w dokładnym projekcie testowym, z manifestem wejścia, zgodnym planem i backupem na X:. Jest OFFLINE TESTED; Engineering nowej grupy NOT_RUN do osobnej zgody. Historyczny FC900 ma osobne CREATE/UPDATE/restore PASS i nie kwalifikuje nowego profilu. Zmiana interfejsu/metadanych, OB/FB/DB i nieobsługiwane zależności są BLOCKED. Niepewność pozostawia trwałą kwarantannę bez retry/rollbacku. [Kontrakt PLC](LAB_PLC_BLOCKS_SYNC.md) oraz FC_MULTI_REPORT.md przy laboratorium zawierają zakres i dowody. Bez Download/Runtime.
 
 ## Przykładowe uruchomienia z `C:\RMA\t05_plc\.vscode\launch.json`
 
@@ -210,7 +210,7 @@ Usuń `--dry-run` po przejrzeniu planu, jeśli zamierzasz opublikować eksport d
   --dry-run
 ```
 
-Ten przykład nie importuje bloków. Zgodny pakiet może zakończyć się `NO_OP`; zmieniony zakres pozostaje zablokowany poza pojedynczym, ściśle ograniczonym FC SCL w trybie qualification-only. Hash planu sam nie otwiera importu. Szczegóły zakresu, statusów i ograniczeń: [LAB PLC blocks sync](LAB_PLC_BLOCKS_SYNC.md) oraz raport `X:\TESTY_TIA_Bridge\PLC_BLOCKS_REPORT.md`.
+Ten przykład nie importuje bloków. Zgodny pakiet może zakończyć się `NO_OP`; zmieniony zakres pozostaje zablokowany poza jawną grupą obsługiwanych root FC SCL w trybie qualification-only. Hash planu sam nie otwiera importu. Szczegóły zakresu, statusów i ograniczeń: [LAB PLC blocks sync](LAB_PLC_BLOCKS_SYNC.md) oraz raport `X:\TESTY_TIA_Bridge\PLC_BLOCKS_REPORT.md`.
 
 ## Ważne granice
 
