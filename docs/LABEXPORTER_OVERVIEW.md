@@ -12,6 +12,8 @@ W samym laboratorium aktualnym pełnym builderem jest `X:\TESTY_TIA_Bridge\scrip
 
 ## Główne możliwości
 
+Nowy odrębny eksport czytelnych źródeł PLC V19: [plc-source-export](LAB_PLC_SOURCES.md). Natywne `.scl/.db/.udt` wraz z XML, manifestem i ochroną lokalnych edycji; import źródeł pozostaje zablokowany. Zakres Engineering i ograniczenia opisuje raport laboratorium.
+
 | Polecenie | Zastosowanie | Istotny skutek |
 |---|---|---|
 | `force-export` | Eksport skryptów HMI z otwartego projektu do folderu | Publikuje przygotowaną paczkę; nadpisuje zawartość wskazanego katalogu po walidacji i stagingu. |
@@ -84,7 +86,7 @@ W aktualnym stanie repo→TIA ze zmianami jest blokowane przed mutacją przez `U
 
 `compare` i dry-run pozostawiają XML źródłowe bez zmian; zapisują raporty i plan w nowym katalogu evidence laboratorium. `tia-to-repo` wykonuje ponowny eksport/readback, po czym publikuje wyłącznie zarządzane artefakty objęte wyborem, z ochroną lokalnych zmian. Oczekuj statusu Engineering `PASS_READ_ONLY_CAPTURE` dla odczytu zakończonego z niezależnym readbackiem; statusy `NOT_RUN`, `BLOCKED` i `REVIEW_REQUIRED` nie są PASS. Kod wyjścia 0 obejmuje ukończone odczyty również przy statusie `DIFFERENCES`; kod 2 oznacza blokadę/przegląd. Sprawdzaj `report.json` i nie wnioskuj o pełnej kwalifikacji rodzajów nieobecnych w testowanym projekcie.
 
-`NO_OP` oznacza zgodność po niezależnym odczycie, bez Archive/Import/Compile/Save. Eksperymentalny profil `v19-fc-scalar-static-calls/2` przyjmuje jawną grupę root FC SCL o skalarnych interfejsach i statycznych, domkniętych zależnościach FC, w dokładnym projekcie testowym, z manifestem wejścia, zgodnym planem i backupem na X:. Jest OFFLINE TESTED; Engineering nowej grupy NOT_RUN do osobnej zgody. Historyczny FC900 ma osobne CREATE/UPDATE/restore PASS i nie kwalifikuje nowego profilu. Zmiana interfejsu/metadanych, OB/FB/DB i nieobsługiwane zależności są BLOCKED. Niepewność pozostawia trwałą kwarantannę bez retry/rollbacku. [Kontrakt PLC](LAB_PLC_BLOCKS_SYNC.md) oraz FC_MULTI_REPORT.md przy laboratorium zawierają zakres i dowody. Bez Download/Runtime.
+`NO_OP` oznacza zgodność po niezależnym odczycie, bez Archive/Import/Compile/Save. Eksperymentalny profil `v19-fc-scalar-static-calls/2` przyjmuje jawną grupę root FC SCL o skalarnych interfejsach i statycznych, domkniętych zależnościach FC, w dokładnym projekcie testowym, z manifestem wejścia, zgodnym planem i backupem na X:. Dla konkretnego Q1 FC910–912 potwierdzono Engineering PASS: pierwotne CREATE/Compile 0/0, ręczny Save operatora, następnie exact read-only rekoncyliacja, nowy backup i Q1b IDENTICAL/NO_OP. Nie powtórzono importu/Compile/Save; nie jest to ogólny PASS dowolnych grup. Raport końcowy: X:\TESTY_TIA_Bridge\FC_MULTI_ENGINEERING_Q1_REPORT.md. Historyczny FC900 ma osobne CREATE/UPDATE/restore PASS i nie kwalifikuje nowego profilu. Zmiana interfejsu/metadanych, OB/FB/DB i nieobsługiwane zależności są BLOCKED. Niepewność pozostawia trwałą kwarantannę bez retry/rollbacku. [Kontrakt PLC](LAB_PLC_BLOCKS_SYNC.md) oraz FC_MULTI_REPORT.md przy laboratorium zawierają zakres i dowody. Bez Download/Runtime.
 
 ## Przykładowe uruchomienia z `C:\RMA\t05_plc\.vscode\launch.json`
 

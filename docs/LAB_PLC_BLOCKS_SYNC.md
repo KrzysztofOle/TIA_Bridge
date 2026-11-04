@@ -1,5 +1,7 @@
 # LabExporter — PLC Program blocks
 
+Oddzielne polecenie [plc-source-export](LAB_PLC_SOURCES.md) dodaje natywne czytelne źródła w osobnym workspace, bez zmiany poniższego kontraktu XML/FC. Nie aktywuje importu `.scl/.db/.udt`.
+
 Status 2026-11-04: rozszerzenie wyłącznie niezależnego laboratorium `X:\TESTY_TIA_Bridge`; brak zmian Core/Host/Worker, capabilities, produkcyjnego Apply lub definicji SYNCED. Kontrakt CLI, algorytm, limity i przykłady: `X:\TESTY_TIA_Bridge\PLC_BLOCKS.md`. Raport: `X:\TESTY_TIA_Bridge\PLC_BLOCKS_REPORT.md`.
 
 ## Zakres dostępny
@@ -29,3 +31,17 @@ W powyższej historycznej sesji Engineering PASS dotyczył wyłącznie eksportu/
 Offline: PLC 48/48 + CLI 5/5, UDT 120/120 + CLI 6/6, HMI LAB-03P 44/44 + CLI 6/6, LAB-03Q 51/51 + CLI/workspace/reparse 8/8, LAB-03I 18/18, LAB-03K 42/42 PASS. Testy frameworkowe uruchomiono w Windows PowerShell 5.1; nieudany wcześniejszy LAB-03I w PowerShell 7 zachowano jako błąd środowiska runnera, a następnie powtórzono w wymaganym środowisku. Szczegółowe ścieżki raportów i hash finalnego EXE zawiera raport przy laboratorium.
 
 Build: `X:\TESTY_TIA_Bridge\scripts\build_udt.ps1` (opcjonalne `-CandidateOnly`); test PLC: `scripts\test_plc_blocks.ps1` pod tym samym katalogiem. [Dotychczasowy builder laboratoryjny](../scripts/build_lab_events.ps1) otrzymał oba moduły PLC i referencję System.Xml.Linq, aby nie pomijał udt-sync/plc-blocks-sync. Nie wykonano commit/push ani instalacji narzędzia poza żądanym katalogiem bin.
+
+## Q1 — naprawa i kontrolowana kontynuacja
+
+Po CREATE trzech FC i Compile 0/0 ścisły readback wykrył różnice generatora UId/Sections/TEMP; Save zatrzymano i utrzymano kwarantannę. Poprawiono laboratoryjny generator zgodnie z zachowanym natywnym eksportem konkretnej grupy V19, bez zmiany porównania `v19-native-blocks/1-created-only`. Nowy moduł `LabPlcFcReconcile.cs` wymaga pełnej równości 15 bloków (w tym 12 chronionych), nowego planu, backupu i zgody na Compile/Save przy jawnym dirty precondition oraz potwierdzeniu braku innych niezapisanych zmian projektu. Nie importuje, nie usuwa FC i nie otwiera zwykłego importu w kwarantannie. Po pełnej weryfikacji/Dispose/receipt zachowuje kopię kwarantanny i zamyka ją; wcześniejszy błąd i consumed plan pozostają. Archive(None) chroni zapisany projekt; niezapisane PLC mają osobne pełne captures. Nieznanych zmian poza PLC nie zapisuje się bez potwierdzenia operatora.
+
+Stan: OFFLINE TESTED, Engineering completion i Q1b oczekują osobnej zgody. Pełne wyniki i ścieżki: `X:\TESTY_TIA_Bridge\FC_MULTI_REPAIR_REPORT.md`. Production Core/Host/Worker, capability i ADR bez zmian.
+
+**Ujawniona bramka Engineering:** Archive(None) odmawia dla IsModified=True, także przy próbie ochrony stanu zapisanego. Przygotowanie rekoncyliacji jest obecnie BLOCKED na backupie; nie ma nowego receiptu ani dopuszczonego fallbacku do wcześniejszego backupu. Nowy plan nie jest gotowy do Apply. Zweryfikowano istniejącą oficjalną kopię sprzed CREATE tej samej sesji; jej ewentualne użycie w rekoncyliacji wymaga decyzji o polityce, bez auto Save i bez przepisywania starego receiptu. Szczegóły: X:\TESTY_TIA_Bridge\FC_MULTI_REPAIR_REPORT.md.
+
+## Zakończenie Q1 i odczytowa rekoncyliacja zapisu operatora
+
+Q1 FC910–912 i Q1b mają Engineering PASS dla konkretnego projektu. CREATE/Compile 0/0 wykonano pierwotnie, Save wykonał operator. Nowy `plc-fc-reconcile --phase verify-saved --operator-save-confirmed` nie powtarza tych operacji: wymaga clean, całych 15 modeli równych poprzedniemu checkpointowi po Compile, dokładnego poprawionego źródła, Compile Success 0/0 i grafu, nowego backupu i niezależnych odczytów; po Dispose/receipt zamyka dokładną kwarantannę, zachowując jej kopię i historię błędu. To uznanie wykonanego stanu po nowej weryfikacji zgodnie z dokumentem 04, nie obejście kwarantanny ani zgoda na reimport.
+
+Nowy czysty proces może być objęty świeżym planem, bez przenoszenia starych zgód. Dirty odmawiane jest przed Archive. `Scripts/Invoke-FcQ1Qualification.ps1` automatyzuje discovery celu/kwartanny, plan i backup, sprawdza NTFS/miejsce oraz izoluje TEMP własnego procesu na X:; nie zmienia TEMP TIA, nie restartuje i nie ponawia zapisów. `Start-FcQualificationTia.ps1` nie używa już historycznego PID i nie uruchamia drugiej instancji już otwartego dokładnego projektu. Pełny wynik i ograniczenia: X:\TESTY_TIA_Bridge\FC_MULTI_ENGINEERING_Q1_REPORT.md. Poprzednie opisy FAIL/BLOCKED dotyczą zachowanej historii.

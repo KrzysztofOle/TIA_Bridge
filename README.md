@@ -1,6 +1,6 @@
 # TIA_Bridge 2
 
-[LabExporter PLC Program blocks](docs/LAB_PLC_BLOCKS_SYNC.md): natywny eksport/compare/NO_OP oraz nowy offline-tested profil wielu root FC SCL ze skalarnymi interfejsami i statycznymi zależnościami. Preflight i backup CREATE PASS; Engineering nowej grupy oczekuje osobnej zgody. Historyczny FC900 ma osobne CREATE/UPDATE/restore PASS. Osobne narzędzie laboratoryjne, bez zmian Host/Worker.
+[LabExporter PLC Program blocks](docs/LAB_PLC_BLOCKS_SYNC.md): natywny eksport/compare/NO_OP oraz nowy offline-tested profil wielu root FC SCL ze skalarnymi interfejsami i statycznymi zależnościami. Q1 FC910–912 Engineering PASS po CREATE/Compile 0/0, ręcznym Save operatora i niezależnej odczytowej rekoncyliacji; Q1b IDENTICAL/NO_OP PASS. Bez replay importu/Compile/Save i bez ogólnej kwalifikacji dowolnych FC. Historyczny FC900 ma osobne CREATE/UPDATE/restore PASS. Osobne narzędzie laboratoryjne, bez zmian Host/Worker.
 
 [Offline Source Package Preflight MVP 1.0](docs/OFFLINE_SOURCE_PREFLIGHT.md): samodzielny walidator manifestu, listy plików, SHA-256 oryginalnych bajtów i deklarowanej polityki UTF-8/BOM/EOL. JSON i stabilne kody zakończenia; bez TIA i zmian źródeł. Nie kwalifikuje importu ani Runtime.
 

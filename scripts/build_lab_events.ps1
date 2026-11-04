@@ -9,7 +9,8 @@ New-Item -ItemType Directory -Path $run | Out-Null
 $binary = Join-Path $LabRoot 'bin\LabExporter.exe'
 if (Test-Path -LiteralPath $binary) { Copy-Item -LiteralPath $binary -Destination (Join-Path $run 'LabExporter.before.exe') }
 $candidate = Join-Path $run 'LabExporter.exe'
-$sources = @('LabExporter.cs','LabEventExport.cs','LabEventVendor.cs','LabEventView.cs','LabEventConsole.cs','LabEventSync.cs','LabForceSync.cs','LabNewModules.cs','LabUdtSync.cs','LabPlcBlocksSync.cs','LabPlcFcImport.cs','LabPlcFcModel.cs') | ForEach-Object { Join-Path $LabRoot ('src\' + $_) }
+$sources = @('LabExporter.cs','LabEventExport.cs','LabEventVendor.cs','LabEventView.cs','LabEventConsole.cs','LabEventSync.cs','LabForceSync.cs','LabNewModules.cs','LabUdtSync.cs','LabPlcBlocksSync.cs','LabPlcFcImport.cs','LabPlcFcModel.cs','LabPlcFcReconcile.cs') | ForEach-Object { Join-Path $LabRoot ('src\' + $_) }
+$sources += Join-Path $LabRoot 'src\LabPlcSources.cs'
 $support = @((Join-Path $LabRoot 'src\ValidateNewModule.ps1'), (Join-Path $LabRoot 'bin\Esprima.dll'))
 foreach ($dependency in @($sources + $support)) {
     if (-not (Test-Path -LiteralPath $dependency -PathType Leaf)) { throw "Build dependency missing; current binary preserved: $dependency" }
