@@ -1,5 +1,15 @@
 # Zmiany — TIA_Bridge 2
 
+## 2026-11-04 — LabExporter: PLC Program blocks, read-only Engineering
+
+Dodano laboratoryjne [plc-blocks-sync](docs/LAB_PLC_BLOCKS_SYNC.md) w zewnętrznym `X:\TESTY_TIA_Bridge`: rekursywny natywny eksport OB/FC/FB/GlobalDB/InstanceDB, manifesty SHA-256, porównanie, plan/dry-run, ochronę lokalnych zmian i NO_OP. Zmieniony repo-to-tia pozostaje BLOCKED przed mutacją do kwalifikacji rodzaju bloku i osobnej autoryzacji Engineering. Uaktualniono builder laboratoryjny, by uwzględniał oba moduły PLC. Na wskazanym projekcie wykonano odczyt 11 bloków, eksport do Program blocks, readback i finalne cztery NO_OP; brak Import/Archive/Compile/Save/Runtime. Pełny raport, lista plików, testy i lokalizacje dowodów są przy laboratorium. Istniejące zmiany użytkownika zachowano; bez commit/push.
+
+Ocena sekcja po sekcji: AGENTS — zakres/stany, hierarchia, niezmienniki, autoryzacja/testy, dyscyplina, Git, dane/kontrakty; Instrukcja_ChatGPT — 1 cel, 2 odpowiedzialność, 3 źródła, 4 architektura, 5 zadania, 6 wyniki, 7 bezpieczeństwo/recovery, 8 decyzje/spójność, 9 GitHub/dokumentacja, 10 styl. Obie instrukcje pozostają bez zmian: rozszerzenie niezależnego LabExporter egzekwuje istniejące deny-by-default, rozdzielenie dowodów i ochronę przed mutacją bez kwalifikacji. Przejrzano ADR 0001–0003, specyfikacje 03–08, dokument 04 i istniejący laboratoryjny kontrakt UDT: nie zmienia się produkcyjnej architektury, DTO, grantów, Apply/SYNCED ani uprawnień do TIA. Nowy kontrakt laboratoryjny jest odrębny; nie stwierdzono nierozstrzygniętej sprzeczności. Kontrole jakości, odnośników i diffu są częścią końcowego sprawdzenia.
+
+## 2026-11-04 — zbiorczy opis laboratoryjnego LabExporter
+
+Dodano [LABEXPORTER_OVERVIEW](docs/LABEXPORTER_OVERVIEW.md): podsumowanie możliwości `LabExporter.exe`, tabelę argumentów poleceń i przykłady odpowiadające konfiguracjom `C:\RMA\t05_plc\.vscode\launch.json`. Dokument wskazuje też źródła i skrypt budujący oraz zachowuje granice narzędzia laboratoryjnego względem produkcyjnego Host/Worker. Oceniono `AGENTS.md` oraz `Instrukcja_ChatGPT.md` sekcja po sekcji i właściwe kontrakty: bez zmian, ponieważ opis porządkuje istniejące interfejsy i nie zmienia architektury, uprawnień ani semantyki. Kontrola jakości, odnośników i diffu wykonana.
+
 ## 2026-11-03 — LabExporter UDT: bramka adnotacji, offline
 
 W zewnętrznym `X:\TESTY_TIA_Bridge` dodano walidację czterech jawnych adnotacji względem świeżego XML przed Archive i pierwszą mutacją. WithDefaults nie dowodzi jawnego ustawienia wartości. Niezakwalifikowany generator V19 oznacza BLOCKED również dla kompletnego źródła i zatwierdzonego planu; NO_OP nie regeneruje. Zaktualizowano [workflow](docs/LAB_UDT_SYNC.md); szczegółowy kontrakt i dowody pozostają przy LabExporter w PLC_DATA_TYPES.md / UDT_METADATA_REPORT.md. Nie zmieniono Host/Worker ani zastanej zmiany docs/04_SYNCHRONIZATION.md. Bez operacji TIA, commit/push.

@@ -1,5 +1,7 @@
 # TIA_Bridge 2
 
+[LabExporter PLC Program blocks](docs/LAB_PLC_BLOCKS_SYNC.md): natywny eksport, porównanie i NO_OP dla 11 bloków testowych; zmieniony import BLOCKED do kwalifikacji. Osobne narzędzie laboratoryjne, bez zmian Host/Worker.
+
 [Offline Source Package Preflight MVP 1.0](docs/OFFLINE_SOURCE_PREFLIGHT.md): samodzielny walidator manifestu, listy plików, SHA-256 oryginalnych bajtów i deklarowanej polityki UTF-8/BOM/EOL. JSON i stabilne kody zakończenia; bez TIA i zmian źródeł. Nie kwalifikuje importu ani Runtime.
 
 [LAB-03P — wymuszenie importu i force-sync](docs/LAB_03P_FORCE_SYNC.md): samodzielny LabExporter z pełnym NO_OP, walidacją manifestów, kontrolą readbacku i różnicową publikacją. **OFFLINE TESTED; ENGINEERING VERIFIED** dla pełnego NO_OP na laboratoryjnym TIA V19 (2026-11-03); **RUNTIME NOT_RUN**. Przy rzeczywistych zmianach nadal pełny import kolekcji z backupem, Compile/Save/readback. Wyniki i granice w LAB-03P; nie są to funkcje Host/Worker.
