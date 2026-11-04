@@ -6,9 +6,9 @@ Dokument opisuje laboratoryjny program `X:\TESTY_TIA_Bridge\bin\LabExporter.exe`
 
 `LabExporter.exe` to oddzielne narzędzie laboratoryjne .NET Framework 4.8, x64, korzystające z Siemens TIA Portal V19 PublicAPI. Źródła programu znajdują się w `X:\TESTY_TIA_Bridge\src`. Nie jest to produkcyjny TIA_Bridge Host ani Worker i jego możliwości nie są automatycznie capability produkcyjnego Bridge.
 
-Skrypt repozytorium [build_lab_events.ps1](../scripts/build_lab_events.ps1) buduje narzędzie laboratoryjne ze źródeł w `X:\TESTY_TIA_Bridge\src` przy użyciu Windows PowerShell 5.1 x64, .NET Framework `csc.exe` i zainstalowanego Siemens PublicAPI V19. Aktualny zestaw zawiera `LabExporter.cs`, `LabEventExport.cs`, `LabEventVendor.cs`, `LabEventView.cs`, `LabEventConsole.cs`, `LabEventSync.cs`, `LabForceSync.cs`, `LabNewModules.cs`, `LabUdtSync.cs` i `LabPlcBlocksSync.cs`. Wymagane są również `src\ValidateNewModule.ps1` i `bin\Esprima.dll`; kompilator odwołuje się do systemowych bibliotek i PublicAPI, nie kopiuje Siemens DLL. Skrypt zachowuje poprzedni EXE w `evidence\LAB-03K-build-<UUID>`, publikuje nowy `bin\LabExporter.exe` po udanej kompilacji i zapisuje `build-manifest.json` z rozmiarami i SHA-256 źródeł, EXE oraz zależności pomocniczych. To wyłącznie build; nie wywołuje Siemens Openness.
+Skrypt repozytorium [build_lab_events.ps1](../scripts/build_lab_events.ps1) buduje narzędzie laboratoryjne ze źródeł w `X:\TESTY_TIA_Bridge\src` przy użyciu Windows PowerShell 5.1 x64, .NET Framework `csc.exe` i zainstalowanego Siemens PublicAPI V19. Aktualny zestaw zawiera `LabExporter.cs`, `LabEventExport.cs`, `LabEventVendor.cs`, `LabEventView.cs`, `LabEventConsole.cs`, `LabEventSync.cs`, `LabForceSync.cs`, `LabNewModules.cs`, `LabUdtSync.cs`, `LabPlcBlocksSync.cs` i `LabPlcFcImport.cs`. Wymagane są również `src\ValidateNewModule.ps1` i `bin\Esprima.dll`; kompilator odwołuje się do systemowych bibliotek i PublicAPI, nie kopiuje Siemens DLL. Skrypt zachowuje poprzedni EXE w `evidence\LAB-03K-build-<UUID>`, publikuje nowy `bin\LabExporter.exe` po udanej kompilacji i zapisuje `build-manifest.json` z rozmiarami i SHA-256 źródeł, EXE oraz zależności pomocniczych. To wyłącznie build; nie wywołuje Siemens Openness.
 
-W samym laboratorium aktualnym pełnym builderem jest `X:\TESTY_TIA_Bridge\scripts\build_udt.ps1`. Kompiluje ten sam bieżący zestaw dziesięciu plików C# w trybie x64, kopiuje konfigurację obok kandydata, zachowuje poprzedni EXE i manifest źródeł w `evidence\UDT-build-<UUID>`. Domyślnie zastępuje `bin\LabExporter.exe`; `-CandidateOnly` buduje kandydata bez podmiany. Tożsamość builda ustala manifest/hash, nie deklarowana wersja narzędzia. Oba skrypty wymagają lokalnie zainstalowanych zależności wskazanych w ich treści i nie przenoszą źródeł ani vendor DLL do produkcyjnego TIA_Bridge.
+W samym laboratorium aktualnym pełnym builderem jest `X:\TESTY_TIA_Bridge\scripts\build_udt.ps1`. Kompiluje bieżący zestaw jedenastu plików C# w trybie x64, kopiuje konfigurację obok kandydata, zachowuje poprzedni EXE i manifest źródeł w `evidence\UDT-build-<UUID>`. Domyślnie zastępuje `bin\LabExporter.exe`; `-CandidateOnly` buduje kandydata bez podmiany. Tożsamość builda ustala manifest/hash, nie deklarowana wersja narzędzia. Oba skrypty wymagają lokalnie zainstalowanych zależności wskazanych w ich treści i nie przenoszą źródeł ani vendor DLL do produkcyjnego TIA_Bridge.
 
 ## Główne możliwości
 
@@ -19,7 +19,7 @@ W samym laboratorium aktualnym pełnym builderem jest `X:\TESTY_TIA_Bridge\scrip
 | `force-sync` | Porównanie paczki z HMI; NO_OP albo synchronizacja | Przy różnicach wykonuje pełną ścieżkę importu, kompilacji, Save i readbacku. Zgodny stan może zakończyć się NO_OP. |
 | `export-events` | Odczyt publicznych handlerów zdarzeń ekranów Unified | Eksport read-only danych i raportów; wynik może być `PARTIAL`, gdy API nie udostępnia całego wnętrza obiektów. |
 | `udt-sync` | Eksport, porównanie lub kontrolowany workflow PLC UDT | Kierunek wybiera `--direction`; zapis repozytorium albo próba repo→TIA zależy od kierunku i bramek. Aktualny import repo→TIA ze zmianami jest blokowany przez niezakwalifikowaną ochronę metadanych V19. |
-| `plc-blocks-sync` | Natywny eksport i porównanie bloków PLC OB/FC/FB/GlobalDB/InstanceDB | Eksport TIA→repo i compare mają readback Engineering; `repo-to-tia` kończy się `NO_OP` przy zgodności, a każda różnica jest blokowana przed mutacją. Brak adaptera Download/Runtime. |
+| `plc-blocks-sync` | Natywny eksport i porównanie bloków PLC OB/FC/FB/GlobalDB/InstanceDB | Eksport TIA→repo i compare mają readback Engineering; `repo-to-tia` kończy się `NO_OP` przy zgodności, a ogólny import pozostaje zablokowany. Osobny tryb kwalifikacji jednego FC SCL opisuje [kontrakt PLC](LAB_PLC_BLOCKS_SYNC.md); CREATE/UPDATE/restore wymagają osobnych dowodów i zgód na plan. Brak adaptera Download/Runtime. |
 
 Szczegółowe kontrakty: [LAB-03K eksport zdarzeń](LAB_03K_HMI_EVENT_EXPORT.md), [LAB-03P force-sync](LAB_03P_FORCE_SYNC.md), [LAB-03Q tworzenie modułów](LAB_03Q_CREATE_MODULES.md), [workflow UDT](LAB_UDT_SYNC.md) oraz dokumentacja laboratoryjna `PLC_DATA_TYPES.md` w `X:\TESTY_TIA_Bridge`.
 
@@ -77,11 +77,14 @@ W aktualnym stanie repo→TIA ze zmianami jest blokowane przed mutacją przez `U
 | `--source DIRECTORY` | Tak | Katalog pakietu natywnych XML i manifestu `.plc-blocks-sync.json`. |
 | `--blocks NAME[,NAME]\|*` | Tak | Jawna lista nazw bloków lub `*` dla wszystkich; nazwa tożsamości obejmuje rodzaj w dokładnym PLC. |
 | `--dry-run` | Nie | Tworzy plan i dowody bez publikowania plików ani mutacji TIA. |
-| `--approve-plan SHA256` | Nie | Dla `repo-to-tia`: 64-znakowy hash bindingu planu. Nie omija blokady kwalifikacji importu. |
+| `--approve-plan SHA256` | Przy imporcie | Hash bindingu konkretnego planu; drift blokuje. Nie rozszerza zakresu kwalifikacji. |
+| `--qualification-only` | Przy imporcie FC | Jawny eksperyment pojedynczego FC_LabExporter_SyncProbe w dokładnym projekcie testowym. |
+| `--prepare-backup` | Nie | Tylko repo-to-tia z dry-run; przygotowuje backup zmienionego planu na X: przed zgodą. |
+| `--backup-receipt PATH` | Przy imporcie FC | Zweryfikowany receipt backupu związany z tym planem/procesem; przed importem także świeży backup. |
 
 `compare` i dry-run pozostawiają XML źródłowe bez zmian; zapisują raporty i plan w nowym katalogu evidence laboratorium. `tia-to-repo` wykonuje ponowny eksport/readback, po czym publikuje wyłącznie zarządzane artefakty objęte wyborem, z ochroną lokalnych zmian. Oczekuj statusu Engineering `PASS_READ_ONLY_CAPTURE` dla odczytu zakończonego z niezależnym readbackiem; statusy `NOT_RUN`, `BLOCKED` i `REVIEW_REQUIRED` nie są PASS. Kod wyjścia 0 obejmuje ukończone odczyty również przy statusie `DIFFERENCES`; kod 2 oznacza blokadę/przegląd. Sprawdzaj `report.json` i nie wnioskuj o pełnej kwalifikacji rodzajów nieobecnych w testowanym projekcie.
 
-`NO_OP` oznacza brak różnic w wybranym zakresie po porównaniu/readbacku. Przy `repo-to-tia` zgodny stan nie wywołuje Archive, Import, Compile ani Save; przy niezgodności polecenie raportuje `PLC_IMPORT_V19_NOT_QUALIFIED` i zatrzymuje się przed pierwszą mutacją, także z `--dry-run` i poprawnym `--approve-plan`. Nie ma aktywnego adaptera importu, kompletnej walidacji zależności ani kwalifikacji zachowania numerów/metadanych/interfejsów. NIE używaj polecenia do importu zmienionych bloków. Nie obejmuje ono Download ani Runtime.
+`NO_OP` oznacza zgodność po niezależnym odczycie; zgodny repo-to-tia nie wywołuje Archive/Import/Compile/Save. Ogólny import FC oraz OB/FB/DB pozostają zablokowane. Odrębny natywny adapter przyjmuje wyłącznie pojedynczy FC SCL probe w dokładnym projekcie testowym, z manifestem wejścia, zgodnym planem i backupem. Zmiana interfejsu/metadanych lub nieznane zależności blokują operację. CREATE, UPDATE i restore po ręcznym usunięciu uzyskały osobne Engineering PASS; końcowe compare/NO_OP PASS. Przy niepewności pozostaje trwała kwarantanna, bez retry/rollbacku. Aktualny [kontrakt PLC](LAB_PLC_BLOCKS_SYNC.md) i raport przy laboratorium zawierają dokładne granice oraz dowody. Download i Runtime nie są wykonywane.
 
 ## Przykładowe uruchomienia z `C:\RMA\t05_plc\.vscode\launch.json`
 
@@ -193,7 +196,7 @@ Launch.json pobiera `udtReviewedPlanHash` z okna promptu i przekazuje go jako `-
   --dry-run
 ```
 
-Usuń `--dry-run` po przejrzeniu planu, jeśli zamierzasz opublikować eksport do wskazanego folderu. Początkowa kwalifikacja Engineering dla `T05_RecipeSim_V19` objęła 11 bloków OB/FC/GlobalDB, odczyt i eksport z niezależnym readbackiem oraz powtórne NO_OP. FB, InstanceDB i podfoldery nie wystąpiły w projekcie; ich Engineering pozostaje `NOT_RUN`. Import zmian, Download i Runtime również pozostają `NOT_RUN`/BLOCKED zgodnie z raportem laboratoryjnym.
+Usuń `--dry-run` po przejrzeniu planu, jeśli zamierzasz opublikować eksport do wskazanego folderu. Początkowa kwalifikacja Engineering dla `T05_RecipeSim_V19` objęła 11 bloków OB/FC/GlobalDB, odczyt i eksport z niezależnym readbackiem oraz powtórne NO_OP. FB, InstanceDB i podfoldery nie wystąpiły w projekcie; ich Engineering pozostaje `NOT_RUN`. W tej historycznej sesji import zmian był NOT_RUN/BLOCKED. Późniejsza kwalifikacja jednego FC SCL w dokładnym T05_RecipeSim_V19_Testowy uzyskała CREATE/UPDATE/restore PASS; nie rozszerza starych konfiguracji launch.json ani kwalifikacji innych bloków. Download i Runtime pozostają NOT_RUN.
 
 ### PLC BLOCKS REPO → TIA — tylko dry-run diagnostyczny
 
@@ -207,7 +210,7 @@ Usuń `--dry-run` po przejrzeniu planu, jeśli zamierzasz opublikować eksport d
   --dry-run
 ```
 
-Ten przykład nie importuje bloków. Zgodny pakiet może zakończyć się `NO_OP`; każda różnica kończy się blokadą `PLC_IMPORT_V19_NOT_QUALIFIED` przed mutacją. Hash planu nie otwiera importu. Szczegóły zakresu, statusów i ograniczeń: [LAB PLC blocks sync](LAB_PLC_BLOCKS_SYNC.md) oraz raport `X:\TESTY_TIA_Bridge\PLC_BLOCKS_REPORT.md`.
+Ten przykład nie importuje bloków. Zgodny pakiet może zakończyć się `NO_OP`; zmieniony zakres pozostaje zablokowany poza pojedynczym, ściśle ograniczonym FC SCL w trybie qualification-only. Hash planu sam nie otwiera importu. Szczegóły zakresu, statusów i ograniczeń: [LAB PLC blocks sync](LAB_PLC_BLOCKS_SYNC.md) oraz raport `X:\TESTY_TIA_Bridge\PLC_BLOCKS_REPORT.md`.
 
 ## Ważne granice
 
