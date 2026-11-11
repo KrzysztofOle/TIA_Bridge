@@ -1441,3 +1441,27 @@ Testy używają wyłącznie kluczy efemerycznych, syntetycznego payloadu i artef
 Wyniki: Release build całego rozwiązania PASS (0 ostrzeżeń). Core 564/564 PASS; E1 Host/V19 45/45 PASS; pełny Host 254/257, trzy FAIL w istniejącym `ResilienceArtifactTests` (po completion wynik GET `/result` zwrócił 200 zamiast oczekiwanego 422 dla modified artefaktu; przed completion przypadki truncated/missing nie osiągnęły oczekiwanego DEGRADED w 10 s). Testy i kod artefaktów nie należą do E1 zmian; nie zmieniano ich. Pierwsze Host suite było związane ze starym output path; pełny suite w konfiguracji E1 użył świeżych binariów i powtórzył te same trzy FAIL. Python kontrakty 42/42 PASS; audit_quality PASS (54 Markdown, 470 lokalnych odnośników); dotnet format whitespace PASS; git diff --check PASS. Nie uruchamiano Siemens ani validate_offline pełnego harnessu/D-11. E1 provider i testy specyficzne przechodzą; pełny Host suite pozostaje FAIL, więc przed integracją gałęzi należy osobno rozstrzygnąć awarie resilience.
 
 Ocena wpływu: AGENTS i Instrukcja_ChatGPT sprawdzone sekcja po sekcji; pozostają bez zmian, bo nie zmieniono autoryzacji TIA, workflow CODEX ani zasad bezpieczeństwa. ADR 0001–0003 i kontrakty pozostają bez zmian; rozwiązanie realizuje obecny adapter/trust boundary bez nowego scheduler/grant/API/IPC. D-11 i historyczne raporty bez zmian. Production qualification NOT_RUN; D-11 current limited PASS zachowany; NF-11 NOT_RUN; Worker handle risk UNKNOWN; B-03A Engineering BLOCKED/NOT_RUN; B-03B NOT_READY.
+
+## 2026-11-11 — T05 Recipe Editor public V19 qualification operation
+
+Added a dedicated lab-only public V19 operation, candidate builder, contract tests
+and qualification report. Source Archive/Retrieve and dependent Catalog/Editor JS
+import/Compile/Save/independent readback passed on the isolated copy. The operation
+created 30 controls and 11 handlers, retained 47 original objects/navigation and
+stopped before form Compile/Save on an empty-text readback mismatch. The lab is
+IsModified=True and RECONCILIATION_REQUIRED; no replay, rollback or recovery Save.
+The original final public snapshot and eight native JS pairs are unchanged and
+IsModified=False. Candidate build13 fixes observed empty-paragraph serialization,
+adds typed InputBehavior evidence and passes offline regression; it has not
+completed the mutating qualification. See
+[qualification](docs/T05_RECIPE_EDITOR_V19_QUALIFICATION.md).
+
+Instruction impact review: AGENTS sections scope/state, hierarchy, boundaries,
+authorization/tests, change discipline, Git and untrusted inputs; Instrukcja_ChatGPT
+sections 1–10 (purpose, responsibilities, sources, architecture, task, results,
+safety/recovery, decisions, GitHub and style) were reviewed. Both remain unchanged:
+this is an explicitly requested bounded lab qualification, with no general Apply
+capability or new permissions. ADR 0001–0003 and specifications 03–08 remain
+applicable; no change to DTOs, capability or SYNCED semantics. The distinct
+laboratory operation, partial failure, persistent intent and separate recovery
+plan preserve the existing safety contract. Production readiness is BLOCKED.
