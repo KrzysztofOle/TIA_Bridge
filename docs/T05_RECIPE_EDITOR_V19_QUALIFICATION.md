@@ -1,5 +1,14 @@
 # T05 Recipe Editor — Openness V19 qualification, 2026-11-11
 
+Update 2026-11-12: authorized finalization stopped at read-only preflight with
+`EXACT_OPEN_PROJECT_NOT_UNIQUE:0`. The exact lab AP19 still exists on disk, but
+the former lab process/owner is absent; only the base test project is advertised.
+No Attach to that other project, Compile, Save or intent closure was performed.
+Current IsModified and preservation of the previously unsaved form are UNKNOWN.
+Engineering remains BLOCKED; Runtime NOT_RUN; original INTENT remains active.
+New evidence is below the original evidence root in
+`engineering-finalization-20261112T060307/report.md` and `result.json`.
+
 **Result: BLOCKED / RECONCILIATION_REQUIRED.** JavaScript synchronization passed
 Engineering on the isolated copy. The form operation created thirty controls and
 configured eleven required handlers, then stopped before Compile/Save because
